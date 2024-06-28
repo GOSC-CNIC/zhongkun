@@ -14,6 +14,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from django.contrib.contenttypes.models import ContentType
 from apps.app_alert.utils.utils import DateUtils
 from django.utils import timezone
+from apps.app_alert.handlers.handlers import move_to_resolved
 
 
 class AlertReceiver(object):
@@ -197,18 +198,4 @@ class AlertReceiver(object):
         alerts = AlertModel.objects.filter(end__lt=self.timestamp).all()
         for alert in alerts:
             if alert.type in [AlertModel.AlertType.METRIC, AlertModel.AlertType.WEBMONITOR]:
-                self.move_to_resolved(alert)
-
-    def move_to_resolved(self, alert):
-        item = model_to_dict(alert)
-        item["id"] = alert.id
-        item["order"] = alert.order
-        item["modification"] = self.timestamp
-        if item.get("status") == AlertModel.AlertStatus.FIRING.value:
-            item["status"] = AlertModel.AlertStatus.RESOLVED.value
-            item["recovery"] = self.timestamp
-        try:
-            ResolvedAlertModel.objects.create(**item)
-        except IntegrityError as e:
-            pass
-        alert.delete()
+                move_to_resolved(alert)

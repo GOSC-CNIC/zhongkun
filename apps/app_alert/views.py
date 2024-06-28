@@ -2,10 +2,13 @@ import copy
 import time
 from rest_framework.generics import GenericAPIView
 from django.utils.translation import gettext_lazy
-from apps.app_alert.filters import AlterFilter, AlertFilterBackend, WorkOrderFilter
+from apps.app_alert.filters import AlertFilterBackend
 from apps.app_alert.models import AlertModel
 from apps.app_alert.models import ResolvedAlertModel
 from apps.app_alert.models import AlertWorkOrder
+from apps.app_alert.models import TicketResolutionCategory
+from apps.app_alert.models import TicketResolution
+from apps.app_alert.models import AlertTicket
 from rest_framework.views import APIView
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -16,9 +19,21 @@ from apps.app_alert.pagination import CustomAlertCursorPagination
 from django_filters.rest_framework import DjangoFilterBackend
 from apps.app_alert.handlers.handlers import AlertChoiceHandler
 from rest_framework.mixins import CreateModelMixin
+from rest_framework.mixins import ListModelMixin
+from rest_framework.mixins import RetrieveModelMixin
+from rest_framework.mixins import UpdateModelMixin
+from rest_framework.mixins import DestroyModelMixin
 from apps.app_alert.serializers import WorkOrderSerializer
 from apps.app_alert.serializers import NotificationModelSerializer
+from apps.app_alert.serializers import TicketResolutionCategorySerializer
+from apps.app_alert.serializers import TicketResolutionCategoryRelationSerializer
+from apps.app_alert.serializers import BelongedServiceSerializer
+from apps.app_alert.serializers import TicketResolutionSerializer
+from apps.app_alert.serializers import AlertTicketSerializer
 from apps.app_alert.filters import WorkOrderFilter
+from apps.app_alert.filters import TicketResolutionCategoryFilter
+from apps.app_alert.filters import TicketResolutionFilter
+from apps.app_alert.filters import AlertTicketFilter
 from rest_framework import status as status_code
 from rest_framework.exceptions import PermissionDenied
 from apps.app_alert.models import EmailNotification
@@ -35,6 +50,11 @@ from collections import OrderedDict
 from rest_framework.permissions import IsAuthenticated
 from core.aai.authentication import CreateUserJWTAuthentication
 from rest_framework.authentication import BasicAuthentication, SessionAuthentication
+from apps.app_alert.handlers.ticket import has_service_permission
+from apps.app_alert.models import ServiceAdminUser
+from apps.app_alert.serializers import ServiceAdminUserSerializer
+from apps.app_alert.filters import ServiceAdminUserFilter
+from apps.app_alert.handlers.handlers import move_to_resolved
 
 
 # Create your views here.
@@ -259,6 +279,394 @@ class AlertChoiceAPIView(APIView):
         return Response(result)
 
 
+class TicketResolutionHistoryListAPIView(GenericAPIView, ListModelMixin):
+    """
+    查询告警工单解决方案历史数据
+    """
+    queryset = TicketResolutionCategory.objects.all()
+    serializer_class = TicketResolutionCategorySerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = TicketResolutionCategoryFilter
+    pagination_class = LimitOffsetPage
+    permission_classes = [IsAuthenticated, ]
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询告警工单解决方案历史数据'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        if not has_service_permission(service_name=request.query_params.get('service'), user=request.user):
+            raise PermissionDenied()
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = TicketResolutionCategoryRelationSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = TicketResolutionCategoryRelationSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+
+class TicketResolutionCategoryListGenericAPIView(GenericAPIView, ListModelMixin, CreateModelMixin):
+    """
+    创建告警工单 解决方案类型
+    """
+    queryset = TicketResolutionCategory.objects.all()
+    serializer_class = TicketResolutionCategorySerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = TicketResolutionCategoryFilter
+    pagination_class = LimitOffsetPage
+    permission_classes = [IsAuthenticated, ]
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('创建工单解决方案类型'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status_code.HTTP_201_CREATED, headers=headers)
+
+    def perform_create(self, serializer):
+        service_name = serializer.validated_data.get('service')
+        if not has_service_permission(service_name=service_name, user=self.request.user):
+            raise PermissionDenied()
+        serializer.save()
+
+
+class TicketResolutionCategoryDetailGenericAPIView(
+    GenericAPIView,
+    RetrieveModelMixin,
+    UpdateModelMixin,
+    DestroyModelMixin
+):
+    """
+    告警工单 解决方案 类型
+    """
+    queryset = TicketResolutionCategory.objects.all()
+    serializer_class = TicketResolutionCategorySerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = TicketResolutionCategoryFilter
+    pagination_class = LimitOffsetPage
+    permission_classes = [IsAuthenticated, ]
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询指定工单解决方案类型'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if not has_service_permission(service_name=instance.service, user=request.user):
+            raise PermissionDenied()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('修改指定工单解决方案类型'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def put(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', True)
+        instance = self.get_object()
+        if not has_service_permission(service_name=instance.service, user=request.user):
+            raise PermissionDenied()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        if getattr(instance, '_prefetched_objects_cache', None):
+            instance._prefetched_objects_cache = {}
+        return Response(serializer.data)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('删除指定工单解决方案类型'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def delete(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if not has_service_permission(service_name=instance.service, user=request.user):
+            raise PermissionDenied()
+        self.perform_destroy(instance)
+        return Response(status=status_code.HTTP_204_NO_CONTENT)
+
+
+class TicketResolutionListGenericAPIView(GenericAPIView, ListModelMixin, CreateModelMixin):
+    """
+    告警工单 解决方案
+    列表查询，创建
+    """
+    queryset = TicketResolution.objects.all()
+    serializer_class = TicketResolutionSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = TicketResolutionFilter
+    pagination_class = LimitOffsetPage
+    permission_classes = [IsAuthenticated, ]
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('创建工单解决方案'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status_code.HTTP_201_CREATED, headers=headers)
+
+    def perform_create(self, serializer):
+        category = serializer.validated_data.get('category')
+        if not has_service_permission(service_name=category.service, user=self.request.user):
+            raise PermissionDenied()
+        serializer.save()
+
+
+class TicketResolutionDetailGenericAPIView(
+    GenericAPIView,
+    RetrieveModelMixin,
+    UpdateModelMixin,
+    DestroyModelMixin
+):
+    """
+    告警工单 解决方案
+    """
+    queryset = TicketResolution.objects.all()
+    serializer_class = TicketResolutionSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = TicketResolutionFilter
+    pagination_class = LimitOffsetPage
+    permission_classes = [IsAuthenticated, ]
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询指定工单解决方案'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if not has_service_permission(service_name=instance.category.service, user=request.user):
+            raise PermissionDenied()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('修改指定工单解决方案'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def put(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', True)
+        instance = self.get_object()
+        if not has_service_permission(service_name=instance.category.service, user=request.user):
+            raise PermissionDenied()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        if getattr(instance, '_prefetched_objects_cache', None):
+            instance._prefetched_objects_cache = {}
+        return Response(serializer.data)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('删除指定工单解决方案'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def delete(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if not has_service_permission(service_name=instance.category.service, user=request.user):
+            raise PermissionDenied()
+        self.perform_destroy(instance)
+        return Response(status=status_code.HTTP_204_NO_CONTENT)
+
+
+class AlertTicketListGenericAPIView(GenericAPIView, ListModelMixin, CreateModelMixin):
+    """
+    查询工单列表
+    创建新的工单
+    """
+    queryset = AlertTicket.objects.all()
+    serializer_class = AlertTicketSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = AlertTicketFilter
+    pagination_class = LimitOffsetPage
+    permission_classes = [IsAuthenticated, ]
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询告警工单列表'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def filter_queryset(self, queryset):
+        for backend in list(self.filter_backends):
+            queryset = backend().filter_queryset(self.request, queryset, self)
+        user = self.request.user
+        service_admin_queryset = ServiceAdminUser.objects.filter(userprofile=user)
+        service_list = list()
+        for obj in service_admin_queryset:
+            service = obj.service
+            service_list.append(service.name_en)
+        return queryset.filter(service__in=service_list)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('创建告警工单'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        service_serializer = BelongedServiceSerializer(data=self.request.data)
+        service_serializer.is_valid(raise_exception=True)
+        service = service_serializer.data.get('alerts')
+        # 用户权限验证
+        if not has_service_permission(service_name=service.name_en, user=self.request.user):
+            raise PermissionDenied()
+
+        # 告警是否已经存在工单
+        alert_object_list = list()
+        for alert in self.request.data.get('alerts'):
+            obj = AlertModel.objects.filter(id=alert).first()
+            if not obj:
+                raise errors.InvalidArgument(f'invalid alert:{alert}')
+            if obj.ticket:
+                raise errors.InvalidArgument(f'work order already exists')
+            alert_object_list.append(obj)
+        # 保存工单
+        ticket = serializer.save(
+            submitter=self.request.user,
+            service=service.name_en,
+        )
+        # 告警关联工单
+        for obj in alert_object_list:
+            obj.ticket = ticket
+            obj.save()
+            if ticket.resolution:  # 已经填写解决方案
+                obj.recovery = DateUtils.timestamp()
+                obj.status = AlertModel.AlertStatus.RESOLVED.value
+                ticket.status = AlertTicket.Status.CLOSED.value
+                ticket.save()
+                obj.save()
+                if obj.type == AlertModel.AlertType.LOG.value:  # 日志类 归入 已恢复队列
+                    move_to_resolved(obj)
+        return Response(serializer.data, status=status_code.HTTP_201_CREATED)
+
+
+class AlertTicketDetailGenericAPIView(
+    GenericAPIView,
+    RetrieveModelMixin,
+    UpdateModelMixin,
+    DestroyModelMixin
+):
+    """
+    告警工单
+    列表查询，创建
+    """
+    queryset = AlertTicket.objects.all()
+    serializer_class = AlertTicketSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = AlertTicketFilter
+    pagination_class = LimitOffsetPage
+    permission_classes = [IsAuthenticated, ]
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询指定告警工单'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('修改指定告警工单'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def put(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', True)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # forcibly invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
+
+        return Response(serializer.data)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('删除指定告警工单'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def delete(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(status=status_code.HTTP_204_NO_CONTENT)
+
+
 class WorkOrderListGenericAPIView(GenericAPIView, CreateModelMixin):
     queryset = AlertWorkOrder.objects.all()
     serializer_class = WorkOrderSerializer
@@ -445,3 +853,62 @@ class EmailNotificationAPIView(GenericAPIView):
         if not self.request:
             return EmailNotification.objects.none()
         return self.queryset.filter(email=self.request.user.email)
+
+
+class AlertServiceAPIView(APIView):
+    permission_classes = [IsAuthenticated, ]
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询告警列表所属的服务'),
+        manual_parameters=[
+        ],
+        responses={
+        }
+    )
+    def post(self, request, *args, **kwargs):
+        serializer = BelongedServiceSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        service = serializer.data.get('alerts')
+        service_user = service.users.filter(username=request.user.username)
+        if not service_user:
+            raise PermissionDenied()
+        return Response({"service": service.name_en})
+
+
+class AlertServiceAdminListGenericAPIView(GenericAPIView, ListModelMixin, CreateModelMixin):
+    queryset = ServiceAdminUser.objects.all()
+    serializer_class = ServiceAdminUserSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = ServiceAdminUserFilter
+    pagination_class = LimitOffsetPage
+    permission_classes = [IsAuthenticated, ]
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询服务的管理员列表'),
+        manual_parameters=[
+        ],
+        responses={
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        if not has_service_permission(service_name=request.query_params.get('service'), user=request.user):
+            raise PermissionDenied()
+        queryset = self.filter_queryset(self.get_queryset())
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    # def create(self, request, *args, **kwargs):
+    #     serializer = self.get_serializer(data=request.data)
+    #     serializer.is_valid(raise_exception=True)
+    #     self.perform_create(serializer)
+    #     headers = self.get_success_headers(serializer.data)
+    #     return Response(serializer.data, status=status_code.HTTP_201_CREATED, headers=headers)
+    #
+    # def perform_create(self, serializer):
+    #     serializer.save()

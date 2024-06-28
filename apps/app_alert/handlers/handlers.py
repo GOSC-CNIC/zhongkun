@@ -1,18 +1,26 @@
-import json
-import time
-import datetime
 from apps.app_alert.models import AlertModel
 from apps.app_alert.models import ResolvedAlertModel
-from apps.app_alert.models import AlertWorkOrder
 from django.db.models import Q
-from apps.app_alert.utils.enums import AlertStatus
-from apps.app_alert.models import AlertMonitorJobServer
 from django.forms.models import model_to_dict
-from apps.app_alert.utils.utils import DateUtils
 from apps.monitor.models import MonitorJobServer
 from apps.monitor.models import MonitorWebsite
 from apps.monitor.models import MonitorJobCeph
 from apps.monitor.models import MonitorJobTiDB
+from apps.app_alert.utils.utils import DateUtils
+from django.db.utils import IntegrityError
+from apps.app_alert.models import ServiceAdminUser
+
+
+def move_to_resolved(obj):
+    item = model_to_dict(obj)
+    item["id"] = obj.id
+    item["ticket"] = obj.ticket
+    item["modification"] = DateUtils.timestamp()
+    try:
+        ResolvedAlertModel.objects.create(**item)
+    except IntegrityError as e:
+        pass
+    obj.delete()
 
 
 class UserMonitorUnit:
@@ -28,7 +36,7 @@ class UserMonitor(object):
     def monitor_cluster_list(self):
         metric_tag_list = self.server_list() + self.alert_server_list() + self.tidb_list() + self.ceph_list()
         log_tag_list = [_.replace("_metric", "_log") for _ in metric_tag_list if _.endswith("_metric")]
-        return metric_tag_list + log_tag_list
+        return list(set(metric_tag_list + log_tag_list))
 
     def server_list(self):
         user = self.request.user
@@ -43,14 +51,17 @@ class UserMonitor(object):
 
     def alert_server_list(self):
         user = self.request.user
-        queryset = AlertMonitorJobServer.objects.all()
-        if user.is_authenticated and user.is_federal_admin():
-            pass
-        else:
-            queryset = queryset.filter(users__id=user.id)
-        queryset = queryset.distinct()
-        job_tag_list = [_.job_tag for _ in queryset]
-        return job_tag_list
+        queryset = ServiceAdminUser.objects.filter(userprofile=user)
+        tag_list = list()
+        for obj in queryset:
+            service = obj.service
+            for metric in service.service_metric_set.all():
+                if metric.job_tag:
+                    tag_list.append(metric.job_tag)
+            for log in service.service_log_set.all():
+                if log.job_tag:
+                    tag_list.append(log.job_tag)
+        return tag_list
 
     def tidb_list(self):
         user = self.request.user
@@ -146,4 +157,3 @@ class EmailNotificationCleaner(object):
             obj.update({"alert": alert})
             items.append(obj)
         return items
-
