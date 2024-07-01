@@ -1,11 +1,10 @@
 from typing import List, Dict, Union
 
-from utils.alert_helper import AlertEmailsHelperBase
 from apps.monitor.apiviews.monitor_views import UnitAdminEmailViewSet
 from apps.monitor.managers import MonitorWebsiteManager
 
 
-class AlertEmailsHelper(AlertEmailsHelperBase):
+class AlertEmailsHelper:
     @staticmethod
     def get_website_user_emails(url_hash: str) -> List[str]:
         """
