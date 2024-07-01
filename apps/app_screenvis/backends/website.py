@@ -11,6 +11,8 @@ class WebsiteExpressionQuery:
     tmpl_duration_seconds = 'probe_duration_seconds{url="$url"}'
     http_duration_seconds = 'probe_http_duration_seconds'
     tmpl_http_duration_seconds = 'probe_http_duration_seconds{url="$url"}'
+    http_status_code = 'probe_http_status_code'
+    tmpl_http_status_code = 'probe_http_status_code{url="$url"}'
 
     @staticmethod
     def render_expression(tmpl: str, url: str = None):

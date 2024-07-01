@@ -9,6 +9,7 @@ from apps.app_screenvis.backends.website import WebMonitorQueryAPI, WebsiteExpre
 
 
 class WebQueryChoices(models.TextChoices):
+    HTTP_STATUS_CODE = 'http_status_code', gettext_lazy('http请求状态码')
     DURATION_SECONDS = 'duration_seconds', gettext_lazy('http请求耗时')
     HTTP_DURATION_SECONDS = 'http_duration_seconds', gettext_lazy('http请求各个部分耗时')
 
@@ -17,6 +18,7 @@ class ScreenWebMonitorManager:
     query_tag_tmpl_map = {
         WebQueryChoices.DURATION_SECONDS.value: WebsiteExpressionQuery.duration_seconds,
         WebQueryChoices.HTTP_DURATION_SECONDS.value: WebsiteExpressionQuery.http_duration_seconds,
+        WebQueryChoices.HTTP_STATUS_CODE.value: WebsiteExpressionQuery.http_status_code,
     }
 
     @staticmethod
