@@ -16,6 +16,9 @@ def move_to_resolved(obj):
     item["id"] = obj.id
     item["ticket"] = obj.ticket
     item["modification"] = DateUtils.timestamp()
+    status = item.get('status')
+    if status == AlertModel.AlertStatus.FIRING.value:
+        item['status'] = AlertModel.AlertStatus.RESOLVED.value
     try:
         ResolvedAlertModel.objects.create(**item)
     except IntegrityError as e:

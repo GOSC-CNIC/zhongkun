@@ -556,8 +556,31 @@ class AlertTicketListGenericAPIView(GenericAPIView, ListModelMixin, CreateModelM
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('创建告警工单'),
-        manual_parameters=[
-        ],
+        # manual_parameters=[
+        # ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['service', 'alerts'],
+            properties={
+                'title': openapi.Schema(type=openapi.TYPE_STRING, description='工单标题'),
+                'description': openapi.Schema(type=openapi.TYPE_STRING, description='工单描述'),
+                'severity': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description='严重程度，critical(严重),high(高),normal(一般),low(低),verylow(很低)'),
+                'status': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description='工单状态，open(打开), progress(处理中), closed(结束)'),
+                'assigned_to': openapi.Schema(type=openapi.TYPE_STRING, description='处理人id'),
+                'resolution': openapi.Schema(type=openapi.TYPE_STRING, description='解决方案id'),
+                'service': openapi.Schema(type=openapi.TYPE_STRING, description='所属的服务名称'),
+                'alerts': openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Items(type=openapi.TYPE_STRING),
+                    description='关联的告警'
+
+                )
+            },
+        ),
         responses={
             200: ""
         }
@@ -863,13 +886,13 @@ class AlertServiceAPIView(APIView):
         operation_summary=gettext_lazy('查询告警列表所属的服务'),
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            required=['version'],
+            required=['alerts'],
             properties={
                 'alerts': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Items(type=openapi.TYPE_STRING))
             },
         ),
         responses={
-            200: json.dumps({'service':"server_name"}),
+            200: json.dumps({'service': "server_name"}),
         }
     )
     def post(self, request, *args, **kwargs):
