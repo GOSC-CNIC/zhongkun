@@ -7,12 +7,15 @@ from apps.app_alert.utils import errors
 
 
 def has_service_permission(service_name, user):
+    if user.is_superuser:
+        return True
     service = AlertService.objects.filter(name_en=service_name).first()
     if not service:
         raise errors.InvalidArgument('invalid service')
 
     service_user = service.users.filter(username=user.username)
-    return service_user
+    if service_user:
+        return True
 
 
 class ServerAdapter(object):

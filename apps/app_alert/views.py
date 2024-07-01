@@ -1,4 +1,5 @@
 import copy
+import json
 import time
 from rest_framework.generics import GenericAPIView
 from django.utils.translation import gettext_lazy
@@ -860,9 +861,15 @@ class AlertServiceAPIView(APIView):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('查询告警列表所属的服务'),
-        manual_parameters=[
-        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['version'],
+            properties={
+                'alerts': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Items(type=openapi.TYPE_STRING))
+            },
+        ),
         responses={
+            200: json.dumps({'service':"server_name"}),
         }
     )
     def post(self, request, *args, **kwargs):

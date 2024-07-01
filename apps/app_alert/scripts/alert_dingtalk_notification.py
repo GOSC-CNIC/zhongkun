@@ -145,25 +145,25 @@ class DingTalk(object):
             return alerts
 
     @staticmethod
-    def has_created_work_order(alert):
+    def has_created_work_order(alert):  # TODO
         """
         判断该告警是否已经创建工单
         """
-        return alert.get('order_id')
+        return alert.get('ticket_id')
 
     def search_work_order_notification(self):
         """
         挑选出上一分钟创建的工单，进行通知
         """
         order_notification_list = list()
-        with MysqlManager() as client:
+        with MysqlManager() as client:  # TODO
             sql = f'select * from alert_work_order where creation>"{self.start}" and creation<="{self.end}";'
             order_list = client.search(sql)
             for order in order_list:
-                order_id = order.get("id")
+                ticket_id = order.get("id")
                 creator_id = order.get("creator_id")
-                firing_alerts = client.search(f'select * from alert_firing where order_id="{order_id}";')
-                resolved_alerts = client.search(f'select * from alert_resolved where order_id="{order_id}";')
+                firing_alerts = client.search(f'select * from alert_firing where ticket_id="{ticket_id}";')
+                resolved_alerts = client.search(f'select * from alert_resolved where ticket_id="{ticket_id}";')
                 alert_list = firing_alerts + resolved_alerts
                 if not alert_list or not self.alert_cluster_filter(alert_list[0]):
                     continue
