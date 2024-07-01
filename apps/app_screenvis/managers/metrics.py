@@ -21,6 +21,8 @@ class HostQueryChoices(models.TextChoices):
     HOST_MEM_AVAIL_SIZE = 'mem_avail_size', gettext_lazy('主机内存可用容量(GiB)')
     HOST_ROOT_AVAIL_SIZE = 'root_avail_size', gettext_lazy('主机根目录可用容量(GiB)')
     HOST_MEM_HUGEPAGE_USAGE = 'mem_hugepage_usage', gettext_lazy('主机大页内存使用率')
+    HOST_MEM_HUGEPAGE_TOTAL = 'mem_hugepage_total', gettext_lazy('主机大页内存总页数')
+    HOST_MEM_HUGEPAGE_FREE = 'mem_hugepage_free', gettext_lazy('主机大页内存可用页数')
     ALL_TOGETHER = ALL_TOGETHER_VALUE, gettext_lazy('一起查询所有指标')
 
 
@@ -94,6 +96,8 @@ class MetricQueryManager:
         HostQueryChoices.HOST_MEM_AVAIL_SIZE.value: backend.host_query_builder.tmpl_node_mem_avail_size,
         HostQueryChoices.HOST_ROOT_AVAIL_SIZE.value: backend.host_query_builder.tmpl_node_root_avail_size,
         HostQueryChoices.HOST_MEM_HUGEPAGE_USAGE.value: backend.host_query_builder.tmpl_node_mem_hugepage_usage,
+        HostQueryChoices.HOST_MEM_HUGEPAGE_TOTAL.value: backend.host_query_builder.tmpl_node_mem_hugepage_total,
+        HostQueryChoices.HOST_MEM_HUGEPAGE_FREE.value: backend.host_query_builder.tmpl_node_mem_hugepage_free,
     }
     range_host_tag_tmpl_map = {
         HostQueryRangeChoices.HOST_CPU_USAGE.value: backend.host_query_builder.tmpl_node_cpu_usage,

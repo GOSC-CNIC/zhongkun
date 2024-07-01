@@ -56,6 +56,8 @@ class HostExpressionQuery(BaseExpressionQuery):
     tmpl_node_root_avail_size = 'node_filesystem_avail_bytes{job="$job", mountpoint="/"} / 1073741824'  # GiB
     tmpl_node_mem_hugepage_usage = '(1 - node_memory_HugePages_Free{job="$job"} / ' \
                                    'node_memory_HugePages_Total{job="$job"}) * 100'
+    tmpl_node_mem_hugepage_total = 'node_memory_HugePages_Total{job="$job"}'
+    tmpl_node_mem_hugepage_free = 'node_memory_HugePages_Free{job="$job"}'
     # MiB/s
     # tmpl_net_rate_in = 'rate(node_network_receive_bytes_total{job="$job", device!~"lo|br_.*|vnet.*"}[1m]) * on(' \
     #                    'job, instance, device) (node_network_info{operstate="up"} == 1) / 8388608'
