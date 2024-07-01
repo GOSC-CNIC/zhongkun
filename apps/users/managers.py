@@ -19,14 +19,15 @@ def get_user_by_id(user_id: str):
 
 
 def filter_user_queryset(
-        search: str = None, is_federal_admin: bool = None, date_joined_start=None, date_joined_end=None):
+        search: str = None, is_federal_admin: bool = None, date_joined_start=None, date_joined_end=None
+):
     queryset = UserProfile.objects.filter(is_active=True).order_by('-date_joined')
 
     if search:
         queryset = queryset.filter(username__icontains=search)
 
     if is_federal_admin:
-        queryset = queryset.filter(role__icontains=UserProfile.Roles.FEDERAL.value)
+        queryset = queryset.filter(is_fed_admin=True)
 
     if date_joined_start:
         queryset = queryset.filter(date_joined__gte=date_joined_start)

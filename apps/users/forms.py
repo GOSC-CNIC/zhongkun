@@ -1,11 +1,6 @@
-import json
-
 from django import forms
 from django.utils.translation import gettext_lazy, gettext as _
-from django_json_widget.widgets import JSONEditorWidget
 from django.contrib.auth.forms import UserChangeForm
-
-from apps.users.models import default_role
 
 
 class PasswordForm(forms.Form):
@@ -91,15 +86,5 @@ class PasswordChangeForm(PasswordForm):
         return old_password
 
 
-class RoleJSONEditorWidget(JSONEditorWidget):
-    def format_value(self, value):
-        if not value:
-            value = json.dumps(default_role())
-        return super(RoleJSONEditorWidget, self).format_value(value)
-
-
 class UserModelForm(UserChangeForm):
-    class Meta:
-        widgets = {
-            'role': RoleJSONEditorWidget(),
-        }
+    pass

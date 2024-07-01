@@ -57,7 +57,7 @@ class Migration(migrations.Migration):
                 ('company', models.CharField(default='', max_length=255, verbose_name='公司/单位')),
                 ('third_app', models.SmallIntegerField(choices=[(0, '本地用户'), (1, '科技云通行证'), (2, '身份认证联盟AAI')], default=0, verbose_name='第三方应用登录')),
                 ('last_active', models.DateTimeField(auto_now=True, db_index=True, verbose_name='最后活跃日期')),
-                ('role', models.JSONField(default=apps.users.models.default_role, help_text="角色选项(可多选)，['ordinary', 'vms-admin', 'storage-admin', 'federal-admin']", verbose_name='角色')),
+                ('role', models.JSONField(default=dict, help_text="角色选项(可多选)，['ordinary', 'federal-admin']", verbose_name='角色')),
                 ('groups', models.ManyToManyField(blank=True, help_text='The groups this user belongs to. A user will get all permissions granted to each of their groups.', related_name='user_set', related_query_name='user', to='auth.group', verbose_name='groups')),
                 ('user_permissions', models.ManyToManyField(blank=True, help_text='Specific permissions for this user.', related_name='user_set', related_query_name='user', to='auth.permission', verbose_name='user permissions')),
             ],

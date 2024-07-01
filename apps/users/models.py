@@ -3,15 +3,10 @@ from django.contrib.auth.models import AbstractUser
 from django.conf import settings
 from django.core.mail import send_mail
 from django.utils.translation import gettext_lazy as _
-from django.utils import timezone
-from django.core.exceptions import ValidationError
+from django.utils import timezone as dj_timezone
 
 from utils.model import UuidModel
 from utils.rand_utils import short_uuid1_25
-
-
-def default_role():
-    return {'role': []}
 
 
 class UserProfile(AbstractUser):
@@ -25,8 +20,6 @@ class UserProfile(AbstractUser):
 
     class Roles(models.TextChoices):
         ORDINARY = 'ordinary', _('普通用户')
-        VMS = 'vms-admin', _('云主机管理员')
-        STORAGE = 'storage-admin', _('存储管理员')
         FEDERAL = 'federal-admin', _('联邦管理员')
 
     class SupporterRole(models.TextChoices):
@@ -39,8 +32,7 @@ class UserProfile(AbstractUser):
     third_app = models.SmallIntegerField(
         verbose_name=_('第三方应用登录'), choices=ThirdApp.choices, default=ThirdApp.LOCAL_USER.value)
     last_active = models.DateTimeField(verbose_name=_('最后活跃日期'), db_index=True, auto_now=True)
-    role = models.JSONField(verbose_name=_('角色'), null=False, default=default_role,
-                            help_text=f'角色选项(可多选)，{Roles.values}')
+    is_fed_admin = models.BooleanField(verbose_name=_('联邦管理员'), default=False)
     # supporter_role = models.CharField(
     #     verbose_name=_('客服支持人员角色'), max_length=32, choices=SupporterRole.choices, default=SupporterRole.NONE.value)
 
@@ -61,84 +53,31 @@ class UserProfile(AbstractUser):
         """
         是否是联邦管理员
         """
-        if 'role' in self.role and isinstance(self.role['role'], list):
-            if self.Roles.FEDERAL in self.role['role']:
-                return True
-
-        return False
+        return self.is_fed_admin
 
     def set_federal_admin(self) -> bool:
         """
         设为联邦管理员
         :raises: Exception
         """
-        return self.set_role(self.Roles.FEDERAL)
-
-    def set_role(self, role: str) -> bool:
-        """
-        设置用户角色
-
-        :raises: Exception
-        """
-        if role not in self.Roles.values:
-            raise Exception('无效的用户角色')
-
-        if self.is_federal_admin():
-            return True
-
-        if 'role' in self.role and isinstance(self.role['role'], list):
-            if role in self.role['role']:
-                return True
-
-            self.role['role'].append(role)
-        else:
-            self.role['role'] = [role]
-
-        try:
-            self.save(update_fields=['role'])
-        except Exception as e:
-            return False
-
-        return True
+        return self.set_fed_admin(is_fed=True)
 
     def unset_federal_admin(self) -> bool:
         """
         去除联邦管理员角色
         :raises: Exception
         """
-        return self.unset_role(self.Roles.FEDERAL)
+        return self.set_fed_admin(is_fed=False)
 
-    def unset_role(self, role: str) -> bool:
-        """
-        设置用户角色
-
-        :raises: Exception
-        """
-        if role not in self.Roles.values:
-            raise Exception('无效的用户角色')
-
-        if 'role' not in self.role or not isinstance(self.role['role'], list):
-            return True
-
-        if role not in self.role['role']:
-            return True
-
-        self.role['role'].remove(role)
-
-        try:
-            self.save(update_fields=['role'])
-        except Exception as e:
-            return False
+    def set_fed_admin(self, is_fed: bool):
+        if self.is_fed_admin is not is_fed:
+            self.is_fed_admin = is_fed
+            try:
+                self.save(update_fields=['is_fed_admin'])
+            except Exception as exc:
+                return False
 
         return True
-
-    def clean(self):
-        if not ('role' in self.role and isinstance(self.role['role'], list)):
-            raise ValidationError({'role': '必须包含键"role"，值为列表，格式为{"role": []}'})
-
-        for r in self.role['role']:
-            if r not in self.Roles.values:
-                raise ValidationError({'role': f'"{r}"不是一个有效的角色项'})
 
 
 class Email(UuidModel):
@@ -252,7 +191,7 @@ class Email(UuidModel):
 
     def set_send_success(self, desc: str, save_db: bool = True):
         self.status = self.Status.SUCCESS.value
-        self.success_time = timezone.now()
+        self.success_time = dj_timezone.now()
         self.status_desc = desc
         if save_db:
             self.save(update_fields=['status', 'success_time', 'status_desc'])

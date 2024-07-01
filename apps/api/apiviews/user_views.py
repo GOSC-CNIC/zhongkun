@@ -40,7 +40,8 @@ class UserViewSet(CustomGenericViewSet):
               "id": "c172f4b8-984d-11eb-b920-90b11c06b9df",
               "username": "admin",
               "fullname": "",
-              "role": {
+              "is_fed_admin": true, # true(联邦管理员)
+              "role": {     # 弃用
                 "role": [
                   "ordinary", "vms-admin", "storage-admin", "federal-admin"
                 ]
@@ -124,7 +125,8 @@ class UserViewSet(CustomGenericViewSet):
                   "id": "1",
                   "username": "shun",
                   "fullname": "",
-                  "role": {
+                  "is_fed_admin": true, # true(联邦管理员)
+                  "role": {     # 弃用
                     "role": ["ordinary", "federal-admin"]
                   }
                 }

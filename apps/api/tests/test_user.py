@@ -27,7 +27,8 @@ class UserTests(MyAPITestCase):
         self.assertEqual(response.data['id'], self.user.id)
         self.assertEqual(response.data['username'], self.user.username)
         self.assertEqual(response.data['fullname'], self.user.get_full_name())
-        self.assertEqual(response.data['role'], self.user.role)
+        self.assertIs(response.data['is_fed_admin'], False)
+        self.assertEqual(response.data['role'], {'role': []})
 
     def test_permission_policy(self):
         base_url = reverse('api:user-permission-policy')
@@ -108,6 +109,8 @@ class UserTests(MyAPITestCase):
         self.assertEqual(len(response.data['results']), 1)
         self.assertKeysIn(keys=['id', 'username', 'fullname', 'role'], container=response.data['results'][0])
         self.assertEqual(response.data['results'][0]['id'], self.user.id)
+        self.assertIs(response.data['results'][0]['is_fed_admin'], True)
+        self.assertEqual(response.data['results'][0]['role'], {'role': ['federal-admin']})
 
 
 class AdminUserStatisticsTests(MyAPITestCase):

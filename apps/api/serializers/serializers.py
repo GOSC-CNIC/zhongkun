@@ -7,10 +7,6 @@ class DataCenterSerializer(serializers.Serializer):
     name = serializers.CharField()
     name_en = serializers.CharField()
     abbreviation = serializers.CharField()
-    # endpoint_vms = serializers.CharField()
-    # endpoint_object = serializers.CharField()
-    # endpoint_compute = serializers.CharField()
-    # endpoint_monitor = serializers.CharField()
     creation_time = serializers.DateTimeField()
     status = serializers.SerializerMethodField(method_name='get_status')
     desc = serializers.CharField()
@@ -34,8 +30,19 @@ class UserSerializer(serializers.Serializer):
     id = serializers.CharField(label=_('ID'), read_only=True)
     username = serializers.CharField(label=_('用户名'))
     fullname = serializers.SerializerMethodField(method_name='get_fullname')
-    role = serializers.JSONField(label=_('角色'))
+    role = serializers.SerializerMethodField(label=_('角色'), method_name='get_role')
+    is_fed_admin = serializers.BooleanField(label=_('联邦管理员'))
 
     @staticmethod
     def get_fullname(obj):
         return obj.get_full_name()
+
+    @staticmethod
+    def get_role(obj):
+        roles = []
+        if obj.is_fed_admin:
+            roles.append('federal-admin')
+
+        return {
+            "role": roles
+        }
