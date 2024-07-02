@@ -32,6 +32,7 @@ from apps.app_alert.serializers import TicketResolutionCategoryRelationSerialize
 from apps.app_alert.serializers import AlertServiceSerializer
 from apps.app_alert.serializers import TicketResolutionSerializer
 from apps.app_alert.serializers import AlertTicketSerializer
+from apps.app_alert.serializers import TicketUpdateSerializer
 from apps.app_alert.filters import WorkOrderFilter
 from apps.app_alert.filters import TicketResolutionCategoryFilter
 from apps.app_alert.filters import TicketResolutionFilter
@@ -644,17 +645,9 @@ class AlertTicketDetailGenericAPIView(
         }
     )
     def put(self, request, *args, **kwargs):
-        partial = kwargs.pop('partial', True)
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer = TicketUpdateSerializer(self.get_object(), data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-
-        if getattr(instance, '_prefetched_objects_cache', None):
-            # If 'prefetch_related' has been applied to a queryset, we need to
-            # forcibly invalidate the prefetch cache on the instance.
-            instance._prefetched_objects_cache = {}
-
+        TicketManager(request=request).update_ticket(serializer=serializer)
         return Response(serializer.data)
 
     @swagger_auto_schema(

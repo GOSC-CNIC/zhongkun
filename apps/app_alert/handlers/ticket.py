@@ -10,6 +10,7 @@ from apps.app_alert.handlers.handlers import move_to_resolved
 from apps.app_alert.models import TicketHandler
 from django.db import transaction
 from apps.app_alert.serializers import TicketCustomSerializer
+from apps.app_alert.serializers import TicketUpdateHandlersSerializer
 from rest_framework.exceptions import PermissionDenied
 
 
@@ -33,8 +34,10 @@ class TicketManager(object):
         with transaction.atomic():
             self._create_ticket(serializer)
 
-    def _create_ticket(self, serializer):
+    def update_ticket(self, serializer):
+        self._update_ticket(serializer)
 
+    def _create_ticket(self, serializer):
         custom_serializer = TicketCustomSerializer(data=self.request.data)
         custom_serializer.is_valid(raise_exception=True)
         service = custom_serializer.data.get('service')
@@ -75,3 +78,21 @@ class TicketManager(object):
                 ticket=ticket,
                 user=user,
             )
+
+    def _update_ticket(self, serializer):
+        custom_serializer = TicketUpdateHandlersSerializer(data=self.request.data)
+        custom_serializer.is_valid(raise_exception=True)
+        ticket = serializer.save()
+        target_handlers = custom_serializer.data.get('handlers')
+        preview_handlers = TicketHandler.objects.filter(ticket=ticket).all()
+
+        # 判断是否有移除的处理人
+        for handler in preview_handlers:
+            if handler.user in target_handlers:
+                continue
+            handler.delete()  # 移除
+
+        for user in target_handlers:
+            if TicketHandler.objects.filter(ticket=ticket, user=user).first():
+                continue
+            TicketHandler.objects.create(ticket=ticket, user=user)

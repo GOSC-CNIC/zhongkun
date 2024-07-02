@@ -229,8 +229,6 @@ class AlertReadOnlySerializer(serializers.ModelSerializer):
         ]
 
 
-
-
 class AlertTicketSerializer(serializers.ModelSerializer):
     submitter_username = serializers.SerializerMethodField(read_only=True)
     submitter_fullname = serializers.SerializerMethodField(read_only=True)
@@ -273,7 +271,7 @@ class AlertTicketSerializer(serializers.ModelSerializer):
 
     def get_alerts(self, obj):
 
-        return AlertReadOnlySerializer(obj.app_alert_alertmodel_related.all(),many=True).data
+        return AlertReadOnlySerializer(obj.app_alert_alertmodel_related.all(), many=True).data
 
 
 class AlertServiceSerializer(serializers.Serializer):
@@ -318,6 +316,82 @@ class TicketCustomSerializer(serializers.Serializer):
         service = service_adapter.get_service_set()
         if service.name_en != data.get('service'):
             raise errors.InvalidArgument('alerts and service mismatch')
+        handlers = data.get('handlers')
+        for user in handlers:
+            if not service.users.filter(id=user.id).first():
+                raise errors.InvalidArgument(f"`{user.id}` does not have permission")
+        return data
+
+    def validate_handlers(self, handlers: str):
+        if not isinstance(handlers, list):
+            raise errors.InvalidArgument("param handlers should be a list")
+        user_object_list = list()
+        for user in handlers:
+            user_object = UserProfile.objects.filter(id=user).first()
+            if not user_object:
+                raise errors.InvalidArgument(f"unknown user:`{user}`")
+            user_object_list.append(user_object)
+        return user_object_list
+
+
+class TicketUpdateSerializer(serializers.ModelSerializer):
+    submitter_username = serializers.SerializerMethodField(read_only=True)
+    submitter_fullname = serializers.SerializerMethodField(read_only=True)
+    handlers = serializers.SerializerMethodField(read_only=True)
+    alerts = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = AlertTicket
+        fields = (
+            'id',
+            'title',
+            'description',
+            'service',
+            'severity',
+            'status',
+            'creation',
+            'modification',
+            'submitter',
+            'submitter_username',
+            'submitter_fullname',
+            'resolution',
+            'handlers',
+            'alerts',
+        )
+        extra_kwargs = {
+            'submitter': {'read_only': True},
+            'service': {'read_only': True},
+        }
+
+    def get_handlers(self, obj):
+        return TicketHandlerReadOnlySerializer(TicketHandler.objects.filter(ticket=obj).all(), many=True).data
+
+    def get_submitter_username(self, obj):
+        if obj.submitter:
+            return obj.submitter.username
+
+    def get_submitter_fullname(self, obj):
+        if obj.submitter:
+            return obj.submitter.get_full_name()
+
+    def get_alerts(self, obj):
+
+        return AlertReadOnlySerializer(obj.app_alert_alertmodel_related.all(), many=True).data
+
+
+class TicketUpdateHandlersSerializer(serializers.Serializer):
+    service = serializers.CharField(required=True)
+    handlers = serializers.JSONField(required=True)
+
+    def validate_service(self, service: str):
+        service_object = AlertService.objects.filter(name_en=service).first()
+        if not service_object:
+            raise errors.InvalidArgument(f"unknown service:`{service}`")
+        return service
+
+    def validate(self, data):
+        service = data.get('service')
+        service = AlertService.objects.filter(name_en=service).first()
         handlers = data.get('handlers')
         for user in handlers:
             if not service.users.filter(id=user.id).first():
