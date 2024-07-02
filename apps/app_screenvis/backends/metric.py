@@ -65,6 +65,7 @@ class HostExpressionQuery(BaseExpressionQuery):
     #                     'job, instance, device) (node_network_info{operstate="up"} == 1) / 8388608'
     tmpl_net_rate_in = 'sum(rate(node_network_receive_bytes_total{job="$job", device!="lo"}[2m])) / 125000'     # Mib/s
     tmpl_net_rate_out = 'sum(rate(node_network_transmit_bytes_total{job="$job", device!="lo"}[2m])) / 125000'   # Mib/s
+    tmpl_sum_load5 = 'sum(node_load5{job="$job"})'    # 5分钟总负载
 
 
 class TiDBExpressionQuery(BaseExpressionQuery):
@@ -100,7 +101,7 @@ class MetricQueryAPI:
         :raises: Error
         """
         try:
-            r = requests.get(url=url, timeout=(6, 30))
+            r = requests.get(url=url, timeout=(6, 60))
         except requests.exceptions.Timeout:
             raise errors.Error(message='backend query api request timeout')
         except requests.exceptions.RequestException as exc:
@@ -174,7 +175,7 @@ class MetricQueryAPI:
         """
         try:
             async with aiohttp.ClientSession() as client:
-                r = await client.get(url=url, timeout=aiohttp.ClientTimeout(connect=10, total=30))
+                r = await client.get(url=url, timeout=aiohttp.ClientTimeout(connect=10, total=60))
         except aiohttp.ClientConnectionError:
             raise errors.Error(message='backend query api request timeout')
         except aiohttp.ClientError as exc:

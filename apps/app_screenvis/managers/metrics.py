@@ -29,6 +29,8 @@ class HostQueryChoices(models.TextChoices):
 class HostQueryRangeChoices(models.TextChoices):
     HOST_CPU_USAGE = 'cpu_usage', gettext_lazy('主机CPU使用率')
     HOST_CPU_USAGE_AVG = 'cpu_usage_avg', gettext_lazy('主机单元CPU平均使用率')
+    HOST_CPU_COUNT = 'cpu_count', gettext_lazy('主机单元CPU总核数')
+    HOST_SUM_LOAD5 = 'sum_load5', gettext_lazy('主机单元5分钟总负载')
 
 
 class CephQueryChoices(models.TextChoices):
@@ -102,6 +104,8 @@ class MetricQueryManager:
     range_host_tag_tmpl_map = {
         HostQueryRangeChoices.HOST_CPU_USAGE.value: backend.host_query_builder.tmpl_node_cpu_usage,
         HostQueryRangeChoices.HOST_CPU_USAGE_AVG.value: backend.host_query_builder.tmpl_cpu_usage,
+        HostQueryRangeChoices.HOST_CPU_COUNT.value: backend.host_query_builder.tmpl_cpu_count,
+        HostQueryRangeChoices.HOST_SUM_LOAD5.value: backend.host_query_builder.tmpl_sum_load5,
     }
 
     tidb_tag_tmpl_map = {

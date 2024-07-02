@@ -354,6 +354,19 @@ class MetricHostTests(MyAPITestCase):
         if data_list[0]["values"] is not None:
             self.assertTrue(len(data_list[0]["values"]) >= 6)
 
+        self.query_range_ok_test(
+            unit_id=host_unit_id, query_tag=HostQueryRangeChoices.HOST_CPU_USAGE_AVG.value,
+            start=one_hour_ago_ts, end=now_ts, step=600
+        )
+        self.query_range_ok_test(
+            unit_id=host_unit_id, query_tag=HostQueryRangeChoices.HOST_CPU_COUNT.value,
+            start=one_hour_ago_ts, end=now_ts, step=600
+        )
+        self.query_range_ok_test(
+            unit_id=host_unit_id, query_tag=HostQueryRangeChoices.HOST_SUM_LOAD5.value,
+            start=one_hour_ago_ts, end=now_ts, step=600
+        )
+
 
 class MetricTiDBTests(MyAPITestCase):
     def setUp(self):

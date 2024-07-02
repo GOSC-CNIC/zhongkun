@@ -277,9 +277,9 @@ class MetricHostViewSet(NormalGenericViewSet):
         """
         查询主机单元时间段内指标信息
 
-            Http Code: 状态码200，返回数据：
+            Http Code: 状态码200，返回数据<query>对应query参数查询指标选项：
             {
-              "cpu_usage": [
+              "<query>": [
                 {
                   "metric": {"instance": "10.16.1.10:9100"},
                   "values": [
