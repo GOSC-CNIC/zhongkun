@@ -25,15 +25,17 @@ from rest_framework.mixins import RetrieveModelMixin
 from rest_framework.mixins import UpdateModelMixin
 from rest_framework.mixins import DestroyModelMixin
 from apps.app_alert.serializers import WorkOrderSerializer
+from apps.app_alert.serializers import TicketHandlerSerializer
 from apps.app_alert.serializers import NotificationModelSerializer
 from apps.app_alert.serializers import TicketResolutionCategorySerializer
 from apps.app_alert.serializers import TicketResolutionCategoryRelationSerializer
-from apps.app_alert.serializers import BelongedServiceSerializer
+from apps.app_alert.serializers import AlertServiceSerializer
 from apps.app_alert.serializers import TicketResolutionSerializer
 from apps.app_alert.serializers import AlertTicketSerializer
 from apps.app_alert.filters import WorkOrderFilter
 from apps.app_alert.filters import TicketResolutionCategoryFilter
 from apps.app_alert.filters import TicketResolutionFilter
+from apps.app_alert.filters import TicketHandlerFilter
 from apps.app_alert.filters import AlertTicketFilter
 from rest_framework import status as status_code
 from rest_framework.exceptions import PermissionDenied
@@ -55,7 +57,9 @@ from apps.app_alert.handlers.ticket import has_service_permission
 from apps.app_alert.models import ServiceAdminUser
 from apps.app_alert.serializers import ServiceAdminUserSerializer
 from apps.app_alert.filters import ServiceAdminUserFilter
-from apps.app_alert.handlers.handlers import move_to_resolved
+from apps.app_alert.handlers.ticket import TicketManager
+from apps.app_alert.handlers.handlers import AlertServerAdapter
+from apps.app_alert.models import TicketHandler
 
 
 # Create your views here.
@@ -556,29 +560,38 @@ class AlertTicketListGenericAPIView(GenericAPIView, ListModelMixin, CreateModelM
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('创建告警工单'),
-        # manual_parameters=[
-        # ],
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            required=['service', 'alerts'],
+            required=['status', 'service', 'alerts', 'handlers'],
             properties={
-                'title': openapi.Schema(type=openapi.TYPE_STRING, description='工单标题'),
-                'description': openapi.Schema(type=openapi.TYPE_STRING, description='工单描述'),
+                'title': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description='工单标题'),
+                'description': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description='工单描述'),
                 'severity': openapi.Schema(
                     type=openapi.TYPE_STRING,
                     description='严重程度，critical(严重),high(高),normal(一般),low(低),verylow(很低)'),
+                'resolution': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description='解决方案id'),
                 'status': openapi.Schema(
                     type=openapi.TYPE_STRING,
-                    description='工单状态，open(打开), progress(处理中), closed(结束)'),
-                'assigned_to': openapi.Schema(type=openapi.TYPE_STRING, description='处理人id'),
-                'resolution': openapi.Schema(type=openapi.TYPE_STRING, description='解决方案id'),
-                'service': openapi.Schema(type=openapi.TYPE_STRING, description='所属的服务名称'),
+                    description='工单状态，accepted(已受理), changed(已转移), closed(已完成)'),
+                'service': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description='所属的服务名称'),
                 'alerts': openapi.Schema(
                     type=openapi.TYPE_ARRAY,
                     items=openapi.Items(type=openapi.TYPE_STRING),
                     description='关联的告警'
-
-                )
+                ),
+                'handlers': openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Items(type=openapi.TYPE_STRING),
+                    description='关联的处理人'
+                ),
             },
         ),
         responses={
@@ -588,40 +601,7 @@ class AlertTicketListGenericAPIView(GenericAPIView, ListModelMixin, CreateModelM
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        service_serializer = BelongedServiceSerializer(data=self.request.data)
-        service_serializer.is_valid(raise_exception=True)
-        service = service_serializer.data.get('alerts')
-        # 用户权限验证
-        if not has_service_permission(service_name=service.name_en, user=self.request.user):
-            raise PermissionDenied()
-
-        # 告警是否已经存在工单
-        alert_object_list = list()
-        for alert in self.request.data.get('alerts'):
-            obj = AlertModel.objects.filter(id=alert).first()
-            if not obj:
-                raise errors.InvalidArgument(f'invalid alert:{alert}')
-            if obj.ticket:
-                raise errors.InvalidArgument(f'work order already exists')
-            alert_object_list.append(obj)
-        # 保存工单
-        ticket = serializer.save(
-            submitter=self.request.user,
-            service=service.name_en,
-        )
-        # 告警关联工单
-        for obj in alert_object_list:
-            obj.ticket = ticket
-            obj.save()
-            if ticket.resolution:  # 已经填写解决方案
-                obj.recovery = DateUtils.timestamp()
-                obj.status = AlertModel.AlertStatus.RESOLVED.value
-                ticket.status = AlertTicket.Status.CLOSED.value
-                ticket.save()
-                obj.save()
-                if obj.type == AlertModel.AlertType.LOG.value:  # 日志类 归入 已恢复队列
-                    move_to_resolved(obj)
+        TicketManager(request=request).create_ticket(serializer=serializer)
         return Response(serializer.data, status=status_code.HTTP_201_CREATED)
 
 
@@ -896,11 +876,11 @@ class AlertServiceAPIView(APIView):
         }
     )
     def post(self, request, *args, **kwargs):
-        serializer = BelongedServiceSerializer(data=request.data)
+        serializer = AlertServiceSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        service = serializer.data.get('alerts')
-        service_user = service.users.filter(username=request.user.username)
-        if not service_user:
+        service_adapter = AlertServerAdapter(serializer.data.get('alerts'))
+        service = service_adapter.get_service_set()
+        if not has_service_permission(service_name=service.name_en, user=request.user):
             raise PermissionDenied()
         return Response({"service": service.name_en})
 
@@ -942,3 +922,99 @@ class AlertServiceAdminListGenericAPIView(GenericAPIView, ListModelMixin, Create
     #
     # def perform_create(self, serializer):
     #     serializer.save()
+
+
+class TicketHandlerListGenericAPIView(GenericAPIView, ListModelMixin, CreateModelMixin):
+    """
+    新增告警工单处理人
+    """
+    queryset = TicketHandler.objects.all()
+    serializer_class = TicketHandlerSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = TicketHandlerFilter
+    pagination_class = LimitOffsetPage
+    permission_classes = [IsAuthenticated, ]
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('新增工单处理人'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status_code.HTTP_201_CREATED, headers=headers)
+
+    def perform_create(self, serializer):
+        # category = serializer.validated_data.get('category')
+        # if not has_service_permission(service_name=category.service, user=self.request.user):
+        #     raise PermissionDenied()
+        serializer.save()
+
+
+class TicketHandlerDetailGenericAPIView(
+    GenericAPIView,
+    RetrieveModelMixin,
+    UpdateModelMixin,
+    DestroyModelMixin
+):
+    """
+    查询指定处理人，修改指定处理人，删除指定处理人
+    """
+    queryset = TicketHandler.objects.all()
+    serializer_class = TicketHandlerSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = TicketHandlerFilter
+    pagination_class = LimitOffsetPage
+    permission_classes = [IsAuthenticated, ]
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询指定告警处理人'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('修改指定告警处理人'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def put(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', True)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            instance._prefetched_objects_cache = {}
+
+        return Response(serializer.data)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('删除指定告警处理人'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def delete(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(status=status_code.HTTP_204_NO_CONTENT)

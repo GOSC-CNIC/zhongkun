@@ -388,13 +388,13 @@ class AlertTicket(AlertUuidModel):
     )
 
     class Status(models.TextChoices):
-        OPEN = 'open', _('打开')
-        PROGRESS = 'progress', _('处理中')
-        CLOSED = 'closed', _('已关闭')
+        ACCEPTED = 'accepted', _('已受理')
+        CHANGED = 'changed', _('已转移')
+        CLOSED = 'closed', _('已完成')
 
     status = models.CharField(
         verbose_name=_('状态'), max_length=16,
-        choices=Status.choices, default=Status.OPEN.value
+        choices=Status.choices, default=Status.ACCEPTED.value
     )
 
     creation = models.DateTimeField(
@@ -407,11 +407,12 @@ class AlertTicket(AlertUuidModel):
         to=UserProfile, verbose_name=_('工单提交人'),
         related_name='submitted_tickets', on_delete=models.SET_NULL, null=True
     )
-    assigned_to = models.ForeignKey(
-        to=UserProfile, verbose_name=_('分配给'),
-        on_delete=models.SET_NULL, related_name='assigned_tickets',
-        blank=True, null=True, default=None
-    )
+    handlers = models.ManyToManyField(
+        to=UserProfile,
+        verbose_name=_('管理员'),
+        related_name='+',
+        through='TicketHandler',
+        through_fields=('ticket', 'user'))
     # 在工单处理完成后，关闭工单时填充此工单的解决方案
     resolution = models.ForeignKey(
         to=TicketResolution, verbose_name=_('原因及解决方案'),
@@ -427,6 +428,44 @@ class AlertTicket(AlertUuidModel):
 
     def __str__(self):
         return '%s %s' % (self.id, self.title)
+
+
+class TicketHandler(UuidModel):
+    ticket = models.ForeignKey(
+        to=AlertTicket,
+        verbose_name=_('所属的工单'),
+        on_delete=models.CASCADE,
+        related_name='handler_set',
+        related_query_name="handler",
+        db_constraint=False
+    )
+    user = models.ForeignKey(
+        to=UserProfile,
+        verbose_name=_('处理人'),
+        related_name="%(app_label)s_%(class)s_related",
+        related_query_name="%(app_label)s_%(class)ss",
+        db_constraint=False,
+        on_delete=models.SET_NULL,
+        null=True
+    )
+    creation = models.DateTimeField(
+        verbose_name=_('提交时间'), blank=True, auto_now_add=True, help_text=_('提交时间')
+    )
+    modification = models.DateTimeField(
+        verbose_name=_('修改时间'), blank=True, auto_now=True, help_text=_('修改时间')
+    )
+
+    # def __str__(self):
+    #     return '{} | {}'.format(self.ticket, self.handler)
+
+    class Meta:
+        db_table = "alert_ticket_handler"
+        verbose_name = _("告警工单处理人")
+        ordering = ['-creation']
+        verbose_name_plural = verbose_name
+        constraints = [
+            models.UniqueConstraint(fields=('ticket', 'user'), name='unique_together_ticket_user')
+        ]
 
 
 class AlertWorkOrder(AlertUuidModel):

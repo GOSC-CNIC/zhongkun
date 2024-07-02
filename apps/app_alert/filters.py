@@ -6,6 +6,7 @@ from apps.app_alert.models import AlertWorkOrder
 from apps.app_alert.models import TicketResolutionCategory
 from apps.app_alert.models import TicketResolution
 from apps.app_alert.models import AlertTicket
+from apps.app_alert.models import TicketHandler
 from django_filters.rest_framework import DjangoFilterBackend
 from apps.app_alert.utils.enums import AlertStatus
 
@@ -77,11 +78,22 @@ class TicketResolutionFilter(django_filters.FilterSet):
         }
 
 
+class TicketHandlerFilter(django_filters.FilterSet):
+    class Meta:
+        model = TicketHandler
+        fields = {
+            "id": ["exact", ],
+        }
+
+
 class AlertTicketFilter(django_filters.FilterSet):
     class Meta:
         model = AlertTicket
         fields = {
             "id": ["exact", ],
+            # "service": ["exact", ],
+            "severity": ["exact", ],
+            "status": ["exact", ],
         }
 
 

@@ -134,7 +134,6 @@ class TicketResolutionAdmin(BaseModelAdmin):
         'creation',
         'modification',
         'submitter',
-        'assigned_to',
         'resolution',
     ]
 

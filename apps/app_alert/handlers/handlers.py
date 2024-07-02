@@ -9,6 +9,10 @@ from apps.monitor.models import MonitorJobTiDB
 from apps.app_alert.utils.utils import DateUtils
 from django.db.utils import IntegrityError
 from apps.app_alert.models import ServiceAdminUser
+from apps.app_alert.models import AlertAbstractModel
+from apps.app_alert.models import ServiceLog
+from apps.app_alert.models import ServiceMetric
+from apps.app_alert.utils import errors
 
 
 def move_to_resolved(obj):
@@ -160,3 +164,37 @@ class EmailNotificationCleaner(object):
             obj.update({"alert": alert})
             items.append(obj)
         return items
+
+
+class AlertServerAdapter(object):
+    def __init__(self, alerts):
+        self.alerts = alerts
+
+    def get_service_set(self):
+        service_set = set()
+        for cluster in self.get_cluster_set():
+            service = self.search_cluster_service(cluster=cluster)
+            service_set.add(service)
+        if not service_set:
+            raise errors.InvalidArgument("unknown service")
+        if len(service_set) > 1:
+            raise errors.InvalidArgument("multi service is not supported")
+        return list(service_set)[0]
+
+    def get_cluster_set(self):
+        cluster_set = set()
+        for alert_obj in self.alerts:
+            if alert_obj.cluster == AlertAbstractModel.AlertType.WEBMONITOR.value:
+                continue
+            cluster_set.add(alert_obj.cluster)
+        return cluster_set
+
+    @staticmethod
+    def search_cluster_service(cluster):
+        service_log_obj = ServiceLog.objects.filter(job_tag=cluster).first()
+        if service_log_obj:
+            return service_log_obj.service
+        service_metric_obj = ServiceMetric.objects.filter(job_tag=cluster).first()
+        if service_metric_obj:
+            return service_metric_obj.service
+        return None

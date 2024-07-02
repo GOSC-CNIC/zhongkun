@@ -4,6 +4,13 @@ from apps.app_alert.models import AlertAbstractModel
 from apps.app_alert.models import ServiceLog
 from apps.app_alert.models import ServiceMetric
 from apps.app_alert.utils import errors
+from apps.app_alert.utils.utils import DateUtils
+from apps.app_alert.models import AlertTicket
+from apps.app_alert.handlers.handlers import move_to_resolved
+from apps.app_alert.models import TicketHandler
+from django.db import transaction
+from apps.app_alert.serializers import TicketCustomSerializer
+from rest_framework.exceptions import PermissionDenied
 
 
 def has_service_permission(service_name, user):
@@ -18,34 +25,53 @@ def has_service_permission(service_name, user):
         return True
 
 
-class ServerAdapter(object):
-    def __init__(self, alerts):
-        self.alerts = alerts
+class TicketManager(object):
+    def __init__(self, request):
+        self.request = request
 
-    def get_service_set(self):
-        service_set = set()
-        for cluster in self.get_cluster_set():
-            service = self.search_cluster_service(cluster=cluster)
-            service_set.add(service)
-        return service_set
+    def create_ticket(self, serializer):
+        with transaction.atomic():
+            self._create_ticket(serializer)
 
-    def get_cluster_set(self):
-        cluster_set = set()
-        for alert_id in self.alerts:
-            alert_obj = AlertModel.objects.filter(id=alert_id).first()
-            if not alert_obj:
-                continue
-            if alert_obj.cluster == AlertAbstractModel.AlertType.WEBMONITOR.value:
-                continue
-            cluster_set.add(alert_obj.cluster)
-        return cluster_set
+    def _create_ticket(self, serializer):
 
-    @staticmethod
-    def search_cluster_service(cluster):
-        service_log_obj = ServiceLog.objects.filter(job_tag=cluster).first()
-        if service_log_obj:
-            return service_log_obj.service
-        service_metric_obj = ServiceMetric.objects.filter(job_tag=cluster).first()
-        if service_metric_obj:
-            return service_metric_obj.service
-        return None
+        custom_serializer = TicketCustomSerializer(data=self.request.data)
+        custom_serializer.is_valid(raise_exception=True)
+        service = custom_serializer.data.get('service')
+        # 用户权限验证
+        if not has_service_permission(service_name=service, user=self.request.user):
+            raise PermissionDenied()
+        # 告警是否已经存在工单
+        alert_object_list = list()
+        for alert in self.request.data.get('alerts'):
+            obj = AlertModel.objects.filter(id=alert).first()
+            if not obj:
+                raise errors.InvalidArgument(f'invalid alert:{alert}')
+            if obj.ticket:
+                raise errors.InvalidArgument(f'alert ticket already exists')
+            alert_object_list.append(obj)
+        # 保存工单
+        ticket = serializer.save(
+            submitter=self.request.user,
+            service=service,
+        )
+        # 告警关联工单
+        for obj in alert_object_list:
+            obj.ticket = ticket
+            obj.save()
+            if ticket.resolution:  # 已经填写解决方案
+                obj.recovery = DateUtils.timestamp()
+                obj.status = AlertModel.AlertStatus.RESOLVED.value
+                ticket.status = AlertTicket.Status.CLOSED.value
+                ticket.save()
+                obj.save()
+                if obj.type == AlertModel.AlertType.LOG.value:  # 日志类 归入 已恢复队列
+                    move_to_resolved(obj)
+
+        # 关联处理人
+        handlers = custom_serializer.data.get('handlers')
+        for user in handlers:
+            TicketHandler.objects.create(
+                ticket=ticket,
+                user=user,
+            )

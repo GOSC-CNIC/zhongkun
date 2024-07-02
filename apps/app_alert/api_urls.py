@@ -30,6 +30,11 @@ urlpatterns = [
     # 查询指定工单解决方案、修改指定工单解决方案、删除指定工单解决方案
     re_path('^ticket/resolution/(?P<pk>[a-z0-9]+)/$', views.TicketResolutionDetailGenericAPIView.as_view()),
 
+    # 工单处理人
+    re_path('^ticket/handler/$', views.TicketHandlerListGenericAPIView.as_view()),
+    # 查询指定工单处理人、修改指定工单处理人、删除指定工单处理人
+    re_path('^ticket/handler/(?P<pk>[a-z0-9]+)/$', views.TicketHandlerDetailGenericAPIView.as_view()),
+
     # 查询告警工单列表、创建告警工单
     re_path('^ticket/$', views.AlertTicketListGenericAPIView.as_view()),
     # 查询指定工单、修改指定工单、删除指定工单
