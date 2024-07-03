@@ -62,12 +62,11 @@ class TicketManager(object):
         for obj in alert_object_list:
             obj.ticket = ticket
             obj.save()
-            if ticket.resolution:  # 已经填写解决方案
+            if ticket.status == AlertTicket.Status.CLOSED.value:  # 工单状态为已结束
                 obj.recovery = DateUtils.timestamp()
                 obj.status = AlertModel.AlertStatus.RESOLVED.value
-                ticket.status = AlertTicket.Status.CLOSED.value
-                ticket.save()
                 obj.save()
+
                 if obj.type == AlertModel.AlertType.LOG.value:  # 日志类 归入 已恢复队列
                     move_to_resolved(obj)
 
@@ -83,8 +82,17 @@ class TicketManager(object):
         custom_serializer = TicketUpdateHandlersSerializer(data=self.request.data)
         custom_serializer.is_valid(raise_exception=True)
         ticket = serializer.save()
+        # 当工单修改为已完成时，将告警状态修改为已经恢复
+        if ticket.status == AlertTicket.Status.CLOSED.value:
+            for alert in ticket.app_alert_alertmodel_related.all():
+                alert.recovery = DateUtils.timestamp()
+                alert.status = AlertModel.AlertStatus.RESOLVED.value
+                alert.save()
+                if alert.type == AlertModel.AlertType.LOG.value:  # 日志类 归入 已恢复队列
+                    move_to_resolved(alert)
         target_handlers = custom_serializer.data.get('handlers')
         preview_handlers = TicketHandler.objects.filter(ticket=ticket).all()
+
 
         # 判断是否有移除的处理人
         for handler in preview_handlers:
