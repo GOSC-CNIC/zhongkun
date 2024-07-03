@@ -347,8 +347,9 @@ class AlertTicketSerializer(serializers.ModelSerializer):
             return obj.resolution.resolution
 
     def get_alerts(self, obj):
-
-        return AlertReadOnlySerializer(obj.app_alert_alertmodel_related.all(), many=True).data
+        firing = AlertReadOnlySerializer(obj.app_alert_alertmodel_related.all(), many=True).data
+        resolved = AlertReadOnlySerializer(obj.app_alert_resolvedalertmodel_related.all(), many=True).data
+        return firing + resolved
 
 
 class AlertServiceSerializer(serializers.Serializer):
