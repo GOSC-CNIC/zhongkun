@@ -234,6 +234,10 @@ class AlertTicketSerializer(serializers.ModelSerializer):
     submitter_fullname = serializers.SerializerMethodField(read_only=True)
     handlers = serializers.SerializerMethodField(read_only=True)
     alerts = serializers.SerializerMethodField(read_only=True)
+    category_id = serializers.SerializerMethodField(read_only=True)
+    category = serializers.SerializerMethodField(read_only=True)
+    resolution_id = serializers.SerializerMethodField(read_only=True)
+    resolution = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = AlertTicket
@@ -249,6 +253,9 @@ class AlertTicketSerializer(serializers.ModelSerializer):
             'submitter',
             'submitter_username',
             'submitter_fullname',
+            'category_id',
+            'category',
+            'resolution_id',
             'resolution',
             'handlers',
             'alerts',
@@ -268,6 +275,22 @@ class AlertTicketSerializer(serializers.ModelSerializer):
     def get_submitter_fullname(self, obj):
         if obj.submitter:
             return obj.submitter.get_full_name()
+
+    def get_category_id(self, obj):
+        if obj.resolution:
+            return obj.resolution.category.id
+
+    def get_category(self, obj):
+        if obj.resolution:
+            return obj.resolution.category.name
+
+    def get_resolution_id(self, obj):
+        if obj.resolution:
+            return obj.resolution.id
+
+    def get_resolution(self, obj):
+        if obj.resolution:
+            return obj.resolution.resolution
 
     def get_alerts(self, obj):
 

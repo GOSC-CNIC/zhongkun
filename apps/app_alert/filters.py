@@ -87,6 +87,9 @@ class TicketHandlerFilter(django_filters.FilterSet):
 
 
 class AlertTicketFilter(django_filters.FilterSet):
+    category_id = django_filters.CharFilter(field_name="resolution", method="category_id_filter")
+    resolution_id = django_filters.CharFilter(field_name="resolution", method="resolution_id_filter")
+
     class Meta:
         model = AlertTicket
         fields = {
@@ -95,6 +98,12 @@ class AlertTicketFilter(django_filters.FilterSet):
             "severity": ["exact", ],
             "status": ["exact", ],
         }
+
+    def category_id_filter(self, queryset, field_name, value):
+        return queryset.filter(resolution__category__id=value)
+
+    def resolution_id_filter(self, queryset, field_name, value):
+        return queryset.filter(resolution__id=value)
 
 
 class ServiceAdminUserFilter(django_filters.FilterSet):
