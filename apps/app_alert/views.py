@@ -33,6 +33,7 @@ from apps.app_alert.serializers import AlertServiceSerializer
 from apps.app_alert.serializers import TicketResolutionSerializer
 from apps.app_alert.serializers import AlertTicketSerializer
 from apps.app_alert.serializers import TicketUpdateSerializer
+from apps.app_alert.serializers import AlertTicketCreateSerializer
 from apps.app_alert.filters import WorkOrderFilter
 from apps.app_alert.filters import TicketResolutionCategoryFilter
 from apps.app_alert.filters import TicketResolutionFilter
@@ -154,6 +155,11 @@ class AlertGenericAPIView(APIView):
                               required=False,
                               enum=["log", "metric", "webmonitor"],
                               description='类型'),
+            openapi.Parameter(name='has_ticket',
+                              in_=openapi.IN_QUERY,
+                              type=openapi.TYPE_BOOLEAN,
+                              required=False,
+                              description='是否存在工单'),
             openapi.Parameter(name='cluster',
                               in_=openapi.IN_QUERY,
                               type=openapi.TYPE_STRING,
@@ -600,7 +606,7 @@ class AlertTicketListGenericAPIView(GenericAPIView, ListModelMixin, CreateModelM
         }
     )
     def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        serializer = AlertTicketCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         TicketManager(request=request).create_ticket(serializer=serializer)
         return Response(serializer.data, status=status_code.HTTP_201_CREATED)

@@ -33,14 +33,7 @@ class AlertModelSerializer(serializers.ModelSerializer):
             result['creation'] = order.creation
             result['creator_name'] = order.submitter.get_full_name()
             result['creator_email'] = order.submitter.username
-            handlers = order.handlers.all()
-            print(handlers)
-            # if order.assigned_to:
-            #     result['assigned_to_name'] = order.assigned_to.get_full_name()
-            #     result['assigned_to_email'] = order.assigned_to.username
-            # else:
-            #     result['assigned_to_name'] = None
-            #     result['assigned_to_email'] = None
+            # handlers = order.handlers.all()
             if order.resolution:
                 result['resolution'] = order.resolution.resolution
             else:
@@ -227,6 +220,67 @@ class AlertReadOnlySerializer(serializers.ModelSerializer):
             'recovery',
             'ticket',
         ]
+
+
+class AlertTicketCreateSerializer(serializers.ModelSerializer):
+    submitter_username = serializers.SerializerMethodField(read_only=True)
+    submitter_fullname = serializers.SerializerMethodField(read_only=True)
+    handlers = serializers.SerializerMethodField(read_only=True)
+    alerts = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = AlertTicket
+        fields = (
+            'id',
+            'title',
+            'description',
+            'service',
+            'severity',
+            'status',
+            'creation',
+            'modification',
+            'submitter',
+            'submitter_username',
+            'submitter_fullname',
+            'resolution',
+            'handlers',
+            'alerts',
+        )
+        extra_kwargs = {
+            'submitter': {'read_only': True},
+            'service': {'read_only': True},
+        }
+
+    def get_handlers(self, obj):
+        return TicketHandlerReadOnlySerializer(TicketHandler.objects.filter(ticket=obj).all(), many=True).data
+
+    def get_submitter_username(self, obj):
+        if obj.submitter:
+            return obj.submitter.username
+
+    def get_submitter_fullname(self, obj):
+        if obj.submitter:
+            return obj.submitter.get_full_name()
+
+    def get_category_id(self, obj):
+        if obj.resolution:
+            return obj.resolution.category.id
+
+    def get_category(self, obj):
+        if obj.resolution:
+            return obj.resolution.category.name
+
+    def get_resolution_id(self, obj):
+        if obj.resolution:
+            return obj.resolution.id
+
+    def get_resolution(self, obj):
+        if obj.resolution:
+            return obj.resolution.resolution
+
+    def get_alerts(self, obj):
+
+        return AlertReadOnlySerializer(obj.app_alert_alertmodel_related.all(), many=True).data
 
 
 class AlertTicketSerializer(serializers.ModelSerializer):
