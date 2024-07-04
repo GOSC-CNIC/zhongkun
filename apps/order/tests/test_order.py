@@ -620,8 +620,8 @@ class OrderTests(MyAPITestCase):
         order2, resource_list = omgr.create_order(
             order_type=Order.OrderType.UPGRADE.value,
             pay_app_service_id=self.service.pay_app_service_id,
-            service_id='test',
-            service_name='test',
+            service_id=self.service.id,
+            service_name=self.service.name,
             resource_type=ResourceType.DISK.value,
             instance_config=order2_instance_config,
             period=3,
@@ -679,6 +679,27 @@ class OrderTests(MyAPITestCase):
         url = reverse('order-api:order-detail', kwargs={'id': order2.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 403)
+
+        # --- test as-admin ----
+        url = reverse('order-api:order-detail', kwargs={'id': order2.id})
+        query = parse.urlencode(query={'as-admin': ''})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 403)
+
+        # 服务单元数据中心管理员
+        self.service.org_data_center.add_admin_user(user2)
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+
+        # 联邦管理员
+        url = reverse('order-api:order-detail', kwargs={'id': order.id})
+        query = parse.urlencode(query={'as-admin': ''})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 403)
+
+        self.user2.set_federal_admin()
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
 
     def test_pay_claim_order(self):
         self.client.logout()

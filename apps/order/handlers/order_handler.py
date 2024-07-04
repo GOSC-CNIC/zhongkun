@@ -109,7 +109,10 @@ class OrderHandler:
             return view.exception_response(errors.BadRequest(_('无效的订单编号')))
 
         try:
-            order, resources = OrderManager().get_order_detail(order_id=order_id, user=request.user)
+            if view.is_as_admin_request(request=request):
+                order, resources = OrderManager().admin_get_order_detail(order_id=order_id, admin_user=request.user)
+            else:
+                order, resources = OrderManager().get_order_detail(order_id=order_id, user=request.user)
         except errors.Error as exc:
             return view.exception_response(exc)
 

@@ -361,8 +361,7 @@ class OrderViewSet(CustomGenericViewSet):
     @swagger_auto_schema(
         operation_summary=gettext_lazy('订单详情'),
         request_body=no_body,
-        manual_parameters=[
-        ],
+        manual_parameters=CustomGenericViewSet.PARAMETERS_AS_ADMIN,
         responses={
             200: ''
         }
@@ -370,6 +369,8 @@ class OrderViewSet(CustomGenericViewSet):
     def retrieve(self, request, *args, **kwargs):
         """
         订单详情
+
+            * 联邦管理员可以查询所有订单，非联邦管理员 只有云主机服务单元的订单支持管理员权限
 
             http code 200：
             {
