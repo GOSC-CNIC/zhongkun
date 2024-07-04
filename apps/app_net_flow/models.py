@@ -130,10 +130,10 @@ class MenuModel(UuidModel):
 
 
 class Menu2Chart(UuidModel):
-    title = models.CharField(max_length=255, null=False, blank=True, default='', verbose_name=_('自定义标题'))
     menu = models.ForeignKey(to='MenuModel', null=False, on_delete=models.DO_NOTHING, verbose_name='组')
     chart = models.ForeignKey(to='ChartModel', null=False, on_delete=models.DO_NOTHING, verbose_name='组元素')
-    remark = models.TextField(default='', null=True, blank=True, verbose_name=_('备注'))
+    remark = models.CharField(max_length=255, null=False, blank=True, default='', verbose_name=_('备注'))
+    admin_remark = models.CharField(max_length=255, null=False, blank=True, default='', verbose_name=_('管理员备注'))
     sort_weight = models.IntegerField(verbose_name=_('排序值'),
                                       null=False,
                                       blank=True,

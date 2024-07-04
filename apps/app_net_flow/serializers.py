@@ -101,6 +101,7 @@ class Menu2ChartSerializer(serializers.ModelSerializer):
     instance_name = serializers.SerializerMethodField(read_only=True)
     global_title = serializers.SerializerMethodField(read_only=True)
     global_remark = serializers.SerializerMethodField(read_only=True)
+    admin_remark = serializers.SerializerMethodField(read_only=True)
     if_alias = serializers.SerializerMethodField(read_only=True)
     if_address = serializers.SerializerMethodField(read_only=True)
     device_ip = serializers.SerializerMethodField(read_only=True)
@@ -119,8 +120,8 @@ class Menu2ChartSerializer(serializers.ModelSerializer):
             "instance_name",
             "global_title",
             "global_remark",
-            "title",
             "remark",
+            "admin_remark",
             "sort_weight",
             "if_alias",
             "if_address",
@@ -143,6 +144,14 @@ class Menu2ChartSerializer(serializers.ModelSerializer):
 
     def get_if_alias(self, obj):
         return obj.chart.if_alias
+
+    def get_admin_remark(self, obj):
+        print(self.perm.get_user_role())
+        if self.perm.is_global_super_admin_or_ops_admin():
+            return obj.admin_remark
+        if self.perm.has_group_admin_permission(obj.menu.id):
+            return obj.admin_remark
+        return None
 
     def get_device_ip(self, obj):
         if self.perm.is_global_super_admin_or_ops_admin():

@@ -206,7 +206,8 @@ class Menu2ChartAdmin(NetflowLogEntryBaseModelAdmin):
         'id',
         'menu',
         'chart',
-        'title',
+        'remark',
+        'admin_remark',
         'sort_weight',
 
     ]
