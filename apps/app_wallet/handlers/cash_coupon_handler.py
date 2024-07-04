@@ -173,12 +173,14 @@ class CashCouponHandler:
         download = data['download']
         time_start = data['time_start']
         time_end = data['time_end']
+        owner_type = data['owner_type']
+        vo_id = data['vo_id']
 
         try:
             queryset = CashCouponManager().admin_list_coupon_queryset(
                 user=request.user, template_id=template_id, app_service_id=app_service_id, status=status, valid=valid,
                 issuer=issuer, redeemer=redeemer, createtime_start=time_start, createtime_end=time_end,
-                coupon_id=data['id']
+                coupon_id=data['id'], owner_type=owner_type, vo_id=vo_id
             )
 
             if download:
@@ -202,6 +204,8 @@ class CashCouponHandler:
         download = request.query_params.get('download', None)
         time_start = request.query_params.get('time_start', None)
         time_end = request.query_params.get('time_end', None)
+        owner_type = request.query_params.get('owner_type', None)
+        vo_id = request.query_params.get('vo_id', None)
 
         if issuer is not None and not issuer:
             raise errors.InvalidArgument(message=_('指定的发放人不能为空'))
@@ -233,6 +237,9 @@ class CashCouponHandler:
             if time_start >= time_end:
                 raise errors.InvalidArgument(message=_('参数“time_start”时间必须超前“time_end”时间'))
 
+        if owner_type is not None and owner_type not in OwnerType.values:
+            raise errors.InvalidArgument(message=_('拥有者类型参数“owner_type”的值无效'))
+
         return {
             'template_id': template_id,
             'status': status,
@@ -243,7 +250,9 @@ class CashCouponHandler:
             'download': download is not None,
             'time_start': time_start,
             'time_end': time_end,
-            'id': c_id
+            'id': c_id,
+            'owner_type': owner_type,
+            'vo_id': vo_id
         }
 
     @staticmethod

@@ -1254,6 +1254,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
             status=CashCoupon.Status.AVAILABLE.value,
             app_service_id=self.app_service1.id,
             user_id=self.user.id,
+            owner_type=OwnerType.USER.value,
             issuer='test@cnic.cn'
         )
         coupon2.save(force_insert=True)
@@ -1266,6 +1267,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
             status=CashCoupon.Status.AVAILABLE.value,
             app_service_id=self.app_service2.id,
             user_id=self.user2.id,
+            owner_type=OwnerType.USER.value,
             issuer='test@cnic.cn'
         )
         coupon3.save(force_insert=True)
@@ -1533,6 +1535,49 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data['count'], 3)
         self.assertEqual(len(r.data['results']), 3)
+
+        # owner_type, vo_id
+        vo1 = VirtualOrganization(name='test vo', owner_id=self.user.id)
+        vo1.save(force_insert=True)
+        vo_coupon4 = CashCoupon(
+            face_value=Decimal('466.68'),
+            balance=Decimal('466.68'),
+            effective_time=timezone.now() + timedelta(days=1),
+            expiration_time=timezone.now() + timedelta(days=6),
+            status=CashCoupon.Status.AVAILABLE.value,
+            app_service_id=self.app_service2.id,
+            user_id=self.user2.id,
+            owner_type=OwnerType.VO.value,
+            vo=vo1,
+            issuer='test@cnic.cn'
+        )
+        vo_coupon4.save(force_insert=True)
+
+        query = parse.urlencode(query={'owner_type': 'user'})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 2)
+        self.assertEqual(len(r.data['results']), 2)
+
+        query = parse.urlencode(query={'owner_type': 'vo'})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 1)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['id'], vo_coupon4.id)
+
+        query = parse.urlencode(query={'vo_id': vo1.id})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 1)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['id'], vo_coupon4.id)
+
+        query = parse.urlencode(query={'vo_id': 'test'})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 0)
+        self.assertEqual(len(r.data['results']), 0)
 
     def test_delete_cash_coupon(self):
         coupon2 = CashCoupon(

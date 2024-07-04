@@ -11,6 +11,7 @@ from apps.app_wallet.handlers.cash_coupon_handler import CashCouponHandler, Quer
 from apps.app_wallet import trade_serializers
 from apps.app_wallet.models import CashCoupon, PayAppService
 from utils.paginators import NoPaginatorInspector
+from utils.model import OwnerType
 
 
 class CashCouponViewSet(CustomGenericViewSet):
@@ -414,28 +415,43 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=f'筛选条件，查询指定发放人的券'
+                description='筛选条件，查询指定发放人的券'
             ),
             openapi.Parameter(
                 name='redeemer',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=f'筛选条件，查询指定兑换人的券'
+                description='筛选条件，查询指定兑换人的券'
+            ),
+            openapi.Parameter(
+                name='owner_type',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='筛选条件，查询所属类型的券（用户或vo组）',
+                enum=OwnerType.values
+            ),
+            openapi.Parameter(
+                name='vo_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='筛选条件，查询指定vo组的券'
             ),
             openapi.Parameter(
                 name='time_start',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=f'支付时间段起（含），ISO8601格式：YYYY-MM-ddTHH:mm:ssZ'
+                description='支付时间段起（含），ISO8601格式：YYYY-MM-ddTHH:mm:ssZ'
             ),
             openapi.Parameter(
                 name='time_end',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=f'支付时间段止（不含），ISO8601格式：YYYY-MM-ddTHH:mm:ssZ'
+                description='支付时间段止（不含），ISO8601格式：YYYY-MM-ddTHH:mm:ssZ'
             ),
             openapi.Parameter(
                 name='download',
