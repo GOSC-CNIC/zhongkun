@@ -439,7 +439,7 @@ class OrderViewSet(CustomGenericViewSet):
     @swagger_auto_schema(
         operation_summary=gettext_lazy('支付订单'),
         request_body=no_body,
-        manual_parameters=[
+        manual_parameters=CustomGenericViewSet.PARAMETERS_AS_ADMIN + [
             openapi.Parameter(
                 name='payment_method',
                 in_=openapi.IN_QUERY,

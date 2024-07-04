@@ -10,6 +10,7 @@ from utils.model import OwnerType, PayType
 from utils import rand_utils
 from apps.vo.managers import VoManager
 from core import errors
+from apps.servers.managers import ServiceManager
 from apps.order.models import Order, Resource, ResourceType
 from .instance_configs import (
     BaseConfig, ServerConfig, DiskConfig, BucketConfig, ScanConfig, ServerSnapshotConfig
@@ -504,6 +505,32 @@ class OrderManager:
         """
         order = self.get_permission_order(
             order_id=order_id, user=user, check_permission=check_permission, read_only=read_only)
+        resources = Resource.objects.filter(order_id=order_id).all()
+        resources = list(resources)
+        return order, resources
+
+    def admin_get_order_detail(self, order_id: str, admin_user):
+        """
+        管理员查询订单详情，需要有管理员
+
+        :param order_id: 订单id
+        :param admin_user: 用户对象
+        :return:
+            order, resources
+        :raises: NotFound, AccessDenied
+        """
+        order = self.get_order(order_id=order_id)
+        if order is None or order.deleted:
+            raise errors.NotFound(_('订单不存在'))
+
+        if not admin_user.is_federal_admin():
+            # 云主机服务单元管理员权限
+            if order.resource_type in [ResourceType.VM.value, ResourceType.VM_SNAPSHOT.value, ResourceType.DISK.value]:
+                if not ServiceManager.has_perm(user_id=admin_user.id, service_id=order.service_id):
+                    raise errors.AccessDenied(message=_('您没有此订单的访问权限，没有订购资源的服务单元的管理权限'))
+            else:
+                raise errors.AccessDenied(message=_('您没有此订单的访问权限，此订单订购的资源类型的相关订单暂不支持非联邦管理员权限'))
+
         resources = Resource.objects.filter(order_id=order_id).all()
         resources = list(resources)
         return order, resources

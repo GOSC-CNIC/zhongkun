@@ -1114,6 +1114,27 @@ class OrderTests(MyAPITestCase):
         self.assertEqual(tbill.trade_type, TransactionBill.TradeType.PAYMENT.value)
         self.assertEqual(tbill.trade_id, pay_history2.id)
 
+        # -- test as-admin ---
+        url = reverse('order-api:order-pay-order', kwargs={'id': order2.id})
+        query = parse.urlencode(query={
+            'payment_method': CASH_COUPON_BALANCE, 'as-admin': ''
+        }, doseq=True)
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # 服务单元数据中心管理员
+        self.service.org_data_center.add_admin_user(self.user)
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=409, code='OrderPaid', response=response)
+        self.service.org_data_center.remove_admin_user(self.user)
+
+        # 联邦管理员
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+        self.user.set_federal_admin()
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=409, code='OrderPaid', response=response)
+
     def test_cancel_order(self):
         # prepaid mode order
         instance_config = ServerConfig(
