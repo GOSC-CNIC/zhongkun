@@ -21,12 +21,28 @@ class OrderHandler:
     def list_order(self, view: CustomGenericViewSet, request):
         try:
             data = self.list_order_validate_params(request)
+            vo_id = data['vo_id']
+            user_id = data['user_id']
+            is_as_admin = view.is_as_admin_request(request=request)
+            if user_id and not is_as_admin:
+                raise errors.InvalidArgument(message=_('只有以管理员身份查询时，才允许查询指定用户的订单'))
         except errors.Error as exc:
             return view.exception_response(exc)
 
-        user = request.user
-        vo_id = data['vo_id']
-        if vo_id:
+        auth_user = request.user
+
+        if is_as_admin:
+            queryset = OrderManager().admin_filter_order_queryset(
+                admin_user=auth_user,
+                resource_type=data['resource_type'],
+                order_type=data['order_type'],
+                status=data['status'],
+                time_start=data['time_start'],
+                time_end=data['time_end'],
+                user_id=user_id, vo_id=vo_id,
+                is_deleded=False
+            )
+        elif vo_id:
             try:
                 queryset = OrderManager().filter_vo_order_queryset(
                     resource_type=data['resource_type'],
@@ -34,7 +50,7 @@ class OrderHandler:
                     status=data['status'],
                     time_start=data['time_start'],
                     time_end=data['time_end'],
-                    user=user,
+                    user=auth_user,
                     vo_id=vo_id, is_deleded=False
                 )
             except Exception as exc:
@@ -46,8 +62,9 @@ class OrderHandler:
                 status=data['status'],
                 time_start=data['time_start'],
                 time_end=data['time_end'],
-                user_id=user.id, is_deleded=False
+                user_id=auth_user.id, is_deleded=False
             )
+
         try:
             orders = view.paginate_queryset(queryset)
             serializer = view.get_serializer(instance=orders, many=True)
@@ -63,6 +80,7 @@ class OrderHandler:
         time_start = request.query_params.get('time_start', None)
         time_end = request.query_params.get('time_end', None)
         vo_id = request.query_params.get('vo_id', None)
+        user_id = request.query_params.get('user_id', None)
 
         if resource_type is not None and resource_type not in ResourceType.values:
             raise errors.InvalidArgument(message=_('参数“resource_type”的值无效'))
@@ -96,7 +114,8 @@ class OrderHandler:
             'status': status,
             'time_start': time_start,
             'time_end': time_end,
-            'vo_id': vo_id
+            'vo_id': vo_id,
+            'user_id': user_id
         }
 
     @staticmethod

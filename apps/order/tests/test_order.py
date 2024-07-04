@@ -151,8 +151,8 @@ class OrderTests(MyAPITestCase):
         order2, resource_list = omgr.create_order(
             order_type=Order.OrderType.UPGRADE.value,
             pay_app_service_id='test',
-            service_id='test',
-            service_name='test',
+            service_id=self.service.id,
+            service_name=self.service.name,
             resource_type=ResourceType.DISK.value,
             instance_config=order2_instance_config,
             period=0,
@@ -252,6 +252,48 @@ class OrderTests(MyAPITestCase):
         self.assertEqual(response.data['count'], 1)
         self.assertEqual(len(response.data['orders']), 1)
         self.assertEqual(response.data['orders'][0]['id'], order.id)
+
+        #  --- test as-admin ---
+        base_url = reverse('order-api:order-list')
+        query = parse.urlencode(query={'as-admin': ''})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(len(response.data['orders']), 0)
+
+        # 服务单元管理员
+        self.service.org_data_center.add_admin_user(self.user)
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['orders']), 1)
+        self.assertEqual(response.data['orders'][0]['id'], order2.id)
+
+        # 联邦管理员
+        self.user.set_federal_admin()
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(len(response.data['orders']), 2)
+        self.assertEqual(response.data['orders'][0]['id'], order2.id)
+        self.assertEqual(response.data['orders'][1]['id'], order.id)
+
+        query = parse.urlencode(query={'as-admin': '', 'user_id': self.user.id})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['orders']), 1)
+        self.assertEqual(response.data['orders'][0]['id'], order.id)
+
+        query = parse.urlencode(query={'as-admin': '', 'user_id': 'te'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(len(response.data['orders']), 0)
+
+        query = parse.urlencode(query={'user_id': self.user.id})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
 
     def list_user_order_query_test(self):
         base_url = reverse('order-api:order-list')

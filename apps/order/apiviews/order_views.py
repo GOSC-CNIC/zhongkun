@@ -223,7 +223,7 @@ class OrderViewSet(CustomGenericViewSet):
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举订单'),
         request_body=no_body,
-        manual_parameters=[
+        manual_parameters=CustomGenericViewSet.PARAMETERS_AS_ADMIN + [
             openapi.Parameter(
                 name='resource_type',
                 in_=openapi.IN_QUERY,
@@ -250,21 +250,28 @@ class OrderViewSet(CustomGenericViewSet):
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=f'创建时间段起，ISO8601格式：YYYY-MM-ddTHH:mm:ssZ'
+                description='创建时间段起，ISO8601格式：YYYY-MM-ddTHH:mm:ssZ'
             ),
             openapi.Parameter(
                 name='time_end',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=f'创建时间段止，ISO8601格式：YYYY-MM-ddTHH:mm:ssZ'
+                description='创建时间段止，ISO8601格式：YYYY-MM-ddTHH:mm:ssZ'
             ),
             openapi.Parameter(
                 name='vo_id',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=f'查询指定VO组的订单'
+                description='查询指定VO组的订单'
+            ),
+            openapi.Parameter(
+                name='user_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='查询指定用户的订单，此参数只允许和参数“as-admin”一起提交'
             ),
         ],
         responses={
@@ -274,6 +281,8 @@ class OrderViewSet(CustomGenericViewSet):
     def list(self, request, *args, **kwargs):
         """
         列举订单
+
+            * 以管理员身份查询时，联邦管理员可以查询所有订单，非联邦管理员只能查询云主机服务单元有关的订单
 
             http code 200：
             {

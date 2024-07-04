@@ -443,6 +443,42 @@ class OrderManager:
             time_end=time_end, vo_id=vo_id, is_deleded=is_deleded
         )
 
+    def admin_filter_order_queryset(
+            self, admin_user, resource_type: str, order_type: str, status: str, time_start, time_end, user_id: str, vo_id: str,
+            is_deleded: bool = None
+    ):
+        """
+        查询vo组的订单查询集
+
+        :raises: AccessDenied
+        """
+        qs = self.filter_order_queryset(
+            resource_type=resource_type, order_type=order_type, status=status, time_start=time_start,
+            time_end=time_end, user_id=user_id, vo_id=vo_id, is_deleded=is_deleded
+        )
+        if admin_user.is_federal_admin():
+            return qs
+
+        # 云主机服务单元
+        vm_res_type_values = [ResourceType.VM.value, ResourceType.VM_SNAPSHOT.value, ResourceType.DISK.value]
+        if not resource_type:
+            service_ids = ServiceManager.get_has_perm_service_ids(user_id=admin_user.id)
+            if service_ids:
+                qs = qs.filter(
+                    service_id__in=service_ids, resource_type__in=vm_res_type_values)
+            else:
+                qs = qs.none()
+        elif resource_type in [ResourceType.VM.value, ResourceType.VM_SNAPSHOT.value, ResourceType.DISK.value]:
+            service_ids = ServiceManager.get_has_perm_service_ids(user_id=admin_user.id)
+            if service_ids:
+                qs = qs.filter(service_id__in=service_ids)
+            else:
+                qs = qs.none()
+        else:
+            qs = qs.none()
+
+        return qs
+
     @staticmethod
     def get_order(order_id: str, select_for_update: bool = False):
         if select_for_update:
