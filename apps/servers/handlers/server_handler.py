@@ -667,7 +667,7 @@ class ServerHandler:
                               ) % {'value': s_count}, code='VoBalanceNotEnough')
 
     @staticmethod
-    def renew_server(view, request, kwargs):
+    def renew_server(view: CustomGenericViewSet, request, kwargs):
         """
         续费云服务器
         """
@@ -680,9 +680,14 @@ class ServerHandler:
         renew_to_time = data['renew_to_time']
 
         server_id = kwargs.get(view.lookup_field, '')
+        auth_user = request.user
+        is_as_admin = view.is_as_admin_request(request=request)
 
         try:
-            server = ServerManager().get_manage_perm_server(server_id=server_id, user=request.user)
+            if is_as_admin:
+                server = ServerManager().get_manage_perm_server(server_id=server_id, user=auth_user, as_admin=True)
+            else:
+                server = ServerManager().get_manage_perm_server(server_id=server_id, user=auth_user)
         except exceptions.APIException as exc:
             return view.exception_response(exc)
 
@@ -750,6 +755,8 @@ class ServerHandler:
                 end_time = renew_to_time
                 period = 0
 
+            order_user_id = auth_user.id
+            order_user_name = auth_user.username
             if server.belong_to_vo():
                 owner_type = OwnerType.VO.value
                 vo_id = server.vo_id
@@ -758,6 +765,10 @@ class ServerHandler:
                 owner_type = OwnerType.USER.value
                 vo_id = ''
                 vo_name = ''
+                # 管理员帮用户提交的订单，订单的所有人为server的所有人
+                if is_as_admin:
+                    order_user_id = server.user.id
+                    order_user_name = server.user.username
 
             instance_config = ServerConfig(
                 vm_cpu=server.vcpus, vm_ram=server.ram_gib,
@@ -775,8 +786,8 @@ class ServerHandler:
                 period=period,
                 start_time=start_time,
                 end_time=end_time,
-                user_id=request.user.id,
-                username=request.user.username,
+                user_id=order_user_id,
+                username=order_user_name,
                 vo_id=vo_id,
                 vo_name=vo_name,
                 owner_type=owner_type

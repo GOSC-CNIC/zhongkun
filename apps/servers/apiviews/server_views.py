@@ -317,7 +317,7 @@ class ServersViewSet(CustomGenericViewSet):
     @swagger_auto_schema(
         operation_summary=gettext_lazy('续费云服务器实例'),
         request_body=no_body,
-        manual_parameters=[
+        manual_parameters=CustomGenericViewSet.PARAMETERS_AS_ADMIN + [
             openapi.Parameter(
                 name='period',
                 in_=openapi.IN_QUERY,
@@ -345,6 +345,8 @@ class ServersViewSet(CustomGenericViewSet):
     def renew_server(self, request, *args, **kwargs):
         """
         续费包年包月预付费模式云服务器，请求成功会创建一个待支付的订单，支付订单成功后，会自动延长实例的过期时间
+
+            * 联邦管理员和服务单元管理员可以帮用户提交续费订单
 
             Http Code 200:
                 {

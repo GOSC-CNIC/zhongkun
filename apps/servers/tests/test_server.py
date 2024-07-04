@@ -626,6 +626,25 @@ class ServerOrderTests(MyAPITransactionTestCase):
         user_server.refresh_from_db()
         self.assertEqual(user_server.expiration_time, renew_to_time_utc)
 
+        # ----  as admin test----
+        self.client.logout()
+        self.client.force_login(self.user2)
+        url = reverse('servers-api:servers-renew-server', kwargs={'id': user_server.id})
+        query = parse.urlencode(query={'period': 2, 'as-admin': ''})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.service.org_data_center.add_admin_user(self.user2)
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        order_id = response.data['order_id']
+        order = Order.objects.get(id=order_id)
+        self.assertEqual(order.period, 2)
+        self.assertEqual(order.period_unit, Order.PeriodUnit.MONTH.value)
+        self.assertEqual(order.owner_type, OwnerType.USER.value)
+        self.assertEqual(order.user_id, user_server.user.id)
+        self.assertEqual(order.username, user_server.user.username)
+
         # ----------renew vo server-----------
         now_time = dj_timezone.now()
         vo_server_expiration_time = now_time + timedelta(days=100)
@@ -656,6 +675,9 @@ class ServerOrderTests(MyAPITransactionTestCase):
         renew_to_time = (vo_server_expiration_time + timedelta(days=200)).astimezone(utc).isoformat()
         renew_to_time = renew_to_time.split('.')[0] + 'Z'
         renew_to_datetime = iso_utc_to_datetime(renew_to_time)
+
+        self.client.logout()
+        self.client.force_login(self.user)
 
         # renew vo server, no vo permission
         url = reverse('servers-api:servers-renew-server', kwargs={'id': vo_server.id})
@@ -717,6 +739,26 @@ class ServerOrderTests(MyAPITransactionTestCase):
         query = parse.urlencode(query={'renew_to_time': renew_to_time})
         response = self.client.post(f'{url}?{query}')
         self.assertErrorResponse(status_code=409, code='PeriodTooLong', response=response)
+
+        # ----  as admin test----
+        self.service.org_data_center.remove_admin_user(self.user2)
+        self.client.logout()
+        self.client.force_login(self.user2)
+        url = reverse('servers-api:servers-renew-server', kwargs={'id': vo_server.id})
+        query = parse.urlencode(query={'period': 6, 'as-admin': ''})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.user2.set_federal_admin()
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        order_id = response.data['order_id']
+        order = Order.objects.get(id=order_id)
+        self.assertEqual(order.period, 6)
+        self.assertEqual(order.period_unit, Order.PeriodUnit.MONTH.value)
+        self.assertEqual(order.owner_type, OwnerType.VO.value)
+        self.assertEqual(order.user_id, self.user2.id)
+        self.assertEqual(order.username, self.user2.username)
 
     def test_modify_pay_type(self):
         # 余额支付有关配置
