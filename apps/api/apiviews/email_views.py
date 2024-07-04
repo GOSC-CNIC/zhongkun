@@ -11,6 +11,7 @@ from apps.api.viewsets import serializer_error_msg, BaseGenericViewSet
 from utils.paginators import NoPaginatorInspector
 from utils.iprestrict import IPRestrictor
 from core import errors
+from core.taskqueue import submit_task
 from apps.users.models import Email
 from apps.app_global.configs_manager import IPAccessWhiteListManager
 
@@ -94,6 +95,7 @@ class EmailViewSet(BaseGenericViewSet):
         except errors.Error as exc:
             return self.exception_response(exc)
 
+        is_feint = data['is_feint']
         is_html = data['is_html']
         if is_html:
             message = ''
@@ -102,12 +104,17 @@ class EmailViewSet(BaseGenericViewSet):
             message = data['message']
             html_message = None
 
-        email = Email.send_email(
-            subject=data['subject'], receivers=data['receiver'],
+        receivers = data['receiver']
+        email = Email.build_save_email(
+            subject=data['subject'], receivers=receivers,
             message=message, html_message=html_message,
-            tag=Email.Tag.API.value, fail_silently=True,
-            save_db=True, remote_ip=remote_ip, is_feint=data['is_feint']
+            tag=Email.Tag.API.value,
+            save_db=True, remote_ip=remote_ip, is_feint=is_feint
         )
+        if not is_feint:
+            submit_task(Email.do_send_email, kwargs={
+                'email': email, 'save_db': True, 'receivers': receivers, 'fail_silently': True})
+
         serializer = eamil_serializers.EmailSerializer(instance=email)
         return Response(data=serializer.data)
 

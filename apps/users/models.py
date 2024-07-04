@@ -119,8 +119,8 @@ class Email(UuidModel):
         verbose_name = _('邮件')
         verbose_name_plural = verbose_name
 
-    @classmethod
-    def send_email(cls, subject: str, receivers: list, message: str, tag: str, html_message: str = None,
+    @staticmethod
+    def send_email(subject: str, receivers: list, message: str, tag: str, html_message: str = None,
                    fail_silently=True, save_db: bool = True, remote_ip: str = '', is_feint: bool = False):
         """
         发送邮件
@@ -138,6 +138,18 @@ class Email(UuidModel):
             Email()     # 发送成功
             None        # 发送失败
         """
+        email = Email.build_save_email(
+            subject=subject, receivers=receivers, message=message, tag=tag, html_message=html_message,
+            save_db=save_db, remote_ip=remote_ip, is_feint=is_feint
+        )
+        email = Email.do_send_email(email=email, save_db=save_db, receivers=receivers, fail_silently=fail_silently)
+        return email
+
+    @classmethod
+    def build_save_email(
+            cls, subject: str, receivers: list, message: str, tag: str, html_message: str = None,
+            save_db: bool = True, remote_ip: str = '', is_feint: bool = False
+    ):
         receiver_str = ';'.join(receivers)
         if len(receiver_str) >= 254:
             receiver_str = receiver_str[:254]
@@ -153,13 +165,34 @@ class Email(UuidModel):
         if html_message:
             email.message = html_message
             email.is_html = True
-            message = ''
 
         if save_db:
             email.save(force_insert=True)  # 邮件记录
 
-        if is_feint:    # 假动作，不真实发送
+        return email
+
+    @staticmethod
+    def do_send_email(email, save_db: bool, receivers: list = None, fail_silently: bool = True):
+        """
+        :save_db: True(email发送结果更新到数据库)；False(email发送结果不更新到数据库)
+        :retrun:
+            email   # success
+            None    # failed
+
+        :raises: Exception  # failed
+        """
+        if email.is_feint:    # 假动作，不真实发送
             return email
+
+        if not receivers:
+            receivers = email.receiver.split(';')
+
+        if email.is_html:
+            html_message = email.message
+            message = ''
+        else:
+            html_message = ''
+            message = email.message
 
         try:
             ok = send_mail(

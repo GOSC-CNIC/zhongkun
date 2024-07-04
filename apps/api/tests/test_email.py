@@ -1,14 +1,15 @@
+import time
+
 from django.urls import reverse
-from django.conf import settings
 from django.core import mail
 
 from utils.test import get_or_create_user
 from apps.users.models import Email
 from apps.api.apiviews.email_views import EmailIPRestrictor
-from . import MyAPITestCase
+from . import MyAPITransactionTestCase
 
 
-class EmailTests(MyAPITestCase):
+class EmailTests(MyAPITransactionTestCase):
     def setUp(self):
         self.user = get_or_create_user(password='password')
 
@@ -54,19 +55,23 @@ class EmailTests(MyAPITestCase):
             "message": "string message对我的",
             "is_html": False
         })
+
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(['id', 'subject', 'receiver', 'message', 'is_html', 'status', 'status_desc',
                            'success_time', 'remote_ip'], r.data)
-        self.assertEqual(r.data['status'], 'success')
+        self.assertEqual(r.data['status'], 'wait')
         self.assertEqual(r.data['is_html'], False)
         self.assertEqual(r.data['receiver'], 'test@cnic.com')
         self.assertEqual(r.data['is_feint'], False)
-        self.assertEqual(len(mail.outbox), 1)
 
+        # 等待邮件异步发送
+        time.sleep(0.5)
+        self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(Email.objects.count(), 1)
         email1: Email = Email.objects.order_by('-send_time').first()
         self.assertEqual(email1.receiver, 'test@cnic.com')
         self.assertEqual(email1.is_feint, False)
+        self.assertEqual(email1.status, 'success')
 
         # ok, html
         r = self.client.post(base_url, data={
@@ -94,15 +99,18 @@ class EmailTests(MyAPITestCase):
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(['id', 'subject', 'receiver', 'message', 'is_html', 'status', 'status_desc',
                            'success_time', 'remote_ip'], r.data)
-        self.assertEqual(r.data['status'], 'success')
+        self.assertEqual(r.data['status'], 'wait')
         self.assertEqual(r.data['is_html'], True)
         self.assertEqual(r.data['is_feint'], False)
         self.assertEqual(r.data['receiver'], 'test@cnic.com;test66@cnic.com;test888@qq.com')
-        self.assertEqual(len(mail.outbox), 2)
 
+        # 等待邮件异步发送
+        time.sleep(0.5)
+        self.assertEqual(len(mail.outbox), 2)
         self.assertEqual(Email.objects.count(), 2)
         email1: Email = Email.objects.order_by('-send_time').first()
         self.assertEqual(email1.is_feint, False)
+        self.assertEqual(email1.status, 'success')
 
         # 假装发送，只入库不真实发送
         r = self.client.post(base_url, data={
@@ -119,6 +127,9 @@ class EmailTests(MyAPITestCase):
         self.assertEqual(r.data['is_html'], False)
         self.assertEqual(r.data['receiver'], 'test@cnic.com')
         self.assertEqual(r.data['is_feint'], True)
+
+        # 等待邮件异步发送
+        time.sleep(0.5)
         self.assertEqual(len(mail.outbox), 2)   # 不真的发送
 
         self.assertEqual(Email.objects.count(), 3)
@@ -140,6 +151,9 @@ class EmailTests(MyAPITestCase):
         self.assertEqual(r.data['is_html'], False)
         self.assertEqual(r.data['receiver'], 'test@cnic.com')
         self.assertEqual(r.data['is_feint'], True)
+
+        # 等待邮件异步发送
+        time.sleep(0.5)
         self.assertEqual(len(mail.outbox), 2)  # 不真的发送
 
         self.assertEqual(Email.objects.count(), 4)
