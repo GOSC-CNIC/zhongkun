@@ -91,7 +91,7 @@ def task_service_stats_use_lock(timed_minutes: int):
 
 
 def try_host_netflow() -> Union[Future, None]:
-    timed_minutes = 3
+    timed_minutes = 6
     start_time = screen_host_netflow_lock.start_time
     nt = dj_timezone.now()
     # 上次同步时间大于指定同步周期，提交异步任务同步
@@ -120,7 +120,7 @@ def task_host_netflow_use_lock(timed_minutes: int):
             or (start_time - screen_host_netflow_lock.start_time) >= timedelta(minutes=timed_minutes)    # 定时周期
         ):
             screen_host_netflow_lock.mark_start_task(start_time=start_time)  # 更新任务执行信息
-            task_worker.run(update_before_invalid_cycles=5, now_timestamp=now_timestamp)
+            task_worker.run(now_timestamp=now_timestamp)
     except Exception as exc:
         run_desc = str(exc)
     finally:

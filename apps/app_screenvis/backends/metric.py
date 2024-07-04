@@ -121,12 +121,9 @@ class MetricQueryAPI:
         msg = f"status: {r.status_code}, errorType: {data.get('errorType')}, error: {data.get('error')}"
         return errors.Error(message=msg)
 
-    @staticmethod
-    def _build_query_range_api(endpoint_url: str, expression_query: str, start, end, step):
-        endpoint_url = endpoint_url.rstrip('/')
-        query = parse.urlencode(query={'query': expression_query, 'start': start, 'end': end, 'step': step})
-        url = f'{endpoint_url}/api/v1/query_range?{query}'
-        return url
+    def _build_query_range_api(self, endpoint_url: str, expression_query: str, start, end, step):
+        querys = {'query': expression_query, 'start': start, 'end': end, 'step': step}
+        return self._build_query_range_url(endpoint_url=endpoint_url, querys=querys)
 
     @staticmethod
     def _build_query_url(endpoint_url: str, querys: dict):
@@ -134,8 +131,18 @@ class MetricQueryAPI:
         query = parse.urlencode(query=querys)
         return f'{endpoint_url}/api/v1/query?{query}'
 
+    @staticmethod
+    def _build_query_range_url(endpoint_url: str, querys: dict):
+        endpoint_url = endpoint_url.rstrip('/')
+        query = parse.urlencode(query=querys)
+        return f'{endpoint_url}/api/v1/query_range?{query}'
+
     async def async_raw_query(self, endpoint_url: str, querys: dict):
         api_url = self._build_query_url(endpoint_url=endpoint_url, querys=querys)
+        return await self.async_request_query_api(url=api_url)
+
+    async def async_raw_query_range(self, endpoint_url: str, querys: dict):
+        api_url = self._build_query_range_url(endpoint_url=endpoint_url, querys=querys)
         return await self.async_request_query_api(url=api_url)
 
     def query_range_tag(

@@ -1,5 +1,6 @@
 from apps.app_screenvis.models import HostNetflow
 from apps.app_screenvis.workers import HostNetflowWorker
+from apps.app_screenvis.workers.netflow import NetFlowValue
 from . import MyAPITestCase, get_or_create_metric_host
 
 
@@ -11,19 +12,79 @@ class HostNetflowTests(MyAPITestCase):
         host_unit = get_or_create_metric_host()
 
         self.assertEqual(HostNetflow.objects.count(), 0)
-        HostNetflowWorker(minutes=3).run()
-        self.assertEqual(HostNetflow.objects.count(), 1)
+        # 产生当前时间戳数据，会补全前24h数据
+        HostNetflowWorker(minutes=6).run()
+        self.assertEqual(HostNetflow.objects.count(), 241)
         obj1: HostNetflow = HostNetflow.objects.first()
         self.assertEqual(obj1.unit_id, host_unit.id)
         self.assertTrue(obj1.flow_in > 0)
         self.assertTrue(obj1.flow_out > 0)
 
-        # 改为无效数据
-        obj1.flow_in = -1
-        obj1.flow_out = -1
-        obj1.save(update_fields=['flow_in', 'flow_out'])
-        self.assertEqual(HostNetflow.objects.filter(flow_in__lt=0, flow_out__lt=0).count(), 1)
-        HostNetflowWorker(minutes=3).run(update_before_invalid_cycles=5)
-        self.assertEqual(HostNetflow.objects.count(), 2)   # 生产新数据
-        self.assertEqual(HostNetflow.objects.filter(flow_in__lt=0).count(), 0)   # 更新无效数据
-        self.assertEqual(HostNetflow.objects.filter(flow_out__lt=0).count(), 0)  # 更新无效数据
+        # 产生当前时间戳数据
+        HostNetflowWorker(minutes=6).run()
+        self.assertEqual(HostNetflow.objects.count(), 242)   # 生产新数据
+
+    def test_piece_values(self):
+        in_values = [
+            NetFlowValue(ts=1, in_val=1.1, out_val=0),
+            NetFlowValue(ts=3, in_val=3.3, out_val=0),
+            NetFlowValue(ts=2, in_val=2.2, out_val=0),
+        ]
+        out_values = [
+            NetFlowValue(ts=3, in_val=0, out_val=2.22),
+            NetFlowValue(ts=4, in_val=0, out_val=3.32),
+            NetFlowValue(ts=2, in_val=0, out_val=1.12),
+        ]
+        r = HostNetflowWorker.piece_together_in_out_values(
+            flow_in_values=in_values, flow_out_values=out_values)
+        self.assertEqual(r[0].ts, 1)
+        self.assertEqual(r[0].in_val, 1.1)
+        self.assertEqual(r[0].out_val, 1.12)
+        self.assertEqual(r[1].ts, 2)
+        self.assertEqual(r[1].in_val, 2.2)
+        self.assertEqual(r[1].out_val, 2.22)
+        self.assertEqual(r[2].ts, 3)
+        self.assertEqual(r[2].in_val, 3.3)
+        self.assertEqual(r[2].out_val, 3.32)
+
+        in_values = [
+            NetFlowValue(ts=1, in_val=1.1, out_val=0),
+            NetFlowValue(ts=3, in_val=3.3, out_val=0),
+        ]
+        out_values = [
+            NetFlowValue(ts=3, in_val=0, out_val=2.22),
+            NetFlowValue(ts=2, in_val=0, out_val=1.12),
+            NetFlowValue(ts=4, in_val=0, out_val=3.32),
+        ]
+        r = HostNetflowWorker.piece_together_in_out_values(
+            flow_in_values=in_values, flow_out_values=out_values)
+        self.assertEqual(r[0].ts, 1)
+        self.assertEqual(r[0].in_val, 1.1)
+        self.assertEqual(r[0].out_val, 1.12)
+        self.assertEqual(r[1].ts, 3)
+        self.assertEqual(r[1].in_val, 3.3)
+        self.assertEqual(r[1].out_val, 2.22)
+        self.assertEqual(r[2].ts, 4)
+        self.assertEqual(r[2].in_val, 0)
+        self.assertEqual(r[2].out_val, 3.32)
+
+        in_values = [
+            NetFlowValue(ts=1, in_val=1.1, out_val=0),
+            NetFlowValue(ts=3, in_val=3.3, out_val=0),
+            NetFlowValue(ts=2, in_val=2.2, out_val=0),
+        ]
+        out_values = [
+            NetFlowValue(ts=3, in_val=0, out_val=2.22),
+            NetFlowValue(ts=2, in_val=0, out_val=1.12),
+        ]
+        r = HostNetflowWorker.piece_together_in_out_values(
+            flow_in_values=in_values, flow_out_values=out_values)
+        self.assertEqual(r[0].ts, 1)
+        self.assertEqual(r[0].in_val, 1.1)
+        self.assertEqual(r[0].out_val, 1.12)
+        self.assertEqual(r[1].ts, 2)
+        self.assertEqual(r[1].in_val, 2.2)
+        self.assertEqual(r[1].out_val, 2.22)
+        self.assertEqual(r[2].ts, 3)
+        self.assertEqual(r[2].in_val, 3.3)
+        self.assertEqual(r[2].out_val, 0)
