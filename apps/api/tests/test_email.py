@@ -9,11 +9,21 @@ from apps.api.apiviews.email_views import EmailIPRestrictor
 from . import MyAPITransactionTestCase
 
 
+def delay_gte_len(values, length: int, timeout: int):
+    start = time.time()
+    while len(values) < length:
+        time.sleep(0.1)
+        if (time.time() - start) >= timeout:
+            break
+
+
 class EmailTests(MyAPITransactionTestCase):
     def setUp(self):
         self.user = get_or_create_user(password='password')
 
     def test_send_email(self):
+        mail.outbox = []
+        Email.objects.all().delete()
         base_url = reverse('api:email-list')
         data = {
             "receiver": "wangyushun@cnic",
@@ -65,7 +75,7 @@ class EmailTests(MyAPITransactionTestCase):
         self.assertEqual(r.data['is_feint'], False)
 
         # 等待邮件异步发送
-        time.sleep(0.5)
+        delay_gte_len(mail.outbox, 1, timeout=10)
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(Email.objects.count(), 1)
         email1: Email = Email.objects.order_by('-send_time').first()
@@ -105,7 +115,7 @@ class EmailTests(MyAPITransactionTestCase):
         self.assertEqual(r.data['receiver'], 'test@cnic.com;test66@cnic.com;test888@qq.com')
 
         # 等待邮件异步发送
-        time.sleep(0.5)
+        delay_gte_len(mail.outbox, 2, timeout=10)
         self.assertEqual(len(mail.outbox), 2)
         self.assertEqual(Email.objects.count(), 2)
         email1: Email = Email.objects.order_by('-send_time').first()
@@ -129,7 +139,7 @@ class EmailTests(MyAPITransactionTestCase):
         self.assertEqual(r.data['is_feint'], True)
 
         # 等待邮件异步发送
-        time.sleep(0.5)
+        delay_gte_len(mail.outbox, 3, timeout=2)
         self.assertEqual(len(mail.outbox), 2)   # 不真的发送
 
         self.assertEqual(Email.objects.count(), 3)
@@ -153,10 +163,11 @@ class EmailTests(MyAPITransactionTestCase):
         self.assertEqual(r.data['is_feint'], True)
 
         # 等待邮件异步发送
-        time.sleep(0.5)
+        delay_gte_len(mail.outbox, 3, timeout=2)
         self.assertEqual(len(mail.outbox), 2)  # 不真的发送
 
         self.assertEqual(Email.objects.count(), 4)
         email1: Email = Email.objects.order_by('-send_time').first()
         self.assertEqual(email1.receiver, 'test@cnic.com')
         self.assertEqual(email1.is_feint, True)
+        mail.outbox = []

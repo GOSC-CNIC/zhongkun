@@ -26,6 +26,14 @@ from apps.app_apply.models import CouponApply
 from apps.app_apply.managers import CouponApplyManager
 
 
+def delay_gte_len(values, length: int, timeout: int):
+    start = time.time()
+    while len(values) < length:
+        time.sleep(0.1)
+        if (time.time() - start) >= timeout:
+            break
+
+
 class CouponApplyTests(MyAPITestCase):
     def setUp(self):
         self.user1 = get_or_create_user()
@@ -318,6 +326,7 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(r.data['results'][0]['id'], apply7.id)
 
     def test_create(self):
+        dj_mail.outbox = []
         nt_utc = dj_timezone.now()
         base_url = reverse('apply-api:coupon-list')
         r = self.client.post(base_url)
@@ -423,6 +432,7 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(apply1.pay_service_id, server_service1.pay_app_service_id)
         self.assertIsNone(apply1.order_id)
         self.assertEqual(apply1.contact_info, '')
+        delay_gte_len(dj_mail.outbox, 1, timeout=2)     # 等待邮件异步发送
         self.assertEqual(len(dj_mail.outbox), 0)    # 没有数据中心管理员不发邮件
 
         # user
@@ -451,7 +461,8 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(apply2.status, CouponApply.Status.WAIT.value)
         self.assertEqual(apply2.pay_service_id, server_service1.pay_app_service_id)
         self.assertEqual(apply2.contact_info, 'test contact_info')
-        time.sleep(0.5)
+
+        delay_gte_len(dj_mail.outbox, 1, timeout=2)  # 等待邮件异步发送
         self.assertEqual(len(dj_mail.outbox), 1)
 
         server_service1.pay_app_service_id = ''
@@ -526,7 +537,8 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(apply3.status, CouponApply.Status.WAIT.value)
         self.assertEqual(apply3.pay_service_id, 's666666')
         self.assertEqual(apply3.contact_info, '')
-        time.sleep(0.5)
+
+        delay_gte_len(dj_mail.outbox, 2, timeout=2)  # 等待邮件异步发送
         self.assertEqual(len(dj_mail.outbox), 2)
 
         # vo
@@ -599,7 +611,8 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(apply4.status, CouponApply.Status.WAIT.value)
         self.assertEqual(apply4.pay_service_id, '99767343')
         self.assertEqual(apply4.contact_info, 'test monitor')
-        time.sleep(0.5)
+
+        delay_gte_len(dj_mail.outbox, 3, timeout=2)  # 等待邮件异步发送
         self.assertEqual(len(dj_mail.outbox), 3)
 
         # vo
@@ -694,7 +707,7 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(apply5.status, CouponApply.Status.WAIT.value)
         self.assertEqual(apply5.pay_service_id, '88888676')
 
-        time.sleep(0.5)
+        delay_gte_len(dj_mail.outbox, 4, timeout=2)     # 等待邮件异步发送
         self.assertEqual(len(dj_mail.outbox), 4)
 
         # vo
@@ -1298,7 +1311,7 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(apply1.status, CouponApply.Status.REJECT.value)
         self.assertEqual(apply1.approver, self.user2.username)
         self.assertEqual(apply1.reject_reason, 'reject 测试')
-        time.sleep(0.5)
+        delay_gte_len(dj_mail.outbox, 1, timeout=2)  # 等待邮件异步发送
         self.assertEqual(len(dj_mail.outbox), 1)
 
         r = self.client.post(f'{base_url}?{query}')
@@ -1327,7 +1340,7 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(apply2.status, CouponApply.Status.REJECT.value)
         self.assertEqual(apply2.approver, self.user2.username)
         self.assertEqual(apply2.reject_reason, 'reject 测试66')
-        time.sleep(0.5)
+        delay_gte_len(dj_mail.outbox, 2, timeout=2)     # 等待邮件异步发送
         self.assertEqual(len(dj_mail.outbox), 2)
 
     def test_pass(self):
@@ -1391,7 +1404,7 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(coupon1.user_id, apply1.user_id)
         self.assertEqual(coupon1.vo_id, apply1.vo_id)
         self.assertEqual(coupon1.issuer, self.user1.username)
-        time.sleep(0.5)
+        delay_gte_len(dj_mail.outbox, 1, timeout=2)     # 等待邮件异步发送
         self.assertEqual(len(dj_mail.outbox), 1)
 
         # scan
@@ -1468,7 +1481,7 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(coupon2.user_id, apply2.user_id)
         self.assertIsNone(coupon2.vo_id)
         self.assertEqual(coupon2.issuer, self.user1.username)
-        time.sleep(0.5)
+        delay_gte_len(dj_mail.outbox, 2, timeout=2)     # 等待邮件异步发送
         self.assertEqual(len(dj_mail.outbox), 2)
 
     def test_order_apply(self):
