@@ -4,25 +4,15 @@ from concurrent.futures import Future
 
 from core import request
 from apps.servers.models import Disk
-from . import _thread_pool_executor as _pool_executor
+from . import submit_task
 
 
 def creat_task(server) -> Union[Future, None]:
-    try:
-        f = _pool_executor.submit(task_server_build_status, server)
-    except Exception as e:
-        return None
-
-    return f
+    return submit_task(task_server_build_status, kwargs={'server': server})
 
 
 def creat_disk_task(disk) -> Union[Future, None]:
-    try:
-        f = _pool_executor.submit(task_disk_build_status, disk)
-    except Exception as e:
-        return None
-
-    return f
+    return submit_task(task_disk_build_status, kwargs={'disk': disk})
 
 
 def task_server_build_status(server):
