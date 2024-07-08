@@ -184,6 +184,9 @@ class Email(UuidModel):
         if email.is_feint:    # 假动作，不真实发送
             return email
 
+        if email.status == email.Status.SUCCESS.value:
+            return email
+
         if not receivers:
             receivers = email.receiver.split(';')
 

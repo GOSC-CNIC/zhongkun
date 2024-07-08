@@ -4,6 +4,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.html import format_html
 from django.urls import reverse
 
+from core.taskqueue import submit_task
 from utils.model import BaseModelAdmin
 from .models import UserProfile, Email
 from .forms import UserModelForm
@@ -43,10 +44,22 @@ class EmailAdmin(BaseModelAdmin):
     list_display = ('show_preview_url', 'id', 'subject', 'tag', 'receiver', 'sender',
                     'status', 'success_time', 'send_time', 'is_html', 'remote_ip', 'status_desc')
     list_display_links = ('id', 'subject')
-    list_filter = ('tag', 'status')
+    list_filter = ('tag', 'status', 'is_feint')
     search_fields = ('subject', 'receiver', 'remote_ip')
+    actions = ('resend_failed_email',)
 
     @admin.display(description=_('预览'))
     def show_preview_url(self, obj):
         preview_url = reverse('users:email-detail', kwargs={'email_id': obj.id})
         return format_html(f'<a target="view_frame" href="{preview_url}">预览</a>')
+
+    @admin.action(description=_('重试发送失败邮件'))
+    def resend_failed_email(self, request, queryset):
+        for email in queryset:
+            if email.is_feint:  # 假动作，不真实发送
+                continue
+
+            if email.status == email.Status.SUCCESS.value:
+                continue
+
+            submit_task(Email.do_send_email(email=email, save_db=True))
