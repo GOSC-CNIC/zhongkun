@@ -62,4 +62,4 @@ class EmailAdmin(BaseModelAdmin):
             if email.status == email.Status.SUCCESS.value:
                 continue
 
-            submit_task(Email.do_send_email(email=email, save_db=True))
+            submit_task(Email.do_send_email, kwargs={'email': email, 'save_db': True})
