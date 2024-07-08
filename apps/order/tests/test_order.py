@@ -278,20 +278,20 @@ class OrderTests(MyAPITestCase):
         self.assertEqual(response.data['orders'][0]['id'], order2.id)
         self.assertEqual(response.data['orders'][1]['id'], order.id)
 
-        query = parse.urlencode(query={'as-admin': '', 'user_id': self.user.id})
+        query = parse.urlencode(query={'as-admin': '', 'username': self.user.username})
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)
         self.assertEqual(len(response.data['orders']), 1)
         self.assertEqual(response.data['orders'][0]['id'], order.id)
 
-        query = parse.urlencode(query={'as-admin': '', 'user_id': 'te'})
+        query = parse.urlencode(query={'as-admin': '', 'username': 'te'})
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 0)
         self.assertEqual(len(response.data['orders']), 0)
 
-        query = parse.urlencode(query={'user_id': self.user.id})
+        query = parse.urlencode(query={'username': self.user.username})
         response = self.client.get(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
 

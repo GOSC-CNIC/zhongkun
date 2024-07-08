@@ -12,6 +12,7 @@ from apps.order.managers import OrderManager, OrderPaymentManager
 from utils.time import iso_to_datetime
 from apps.api import request_logger
 from apps.servers. managers import ServerManager
+from apps.users import managers as user_managers
 
 
 CASH_COUPON_BALANCE = 'coupon_balance'
@@ -22,9 +23,9 @@ class OrderHandler:
         try:
             data = self.list_order_validate_params(request)
             vo_id = data['vo_id']
-            user_id = data['user_id']
+            username = data['username']
             is_as_admin = view.is_as_admin_request(request=request)
-            if user_id and not is_as_admin:
+            if username and not is_as_admin:
                 raise errors.InvalidArgument(message=_('只有以管理员身份查询时，才允许查询指定用户的订单'))
         except errors.Error as exc:
             return view.exception_response(exc)
@@ -32,16 +33,28 @@ class OrderHandler:
         auth_user = request.user
 
         if is_as_admin:
-            queryset = OrderManager().admin_filter_order_queryset(
-                admin_user=auth_user,
-                resource_type=data['resource_type'],
-                order_type=data['order_type'],
-                status=data['status'],
-                time_start=data['time_start'],
-                time_end=data['time_end'],
-                user_id=user_id, vo_id=vo_id,
-                is_deleded=False
-            )
+            user_id = ''
+            if username:
+                try:
+                    filter_user = user_managers.get_user_by_name(username=username)
+                    user_id = filter_user.id
+                except errors.UserNotExist as exc:
+                    user_id = None
+
+            # 查询用户不存在，结果为空
+            if user_id is None:
+                queryset = OrderManager.get_order_queryset().none()
+            else:
+                queryset = OrderManager().admin_filter_order_queryset(
+                    admin_user=auth_user,
+                    resource_type=data['resource_type'],
+                    order_type=data['order_type'],
+                    status=data['status'],
+                    time_start=data['time_start'],
+                    time_end=data['time_end'],
+                    user_id=user_id, vo_id=vo_id,
+                    is_deleded=False
+                )
         elif vo_id:
             try:
                 queryset = OrderManager().filter_vo_order_queryset(
@@ -80,7 +93,7 @@ class OrderHandler:
         time_start = request.query_params.get('time_start', None)
         time_end = request.query_params.get('time_end', None)
         vo_id = request.query_params.get('vo_id', None)
-        user_id = request.query_params.get('user_id', None)
+        username = request.query_params.get('username', None)
 
         if resource_type is not None and resource_type not in ResourceType.values:
             raise errors.InvalidArgument(message=_('参数“resource_type”的值无效'))
@@ -115,7 +128,7 @@ class OrderHandler:
             'time_start': time_start,
             'time_end': time_end,
             'vo_id': vo_id,
-            'user_id': user_id
+            'username': username
         }
 
     @staticmethod

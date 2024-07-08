@@ -267,7 +267,7 @@ class OrderViewSet(CustomGenericViewSet):
                 description='查询指定VO组的订单'
             ),
             openapi.Parameter(
-                name='user_id',
+                name='username',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
