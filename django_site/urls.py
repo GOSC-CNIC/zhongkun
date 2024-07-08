@@ -15,7 +15,7 @@ Including another URLconf
 """
 # from django.contrib import admin
 from django.contrib.auth.decorators import login_required
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.conf import settings
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
@@ -27,7 +27,7 @@ from core.aai.signin import AAISignIn
 from . import views
 from . import admin_site
 from . import check
-
+from apps.app_alert.views import AlertReceiverAPIView
 
 # 是否只使用大屏展示功能
 screenvis_only = getattr(settings, 'SCREEN_VIS_USE_ONLY', False)
@@ -57,7 +57,6 @@ schema_view = get_schema_view(
     public=True,
     permission_classes=[permissions.AllowAny],
 )
-
 
 if screenvis_only:
     urlpatterns = [
@@ -108,11 +107,12 @@ urlpatterns += [
     path('auth/callback/aai', AAISignIn.as_view(), name='auth-callback-aai'),
     path('admin/', admin.site.urls),
     path('baton/', include('baton.urls')),
+    re_path(r'api/v\d+/alerts', AlertReceiverAPIView.as_view(), name='alert-receiver'),
 ]
-
 
 if settings.DEBUG:
     import debug_toolbar
+
     urlpatterns = [
-        path('__debug__/', include(debug_toolbar.urls)),
-    ] + urlpatterns
+                      path('__debug__/', include(debug_toolbar.urls)),
+                  ] + urlpatterns
