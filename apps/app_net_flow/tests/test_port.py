@@ -96,7 +96,6 @@ class NetflowPortListTests(GlobalAdministratorTests):
         # 二级分组2 添加图表4
 
         Menu2Chart.objects.create(
-            title='自定义标题4',
             menu=self.second_level_menu1,
             chart=self.chart4,
             remark='组内备注文本',

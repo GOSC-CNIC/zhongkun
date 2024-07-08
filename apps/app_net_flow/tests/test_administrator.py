@@ -133,34 +133,34 @@ class GlobalAdministratorTests(MyAPITransactionTestCase):
         )
         # 添加组元素
         Menu2Chart.objects.create(
-            title='自定义标题',
             menu=self.second_level_menu1,
             chart=self.chart1,
-            remark='组内备注文本',
+            remark='备注1',
+            admin_remark='管理员备注1',
             sort_weight=-999,
 
         )
         Menu2Chart.objects.create(
-            title='自定义标题',
             menu=self.second_level_menu1,
             chart=self.chart2,
-            remark='组内备注文本',
+            remark='备注2',
+            admin_remark='管理员备注2',
             sort_weight=-998,
 
         )
         Menu2Chart.objects.create(
-            title='自定义标题',
             menu=self.second_level_menu1,
             chart=self.chart3,
-            remark='组内备注文本',
+            remark='备注3',
+            admin_remark='管理员备注3',
             sort_weight=-1,
 
         )
         Menu2Chart.objects.create(
-            title='自定义标题',
             menu=self.first_level_menu2,
             chart=self.chart4,
-            remark='组内备注文本',
+            remark='备注4',
+            admin_remark='管理员备注4',
             sort_weight=-1,
         )
         # 添加组管理员

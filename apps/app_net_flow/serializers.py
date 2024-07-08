@@ -93,7 +93,7 @@ class Menu2MemberWriteSerializer(serializers.ModelSerializer):
         ]
 
 
-class Menu2ChartSerializer(serializers.ModelSerializer):
+class Menu2ChartListSerializer(serializers.ModelSerializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.perm = PermissionManager(request=self.context.get('request'))
@@ -146,7 +146,6 @@ class Menu2ChartSerializer(serializers.ModelSerializer):
         return obj.chart.if_alias
 
     def get_admin_remark(self, obj):
-        print(self.perm.get_user_role())
         if self.perm.is_global_super_admin_or_ops_admin():
             return obj.admin_remark
         if self.perm.has_group_admin_permission(obj.menu.id):
@@ -177,13 +176,88 @@ class Menu2ChartSerializer(serializers.ModelSerializer):
         return obj.chart.band_width
 
 
-class Menu2ChartWriteSerializer(serializers.ModelSerializer):
+class Menu2ChartCreateSerializer(serializers.ModelSerializer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.perm = PermissionManager(request=self.context.get('request'))
+
+    instance_name = serializers.SerializerMethodField(read_only=True)
+    global_title = serializers.SerializerMethodField(read_only=True)
+    global_remark = serializers.SerializerMethodField(read_only=True)
+    if_alias = serializers.SerializerMethodField(read_only=True)
+    if_address = serializers.SerializerMethodField(read_only=True)
+    device_ip = serializers.SerializerMethodField(read_only=True)
+    port_name = serializers.SerializerMethodField(read_only=True)
+    class_uuid = serializers.SerializerMethodField(read_only=True)
+    band_width = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = Menu2Chart
+        extra_kwargs = {
+            'menu': {'write_only': True},
+            'chart': {'write_only': True}
+        }
+        fields = [
+            "id",
+            "instance_name",
+            "global_title",
+            "global_remark",
+            "remark",
+            "admin_remark",
+            "sort_weight",
+            "if_alias",
+            "if_address",
+            "device_ip",
+            "port_name",
+            "class_uuid",
+            "band_width",
+            "menu",
+            "chart",
+        ]
+
+    def get_global_title(self, obj):
+        return obj.chart.title
+
+    def get_global_remark(self, obj):
+        return obj.chart.remark
+
+    def get_instance_name(self, obj):
+        return obj.chart.instance_name
+
+    def get_if_alias(self, obj):
+        return obj.chart.if_alias
+
+    def get_device_ip(self, obj):
+        if self.perm.is_global_super_admin_or_ops_admin():
+            return obj.chart.device_ip
+        if self.perm.has_group_admin_permission(obj.menu.id):
+            return obj.chart.device_ip
+        return None
+
+    def get_port_name(self, obj):
+        if self.perm.is_global_super_admin_or_ops_admin():
+            return obj.chart.port_name
+        if self.perm.has_group_admin_permission(obj.menu.id):
+            return obj.chart.port_name
+        return None
+
+    def get_if_address(self, obj):
+        return obj.chart.if_address
+
+    def get_class_uuid(self, obj):
+        return obj.chart.class_uuid
+
+    def get_band_width(self, obj):
+        return obj.chart.band_width
+
+
+class Menu2ChartUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Menu2Chart
         fields = [
             "id",
-            "title",
             "remark",
+            "admin_remark",
             "sort_weight",
         ]
 

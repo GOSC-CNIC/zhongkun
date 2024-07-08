@@ -54,9 +54,14 @@ class NetflowGroupChartListTests(GlobalAdministratorTests):
         self.assertTrue(response.data['results'])
         results = data.get('results')
         self.assertKeysIn([
-            'id', "instance_name", 'global_title', 'global_remark', 'title', 'remark', 'sort_weight', 'if_alias',
+            'id', "instance_name", 'global_title', 'global_remark', 'remark', 'sort_weight', 'if_alias',
             'if_address', 'device_ip', 'port_name', 'class_uuid', 'band_width'
         ], results[0])
+        item = results[0]
+        self.assertFalse(item.get('remark') is None)
+        self.assertTrue(item.get('admin_remark') is None)
+        self.assertTrue(item.get('device_ip') is None)
+        self.assertTrue(item.get('port_name') is None)
 
     def test_group_admin_user(self):
         """
@@ -77,9 +82,14 @@ class NetflowGroupChartListTests(GlobalAdministratorTests):
         self.assertTrue(response.data['results'])
         results = data.get('results')
         self.assertKeysIn([
-            'id', "instance_name", 'global_title', 'global_remark', 'title', 'remark', 'sort_weight', 'if_alias',
+            'id', "instance_name", 'global_title', 'global_remark', 'remark', 'sort_weight', 'if_alias',
             'if_address', 'device_ip', 'port_name', 'class_uuid', 'band_width'
         ], results[0])
+        item = results[0]
+        self.assertFalse(item.get('remark') is None)
+        self.assertFalse(item.get('admin_remark') is None)
+        self.assertFalse(item.get('device_ip') is None)
+        self.assertFalse(item.get('port_name') is None)
 
     def test_obs_user(self):
         """
@@ -100,9 +110,14 @@ class NetflowGroupChartListTests(GlobalAdministratorTests):
         self.assertTrue(response.data['results'])
         results = data.get('results')
         self.assertKeysIn([
-            'id', "instance_name", 'global_title', 'global_remark', 'title', 'remark', 'sort_weight', 'if_alias',
+            'id', "instance_name", 'global_title', 'global_remark', 'remark', 'sort_weight', 'if_alias',
             'if_address', 'device_ip', 'port_name', 'class_uuid', 'band_width'
         ], results[0])
+        item = results[0]
+        self.assertFalse(item.get('remark') is None)
+        self.assertFalse(item.get('admin_remark') is None)
+        self.assertFalse(item.get('device_ip') is None)
+        self.assertFalse(item.get('port_name') is None)
 
     def test_super_user(self):
         """
@@ -123,9 +138,14 @@ class NetflowGroupChartListTests(GlobalAdministratorTests):
         self.assertTrue(response.data['results'])
         results = data.get('results')
         self.assertKeysIn([
-            'id', "instance_name", 'global_title', 'global_remark', 'title', 'remark', 'sort_weight', 'if_alias',
+            'id', "instance_name", 'global_title', 'global_remark', 'remark', 'sort_weight', 'if_alias',
             'if_address', 'device_ip', 'port_name', 'class_uuid', 'band_width'
         ], results[0])
+        item = results[0]
+        self.assertFalse(item.get('remark') is None)
+        self.assertFalse(item.get('admin_remark') is None)
+        self.assertFalse(item.get('device_ip') is None)
+        self.assertFalse(item.get('port_name') is None)
 
 
 class NetflowGroupChartCreateTests(GlobalAdministratorTests):
@@ -194,7 +214,7 @@ class NetflowGroupChartCreateTests(GlobalAdministratorTests):
 
     def test_super_user(self):
         """
-        新增全局管理员
+        新增组内元素
         超级管理员 有添加权限
         """
         base_url = reverse('netflow-api:chart-list')
@@ -220,12 +240,18 @@ class NetflowGroupChartCreateTests(GlobalAdministratorTests):
         group_id = self.first_level_menu2.id
         chart_id = self.chart1.id
 
-        response = self.client.post(base_url, data={'menu': group_id, 'chart': chart_id})
+        response = self.client.post(base_url, data={'menu': group_id,
+                                                    'chart': chart_id,
+                                                    'remark': '备注',
+                                                    'admin_remark': "管理员备注"}
+                                    )
         self.assertEqual(response.status_code, 201)
-
         self.assertKeysIn(
-            ['id', "instance_name", "global_title", 'global_remark', "title", "remark", "sort_weight", "if_alias",
+            ['id', "instance_name", "global_title", 'global_remark',
+             "remark", "admin_remark", "sort_weight", "if_alias",
              "if_address", "device_ip", "port_name", "class_uuid", "band_width"], response.data)
+        self.assertTrue(response.data['remark'] == '备注')
+        self.assertTrue(response.data['admin_remark'] == '管理员备注')
 
 
 class NetflowGroupChartRetrieveTests(GlobalAdministratorTests):
@@ -238,11 +264,14 @@ class NetflowGroupChartRetrieveTests(GlobalAdministratorTests):
         response = self.client.post(base_url,
                                     data={
                                         'menu': group_id,
-                                        'chart': chart_id
+                                        'chart': chart_id,
+                                        'remark': '备注',
+                                        'admin_remark': '管理员备注',
                                     })
         self.assertEqual(response.status_code, 201)
-        self.assertKeysIn(['id', "instance_name", "global_title", "global_remark", 'title',
-                           'remark', 'sort_weight', 'if_alias', 'if_address', 'device_ip', 'port_name', 'class_uuid',
+        self.assertKeysIn(['id', "instance_name", "global_title", "global_remark",
+                           'remark', 'admin_remark',
+                           'sort_weight', 'if_alias', 'if_address', 'device_ip', 'port_name', 'class_uuid',
                            'band_width'], response.data)
         self.menu_chart_id = response.data.get('id')
         self.client.logout()
@@ -304,7 +333,7 @@ class NetflowGroupChartRetrieveTests(GlobalAdministratorTests):
         self.client.force_login(self.obs_user)
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
-        self.assertKeysIn(['id', "title", 'remark', 'sort_weight'], response.data)
+        self.assertKeysIn(['id', "remark", 'admin_remark', 'sort_weight'], response.data)
 
     def test_super_user(self):
         """
@@ -315,7 +344,9 @@ class NetflowGroupChartRetrieveTests(GlobalAdministratorTests):
         self.client.force_login(self.super_user)
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
-        self.assertKeysIn(['id', "title", 'remark', 'sort_weight'], response.data)
+        self.assertKeysIn(['id', "remark", 'admin_remark', 'sort_weight'], response.data)
+        self.assertTrue(response.data['remark'] == '备注')
+        self.assertTrue(response.data['admin_remark'] == '管理员备注')
 
 
 class NetflowGroupChartUpdateTests(GlobalAdministratorTests):
@@ -328,10 +359,13 @@ class NetflowGroupChartUpdateTests(GlobalAdministratorTests):
         response = self.client.post(base_url,
                                     data={
                                         'menu': group_id,
-                                        'chart': chart_id
+                                        'chart': chart_id,
+                                        'remark': '备注',
+                                        'admin_remark': '管理员备注',
+                                        'band_width': -2,
                                     })
         self.assertEqual(response.status_code, 201)
-        self.assertKeysIn(['id', "instance_name", "global_title", "global_remark", 'title',
+        self.assertKeysIn(['id', "instance_name", "global_title", "global_remark",
                            'remark', 'sort_weight', 'if_alias', 'if_address', 'device_ip', 'port_name', 'class_uuid',
                            'band_width'], response.data)
         self.menu_chart_id = response.data.get('id')
@@ -406,42 +440,39 @@ class NetflowGroupChartUpdateTests(GlobalAdministratorTests):
         self.client.force_login(self.super_user)
         response = self.client.put(base_url, data={'test': 'test'})
         self.assertEqual(response.status_code, 200)
-        self.assertKeysIn(['id', "title", 'remark', 'sort_weight'], response.data)
-        self.assertTrue(response.data['title'] == '')
-        self.assertTrue(response.data['remark'] == '')
+        self.assertKeysIn(['id', 'remark', 'admin_remark', 'sort_weight'], response.data)
+        self.assertTrue(response.data['remark'] == '备注')
+        self.assertTrue(response.data['admin_remark'] == '管理员备注')
         self.assertTrue(response.data['sort_weight'] == -1)
-        response = self.client.put(base_url, data={'title': "test"})
+        response = self.client.put(base_url, data={'remark': "123", 'sort_weight': -1})
         self.assertEqual(response.status_code, 200)
-        self.assertKeysIn(['id', "title", 'remark', 'sort_weight'], response.data)
-        self.assertTrue(response.data['title'] == 'test')
-        self.assertTrue(response.data['remark'] == '')
-        self.assertTrue(response.data['sort_weight'] == -1)
-
-        response = self.client.put(base_url, data={'remark': "123"})
-        self.assertEqual(response.status_code, 200)
-        self.assertKeysIn(['id', "title", 'remark', 'sort_weight'], response.data)
-        self.assertTrue(response.data['title'] == 'test')
+        self.assertKeysIn(['id', 'remark', 'admin_remark', 'sort_weight'], response.data)
         self.assertTrue(response.data['remark'] == '123')
         self.assertTrue(response.data['sort_weight'] == -1)
 
         response = self.client.put(base_url, data={'sort_weight': -99})
         self.assertEqual(response.status_code, 200)
-        self.assertKeysIn(['id', "title", 'remark', 'sort_weight'], response.data)
-        self.assertTrue(response.data['title'] == 'test')
+        self.assertKeysIn(['id', 'remark', 'admin_remark', 'sort_weight'], response.data)
         self.assertTrue(response.data['remark'] == '123')
         self.assertTrue(response.data['sort_weight'] == -99)
 
         response = self.client.put(base_url, data={'remark': 456})
         self.assertEqual(response.status_code, 200)
-        self.assertKeysIn(['id', "title", 'remark', 'sort_weight'], response.data)
-        self.assertTrue(response.data['title'] == 'test')
+        self.assertKeysIn(['id', 'remark', 'admin_remark', 'sort_weight'], response.data)
         self.assertTrue(response.data['remark'] == '456')
         self.assertTrue(response.data['sort_weight'] == -99)
 
-        response = self.client.put(base_url, data={'title': -1})
+        response = self.client.put(base_url, data={'admin_remark': -1})
         self.assertEqual(response.status_code, 200)
-        self.assertKeysIn(['id', "title", 'remark', 'sort_weight'], response.data)
-        self.assertTrue(response.data['title'] == '-1')
+        self.assertKeysIn(['id', 'remark', 'admin_remark', 'sort_weight'], response.data)
+        self.assertTrue(response.data['admin_remark'] == '-1')
+        self.assertTrue(response.data['remark'] == '456')
+        self.assertTrue(response.data['sort_weight'] == -99)
+
+        response = self.client.put(base_url, data={'admin_remark': "管理员备注"})
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['id', 'remark', 'admin_remark', 'sort_weight'], response.data)
+        self.assertTrue(response.data['admin_remark'] == '管理员备注')
         self.assertTrue(response.data['remark'] == '456')
         self.assertTrue(response.data['sort_weight'] == -99)
 
@@ -459,7 +490,7 @@ class NetflowGroupChartDestroyTests(GlobalAdministratorTests):
                                         'chart': chart_id
                                     })
         self.assertEqual(response.status_code, 201)
-        self.assertKeysIn(['id', "instance_name", "global_title", "global_remark", 'title',
+        self.assertKeysIn(['id', "instance_name", "global_title", "global_remark",
                            'remark', 'sort_weight', 'if_alias', 'if_address', 'device_ip', 'port_name', 'class_uuid',
                            'band_width'], response.data)
         self.menu_chart_id = response.data.get('id')

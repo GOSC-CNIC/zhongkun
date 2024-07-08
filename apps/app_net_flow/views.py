@@ -8,14 +8,15 @@ from apps.app_net_flow.models import Menu2Member
 from apps.app_net_flow.models import MenuModel
 from apps.app_net_flow.models import GlobalAdminModel
 from apps.app_net_flow.serializers import ChartSerializer
-from apps.app_net_flow.serializers import Menu2ChartSerializer
+from apps.app_net_flow.serializers import Menu2ChartListSerializer
 from apps.app_net_flow.serializers import GlobalAdminSerializer
 from apps.app_net_flow.serializers import GlobalAdminWriteSerializer
 from apps.app_net_flow.serializers import Menu2MemberSerializer
 from apps.app_net_flow.serializers import Menu2MemberWriteSerializer
 from apps.app_net_flow.serializers import MenuModelSerializer
 from apps.app_net_flow.serializers import MenuWriteSerializer
-from apps.app_net_flow.serializers import Menu2ChartWriteSerializer
+from apps.app_net_flow.serializers import Menu2ChartCreateSerializer
+from apps.app_net_flow.serializers import Menu2ChartUpdateSerializer
 from apps.app_net_flow.serializers import TrafficSerializer
 from django_filters.rest_framework import DjangoFilterBackend
 from apps.app_net_flow.filters import MenuFilter
@@ -268,7 +269,7 @@ class PortListGenericAPIView(GenericAPIView, ):
 
 class Menu2ChartListGenericAPIView(GenericAPIView, CreateModelMixin):
     queryset = Menu2Chart.objects.all()
-    serializer_class = Menu2ChartSerializer
+    serializer_class = Menu2ChartListSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = Menu2ChartFilter
     pagination_class = Menu2ChartListLimitOffsetPage
@@ -299,7 +300,11 @@ class Menu2ChartListGenericAPIView(GenericAPIView, CreateModelMixin):
         }
     )
     def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        # kwargs.setdefault('context', self.get_serializer_context())
+        serializer = Menu2ChartCreateSerializer(
+            data=request.data,
+            context=self.get_serializer_context()
+        )
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
@@ -315,7 +320,7 @@ class Menu2ChartListGenericAPIView(GenericAPIView, CreateModelMixin):
 
 class Menu2ChartDetailGenericAPIView(GenericAPIView, RetrieveModelMixin, DestroyModelMixin, UpdateModelMixin):
     queryset = Menu2Chart.objects.all()
-    serializer_class = Menu2ChartWriteSerializer
+    serializer_class = Menu2ChartUpdateSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = Menu2ChartFilter
     pagination_class = LimitOffsetPage
