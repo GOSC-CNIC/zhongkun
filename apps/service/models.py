@@ -132,6 +132,7 @@ class OrgDataCenter(UuidModel):
     log_task_id = models.CharField(
         verbose_name=_('日志聚合系统监控任务ID'), max_length=36, blank=True, default='', editable=False,
         help_text=_('记录为日志聚合系统监控网址创建的站点监控任务的ID'))
+    map_display = models.JSONField(verbose_name=_('地图显示配置信息'), blank=True, default=dict)
 
     class Meta:
         db_table = 'org_data_center'

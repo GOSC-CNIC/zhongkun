@@ -3,12 +3,21 @@ from django.utils.translation import gettext_lazy, gettext as _
 from django.contrib import messages
 from django.contrib.admin.filters import SimpleListFilter
 from django.db import transaction
+from django.forms import ModelForm
+from django_json_widget.widgets import JSONEditorWidget
 
 from utils.model import NoDeleteSelectModelAdmin, BaseModelAdmin
 from .odc_manager import OrgDataCenterManager
 from apps.service.models import (
     DataCenter, Contacts, OrgDataCenter, OrgDataCenterAdminUser
 )
+
+
+class ODCModelForm(ModelForm):
+    class Meta:
+        widgets = {
+            'map_display': JSONEditorWidget(),
+        }
 
 
 @admin.register(DataCenter)
@@ -40,6 +49,7 @@ class ODCOrgFilter(SimpleListFilter):
 
 @admin.register(OrgDataCenter)
 class OrgDataCenterAdmin(NoDeleteSelectModelAdmin):
+    form = ODCModelForm
     list_display_links = ('id',)
     list_display = ('id', 'name', 'name_en', 'organization', 'sort_weight', 'longitude', 'latitude', 'creation_time',
                     'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
@@ -56,7 +66,7 @@ class OrgDataCenterAdmin(NoDeleteSelectModelAdmin):
     fieldsets = (
         (gettext_lazy('数据中心基础信息'), {
             'fields': (
-                'name', 'name_en', 'organization', 'sort_weight', 'longitude', 'latitude', 'remark'
+                'name', 'name_en', 'organization', 'sort_weight', 'longitude', 'latitude', 'remark', 'map_display'
             )
         }),
         (gettext_lazy('指标监控系统'), {
