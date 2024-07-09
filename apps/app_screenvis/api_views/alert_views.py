@@ -5,6 +5,7 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
 from apps.app_alert.models import AlertModel, ResolvedAlertModel
+from apps.app_alert.alert_status_flow import AlertStatusFlow
 from apps.app_screenvis.utils import errors
 from apps.app_screenvis.permissions import ScreenAPIIPPermission
 from apps.app_screenvis.paginations import AlertPagination
@@ -63,6 +64,11 @@ class AlertViewSet(NormalGenericViewSet):
               ]
             }
         """
+        try:
+            AlertStatusFlow.start()
+        except Exception as exc:
+            pass
+
         status = request.query_params.get('status', None)
 
         if status and status not in ['firing', 'resolved']:
