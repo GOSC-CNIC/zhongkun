@@ -81,7 +81,8 @@ class AdminOrgDataCenterViewSet(NormalGenericViewSet):
                       "loki_username": "string",
                       "loki_password": "string",
                       "loki_receive_url": "string",
-                      "loki_remark": "string"
+                      "loki_remark": "string",
+                      "map_display": {"xx": "xx"}   # json格式
                     }
                 ]
             }
@@ -740,6 +741,7 @@ class OrgDataCenterViewSet(NormalGenericViewSet):
                       "creation_time": "2023-11-06T05:40:20.201159Z",
                       "sort_weight": 0,
                       "remark": "string",
+                      "map_display": {"xx": "xx"}   # json格式
                     }
                 ]
             }

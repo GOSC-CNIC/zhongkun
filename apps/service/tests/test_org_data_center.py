@@ -194,7 +194,7 @@ class AdminODCTests(MyAPITransactionTestCase):
         self.assertKeysIn(
             ['id', 'name', 'name_en', 'organization', 'longitude', 'latitude', 'sort_weight', 'remark',
              'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url', 'thanos_remark',
-             'loki_endpoint_url', 'loki_username', 'loki_password', 'loki_receive_url', 'loki_remark'],
+             'loki_endpoint_url', 'loki_username', 'loki_password', 'loki_receive_url', 'loki_remark', 'map_display'],
             response.data['results'][0])
         self.assertKeysIn(['id', 'name', 'name_en'], response.data['results'][0]['organization'])
 
@@ -1027,7 +1027,7 @@ class ODCTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['page_size'], 100)
         self.assertEqual(len(response.data['results']), 2)
         self.assertKeysIn(
-            ['id', 'name', 'name_en', 'organization', 'longitude', 'latitude', 'sort_weight', 'remark'],
+            ['id', 'name', 'name_en', 'organization', 'longitude', 'latitude', 'sort_weight', 'remark', 'map_display'],
             response.data['results'][0])
         self.assertKeysIn(['id', 'name', 'name_en'], response.data['results'][0]['organization'])
 

@@ -12,6 +12,7 @@ class ODCSimpleSerializer(serializers.Serializer):
     creation_time = serializers.DateTimeField()
     sort_weight = serializers.IntegerField()
     remark = serializers.CharField()
+    map_display = serializers.JSONField()
 
     @staticmethod
     def get_organization(obj):
