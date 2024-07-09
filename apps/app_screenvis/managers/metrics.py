@@ -123,7 +123,7 @@ class MetricQueryManager:
     }
 
     def get_choices_tag_tmpl_map(self, metric_unit: MetricMonitorUnit):
-        if metric_unit.unit_type == MetricMonitorUnit.UnitType.HOST.value:
+        if metric_unit.unit_type in [MetricMonitorUnit.UnitType.HOST.value, MetricMonitorUnit.UnitType.VM.value]:
             return HostQueryChoices, self.host_tag_tmpl_map
         elif metric_unit.unit_type == MetricMonitorUnit.UnitType.CEPH.value:
             return CephQueryChoices, self.ceph_tag_tmpl_map
@@ -224,7 +224,7 @@ class MetricQueryManager:
         return tag, ret
 
     def get_query_range_choices_tag_tmpl_map(self, metric_unit: MetricMonitorUnit):
-        if metric_unit.unit_type == MetricMonitorUnit.UnitType.HOST.value:
+        if metric_unit.unit_type in [MetricMonitorUnit.UnitType.HOST.value, MetricMonitorUnit.UnitType.VM.value]:
             return HostQueryRangeChoices, self.range_host_tag_tmpl_map
         else:
             raise errors.BadRequest(message=_('无效的指标单元类型'))

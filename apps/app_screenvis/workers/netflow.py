@@ -43,7 +43,8 @@ class HostNetflowWorker:
 
     @staticmethod
     def get_host_metric_units():
-        qs = MetricMonitorUnit.objects.filter(unit_type=MetricMonitorUnit.UnitType.HOST.value)
+        qs = MetricMonitorUnit.objects.filter(
+            unit_type__in=[MetricMonitorUnit.UnitType.HOST.value, MetricMonitorUnit.UnitType.VM.value])
         return list(qs)
 
     def async_generate_netflow(self, now_timestamp: int):

@@ -66,7 +66,7 @@ class Migration(migrations.Migration):
                 ('update_time', models.DateTimeField(verbose_name='更新时间')),
                 ('name', models.CharField(default='', max_length=255, verbose_name='名称')),
                 ('name_en', models.CharField(default='', max_length=255, verbose_name='英文名称')),
-                ('unit_type', models.CharField(choices=[('host', '主机'), ('ceph', 'Ceph'), ('tidb', 'TiDB')], max_length=16, verbose_name='类型')),
+                ('unit_type', models.CharField(choices=[('host', '物理机'), ('ceph', 'Ceph'), ('tidb', 'TiDB'), ('vm', '虚拟机')], max_length=16, verbose_name='类型')),
                 ('job_tag', models.CharField(default='', help_text='模板：xxx_xxx_metric', max_length=255, verbose_name='标签名称')),
                 ('prometheus', models.CharField(blank=True, default='', help_text='http(s)://example.cn/', max_length=255, verbose_name='Prometheus接口')),
                 ('remark', models.TextField(blank=True, default='', verbose_name='备注')),

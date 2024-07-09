@@ -73,9 +73,10 @@ class MetricMonitorUnit(models.Model):
     监控单元
     """
     class UnitType(models.TextChoices):
-        HOST = 'host', _('主机')
+        HOST = 'host', _('物理机')
         CEPH = 'ceph', _('Ceph')
         TIDB = 'tidb', _('TiDB')
+        VM = 'vm', _('虚拟机')
 
     id = models.BigAutoField(primary_key=True)
     creation_time = models.DateTimeField(verbose_name=_('创建时间'))

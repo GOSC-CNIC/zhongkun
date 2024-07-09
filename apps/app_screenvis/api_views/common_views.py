@@ -46,7 +46,7 @@ class DataCenterViewSet(NormalGenericViewSet):
                         "id": "37",
                         "name": "ceph1 name",
                         "name_en": "ceph1 name en",
-                        "unit_type": "ceph",        # host, ceph, tidb
+                        "unit_type": "ceph",        # host, ceph, tidb, vm
                         "job_tag": "ceph1_metric",
                         "creation_time": "2024-03-11T15:02:46.002211+08:00",
                         "remark": "",

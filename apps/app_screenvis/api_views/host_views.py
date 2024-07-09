@@ -56,7 +56,7 @@ class MetricHostViewSet(NormalGenericViewSet):
                     "id": "2",
                     "name": "SDG ceph",
                     "name_en": "test ceph",
-                    "unit_type": "ceph",        # server, ceph, tidb
+                    "unit_type": "ceph",        # host, ceph, tidb, vm
                     "job_tag": "sdgs-ceph",
                     "creation_time": "2024-03-08T14:48:07+08:00"
                   }
@@ -119,7 +119,11 @@ class MetricHostViewSet(NormalGenericViewSet):
 
         :raises: Error
         """
-        unit = MetricMonitorUnit.objects.filter(id=unit_id, unit_type=MetricMonitorUnit.UnitType.HOST.value).first()
+        unit = MetricMonitorUnit.objects.filter(
+            id=unit_id, unit_type__in=[
+                MetricMonitorUnit.UnitType.HOST.value, MetricMonitorUnit.UnitType.VM.value
+            ]
+        ).first()
         if unit is None:
             raise errors.NotFound(message=_('查询的指标单元不存在。'))
 
