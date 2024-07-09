@@ -6,10 +6,10 @@ from django.db.models import Count
 from apps.app_alert.utils.errors import BadRequest
 from apps.app_alert.models import PreAlertModel
 from apps.app_alert.models import AlertModel
-from django.contrib.contenttypes.models import ContentType
 from apps.app_alert.utils.utils import DateUtils
 from django.utils import timezone
 from apps.app_alert.alert_status_flow import AlertStatusFlow
+from apps.monitor.models import WebsiteDetectionPoint
 
 
 class AlertReceiver(object):
@@ -49,7 +49,7 @@ class AlertReceiver(object):
             item["summary"] = annotations.get("summary")
             item["description"] = annotations.get("description")
             item["start"] = self.date_to_timestamp(alert.get("startsAt"))
-            item["end"] = self.generate_alert_end_timestamp(cluster)
+            item["end"] = self.generate_alert_end_timestamp()
             items.append(item)
         return items
 
@@ -107,12 +107,10 @@ class AlertReceiver(object):
         ts = DateUtils.date_to_ts(dt=date, fmt="%Y-%m-%dT%H:%M:%S")
         return ts
 
-    def generate_alert_end_timestamp(self, cluster):
+    def generate_alert_end_timestamp(self):
         """
         生成预结束时间
         """
-        if cluster in ["mail_metric"]:
-            return self.timestamp + 60 * 5
         return self.timestamp + 60 * 60
 
     def group_by_prepare_type(self, items):
@@ -145,22 +143,23 @@ class AlertReceiver(object):
 
     @staticmethod
     def get_probe_count():
-        probe_model = ContentType.objects.get(app_label="monitor", model="websitedetectionpoint").model_class()
-        count = probe_model.objects.filter(enable=True).count() or 2
-        return 2  # TODO
+        point_count = WebsiteDetectionPoint.objects.filter(enable=True).count()
+        if point_count > 1:
+            return 2  # TODO
+        else:
+            return 1
 
     def pick_inaccessible_website_list(self):
         """
         从预处理表中挑选出所有探针都为异常的网站
         """
         alerts = []
-        probe_count = self.get_probe_count()
         results = PreAlertModel.objects.filter(end__gte=self.timestamp).values("summary").annotate(
             count=Count('summary'))
         for item in results:
             summary = item.get("summary")
             count = item.get("count")
-            if count != probe_count:
+            if count != self.get_probe_count():
                 continue
             website_alert = self.generate_website_alert(summary)
             alerts.append(website_alert)
@@ -181,5 +180,5 @@ class AlertReceiver(object):
         result['summary'] = obj.summary
         result['description'] = " ".join(description[:-2])
         result["start"] = self.timestamp
-        result["end"] = self.generate_alert_end_timestamp(AlertModel.AlertType.WEBMONITOR.value)
+        result["end"] = self.generate_alert_end_timestamp()
         return result
