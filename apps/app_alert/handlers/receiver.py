@@ -2,19 +2,14 @@ import json
 import re
 import datetime
 from apps.app_alert.utils.utils import hash_sha1
-from django.forms.models import model_to_dict
 from django.db.models import Count
 from apps.app_alert.utils.errors import BadRequest
-from django.db.utils import IntegrityError
 from apps.app_alert.models import PreAlertModel
 from apps.app_alert.models import AlertModel
-from apps.app_alert.models import ResolvedAlertModel
-from django.conf import settings
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from django.contrib.contenttypes.models import ContentType
 from apps.app_alert.utils.utils import DateUtils
 from django.utils import timezone
-from apps.app_alert.handlers.handlers import move_to_resolved
+from apps.app_alert.alert_status_flow import AlertStatusFlow
 
 
 class AlertReceiver(object):
@@ -31,8 +26,8 @@ class AlertReceiver(object):
         self.create_or_update(PreAlertModel, prepare_alerts)
         alerts.extend(self.pick_inaccessible_website_list())
         self.create_or_update(AlertModel, alerts)
-        # 归入已恢复队列
-        self.firing_to_resolved()
+        # 告警状态流转处理
+        AlertStatusFlow.start()
 
     def clean(self):
         items = []
@@ -188,14 +183,3 @@ class AlertReceiver(object):
         result["start"] = self.timestamp
         result["end"] = self.generate_alert_end_timestamp(AlertModel.AlertType.WEBMONITOR.value)
         return result
-
-    def firing_to_resolved(self):
-        """
-        当 预结束时间 小于当前时间时,归入 已恢复队列
-            *日志类的需要创建工单后，才会移入已恢复队列
-        """
-        # 进行中告警中 挑选出 end 小于当前时间的告警
-        alerts = AlertModel.objects.filter(end__lt=self.timestamp).all()
-        for alert in alerts:
-            if alert.type in [AlertModel.AlertType.METRIC, AlertModel.AlertType.WEBMONITOR]:
-                move_to_resolved(alert)
