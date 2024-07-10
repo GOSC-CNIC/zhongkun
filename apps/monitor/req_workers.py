@@ -274,8 +274,14 @@ class LogSiteReqCounter:
             return 0, 0, 0
 
         site_map = self.group_by_site(objs)
-        down_site_ids = self.series_invalid_site_ids(
-            site_map=site_map, now_ts=now_timestamp, cycle_minutes=self.cycle_minutes, ok_site_ids=ok_site_ids)
+        all_site_ids_set = set(site_map.keys())
+        if ok_site_ids:
+            down_site_ids = list(all_site_ids_set.difference(set(ok_site_ids)))
+        else:
+            down_site_ids = list(all_site_ids_set)
+
+        # down_site_ids = self.series_invalid_site_ids(
+        #     site_map=site_map, now_ts=now_timestamp, cycle_minutes=self.cycle_minutes, ok_site_ids=ok_site_ids)
 
         return self.async_do_update_invalid_records(records=objs, down_site_ids=down_site_ids)
 
