@@ -1,3 +1,5 @@
+import asyncio
+
 from django.utils.translation import gettext_lazy, gettext as _
 from django.db import models
 
@@ -12,6 +14,7 @@ class WebQueryChoices(models.TextChoices):
     HTTP_STATUS_CODE = 'http_status_code', gettext_lazy('http请求状态码')
     DURATION_SECONDS = 'duration_seconds', gettext_lazy('http请求耗时')
     HTTP_DURATION_SECONDS = 'http_duration_seconds', gettext_lazy('http请求各个部分耗时')
+    ALL_TOGETHER = 'all_together', gettext_lazy('一起查询所有指标')
 
 
 class ScreenWebMonitorManager:
@@ -118,7 +121,58 @@ class ScreenWebMonitorManager:
         if not query_endpoint_url:
             raise errors.Error(message=_('没有配置站点监控数据查询服务地址'))
 
+        if tag == WebQueryChoices.ALL_TOGETHER.value:
+            data = self.async_query_together(endpoint_url=query_endpoint_url)
+        else:
+            data = self._query(tag=tag, endpoint_url=query_endpoint_url)
+
+        return data
+
+    def _query(self, tag: str, endpoint_url: str):
+        """
+        :return:
+            { tag: []}
+
+        :raises: Error
+        """
         tag_tmpl = self.query_tag_tmpl_map[tag]
         querys = {'query': tag_tmpl}
-        r = WebMonitorQueryAPI.raw_query(endpoint_url=query_endpoint_url, querys=querys)
+        r = WebMonitorQueryAPI.raw_query(endpoint_url=endpoint_url, querys=querys)
         return {tag: r}
+
+    def async_query_together(self, endpoint_url: str):
+        tags = WebQueryChoices.values
+        tags.remove(WebQueryChoices.ALL_TOGETHER.value)
+
+        tasks = [
+            self.req_tag(endpoint_url=endpoint_url, tag=tag, tag_tmpl=self.query_tag_tmpl_map[tag]) for tag in tags
+        ]
+        results = asyncio.run(self.do_async_requests(tasks))
+        data = {}
+        errs = {}
+        for r in results:
+            tag, tag_data = r
+            if isinstance(tag_data, Exception):
+                data[tag] = []
+                errs[tag] = str(tag_data)
+            else:
+                data[tag] = tag_data
+
+        if errs:
+            data['errors'] = errs
+
+        return data
+
+    @staticmethod
+    async def do_async_requests(tasks):
+        return await asyncio.gather(*tasks, return_exceptions=True)
+
+    @staticmethod
+    async def req_tag(endpoint_url: str, tag: str, tag_tmpl: str):
+        try:
+            ret = await WebMonitorQueryAPI().async_raw_query(endpoint_url=endpoint_url, querys={'query': tag_tmpl})
+        except Exception as exc:
+            err = Exception(f'{endpoint_url}, {tag},{exc}')
+            return tag, err
+
+        return tag, ret

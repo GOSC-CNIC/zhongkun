@@ -183,6 +183,7 @@ class MetricQueryAPI:
         try:
             async with aiohttp.ClientSession() as client:
                 r = await client.get(url=url, timeout=aiohttp.ClientTimeout(connect=10, total=60))
+                await r.read()
         except aiohttp.ClientConnectionError:
             raise errors.Error(message='backend query api request timeout')
         except aiohttp.ClientError as exc:

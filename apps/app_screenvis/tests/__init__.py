@@ -161,3 +161,15 @@ def get_or_create_metric_tidb(job_tag: str = None, name: str = 'test tidb', name
     )
     unit.save(force_insert=True)
     return unit
+
+
+def config_website_query_endpoint_url():
+    try:
+        test_settings = get_test_case_settings()
+        provider_settings = test_settings['MONITOR_WEBSITE']['PROVIDER']
+        query_endpoint_url = provider_settings.get('endpoint_url')
+    except Exception as e:
+        raise Exception(f'No test settings(MONITOR_TIDB.PROVIDER) in file "test_settings.TEST_CASE"， {str(e)}')
+
+    screen_configs.add_or_update(
+        name=screen_configs.ConfigName.PROBE_QUERY_ENDPOINT_URL.value, value=query_endpoint_url)

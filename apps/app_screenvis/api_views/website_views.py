@@ -74,7 +74,7 @@ class WebsiteMonitorViewSet(NormalGenericViewSet):
 
         ret_data = data
         tasks = WebsiteMonitorTask.objects.all().values('id', 'name', 'url', 'url_hash', 'is_tamper_resistant')
-        ret_data['tasks'] = tasks
+        ret_data['tasks'] = list(tasks)
         return Response(data=ret_data, status=200)
 
     def get_serializer_class(self):
