@@ -37,6 +37,8 @@ class ServerServiceStatsWorkerTests(TransactionTestCase):
             ips_total = random.randint(20, 600)
             vpn_total = random.randint(100, 3000)
             vpn_invalid = random.randint(0, 100)
+            ips_public = random.randint(1, ips_total - 2)
+            ips_private = ips_total - ips_public
             return {
                 "quota": {
                     "mem_total": mem_total,
@@ -46,6 +48,10 @@ class ServerServiceStatsWorkerTests(TransactionTestCase):
                     "vm_created": random.randint(1, 100),
                     "ips_total": ips_total,
                     "ips_used": random.randint(1, ips_total),
+                    "ips_public": ips_public,
+                    "ips_public_used": random.randint(1, ips_public),
+                    "ips_private": ips_private,
+                    "ips_private_used": random.randint(1, ips_private),
                     "vdisk_num": random.randint(1, 200),
                     "vpn_total": vpn_total,
                     "vpn_active": random.randint(0, vpn_total - vpn_invalid),

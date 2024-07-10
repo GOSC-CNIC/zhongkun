@@ -138,7 +138,8 @@ class ObjectServiceAdmin(BaseModelAdmin):
 class ServerServiceTimedStatsAdmin(BaseModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'service', 'show_time', 'server_count', 'disk_count', 'ip_count',
-                    'ip_used_count', 'mem_size', 'mem_used_size', 'cpu_count', 'cpu_used_count')
+                    'ip_used_count', 'pub_ip_count', 'pub_ip_used_count', 'pri_ip_count', 'pri_ip_used_count',
+                    'mem_size', 'mem_used_size', 'cpu_count', 'cpu_used_count')
     list_filter = ['service']
     list_select_related = ('service',)
     raw_id_fields = ('service',)

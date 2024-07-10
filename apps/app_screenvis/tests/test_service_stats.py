@@ -45,6 +45,8 @@ class ServerServiceStatsTests(MyAPITestCase):
             service_id=site1.id, timestamp=now_ts,
             server_count=10, disk_count=8,
             ip_count=200, ip_used_count=88,
+            pub_ip_count=120, pub_ip_used_count=18,
+            pri_ip_count=80, pri_ip_used_count=26,
             mem_size=12345, mem_used_size=111,
             cpu_count=3000, cpu_used_count=234
         )
@@ -53,6 +55,8 @@ class ServerServiceStatsTests(MyAPITestCase):
             service_id=site1.id, timestamp=now_ts - 60,
             server_count=2342, disk_count=824,
             ip_count=20240, ip_used_count=8228,
+            pub_ip_count=20000, pub_ip_used_count=1800,
+            pri_ip_count=240, pri_ip_used_count=126,
             mem_size=1245, mem_used_size=171,
             cpu_count=3200, cpu_used_count=34
         )
@@ -61,6 +65,8 @@ class ServerServiceStatsTests(MyAPITestCase):
             service_id=site2.id, timestamp=now_ts - 120,
             server_count=2366, disk_count=57,
             ip_count=25252, ip_used_count=536,
+            pub_ip_count=10000, pub_ip_used_count=1234,
+            pri_ip_count=15252, pri_ip_used_count=2600,
             mem_size=4363, mem_used_size=436,
             cpu_count=25235, cpu_used_count=363
         )
@@ -69,6 +75,8 @@ class ServerServiceStatsTests(MyAPITestCase):
             service_id=site3.id, timestamp=now_ts,
             server_count=46747, disk_count=3337,
             ip_count=37373, ip_used_count=575,
+            pub_ip_count=30373, pub_ip_used_count=18666,
+            pri_ip_count=7000, pri_ip_used_count=226,
             mem_size=5855, mem_used_size=585,
             cpu_count=47448, cpu_used_count=4858
         )
@@ -77,6 +85,8 @@ class ServerServiceStatsTests(MyAPITestCase):
             service_id=site4.id, timestamp=now_ts,
             server_count=3647, disk_count=363,
             ip_count=36375, ip_used_count=2362,
+            pub_ip_count=30370, pub_ip_used_count=3418,
+            pri_ip_count=6005, pri_ip_used_count=2621,
             mem_size=7573, mem_used_size=357,
             cpu_count=6786, cpu_used_count=877
         )
@@ -107,6 +117,14 @@ class ServerServiceStatsTests(MyAPITestCase):
                          site1_obj1.cpu_count + site2_obj1.cpu_count + site4_obj1.cpu_count)
         self.assertEqual(response.data['cpu_used_count'],
                          site1_obj1.cpu_used_count + site2_obj1.cpu_used_count + site4_obj1.cpu_used_count)
+        self.assertEqual(response.data['pub_ip_count'],
+                         site1_obj1.pub_ip_count + site2_obj1.pub_ip_count + site4_obj1.pub_ip_count)
+        self.assertEqual(response.data['pub_ip_used_count'],
+                         site1_obj1.pub_ip_used_count + site2_obj1.pub_ip_used_count + site4_obj1.pub_ip_used_count)
+        self.assertEqual(response.data['pri_ip_count'],
+                         site1_obj1.pri_ip_count + site2_obj1.pri_ip_count + site4_obj1.pri_ip_count)
+        self.assertEqual(response.data['pri_ip_used_count'],
+                         site1_obj1.pri_ip_used_count + site2_obj1.pri_ip_used_count + site4_obj1.pri_ip_used_count)
 
         site4.status = site4.Status.DELETED.value
         site4.save(update_fields=['status'])
@@ -121,6 +139,10 @@ class ServerServiceStatsTests(MyAPITestCase):
         self.assertEqual(response.data['mem_used_size'], site1_obj1.mem_used_size + site2_obj1.mem_used_size)
         self.assertEqual(response.data['cpu_count'], site1_obj1.cpu_count + site2_obj1.cpu_count)
         self.assertEqual(response.data['cpu_used_count'], site1_obj1.cpu_used_count + site2_obj1.cpu_used_count)
+        self.assertEqual(response.data['pub_ip_count'], site1_obj1.pub_ip_count + site2_obj1.pub_ip_count)
+        self.assertEqual(response.data['pub_ip_used_count'], site1_obj1.pub_ip_used_count + site2_obj1.pub_ip_used_count)
+        self.assertEqual(response.data['pri_ip_count'], site1_obj1.pri_ip_count + site2_obj1.pri_ip_count)
+        self.assertEqual(response.data['pri_ip_used_count'], site1_obj1.pri_ip_used_count + site2_obj1.pri_ip_used_count)
 
 
 class VPNServiceStatsTests(MyAPITestCase):

@@ -150,12 +150,19 @@ class ServerServiceStatsWorker(BaseServiceStatsWorker):
             mem_total = mem_total / 1024
             mem_allocated = mem_allocated / 1024
 
+        pub_ip_used_count = int(data.get('ips_public_used', 0))
+        pri_ip_used_count = int(data.get('ips_private_used', 0))
+
         obj = ServerServiceTimedStats(
             service_id=unit_id, timestamp=now_ts,
             server_count=int(data['vm_created']),
             disk_count=int(data['vdisk_num']),
             ip_count=int(data['ips_total']),
             ip_used_count=int(data['ips_used']),
+            pub_ip_count=int(data['ips_public']),
+            pub_ip_used_count=pub_ip_used_count,
+            pri_ip_count=int(data['ips_private']),
+            pri_ip_used_count=pri_ip_used_count,
             mem_size=int(mem_total),
             mem_used_size=int(mem_allocated),
             cpu_count=int(data['vcpu_total']),

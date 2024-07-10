@@ -61,6 +61,10 @@ class ServerServiceViewSet(NormalGenericViewSet):
               "disk_count": 46,         # 云硬盘数
               "ip_count": 136,          # 总ip数
               "ip_used_count": 26,      # 已用IP数
+              "pub_ip_count": 36,       # 总公网ip数
+              "pub_ip_used_count": 16,  # 已用公网IP数
+              "pri_ip_count": 100,      # 总私网ip数
+              "pri_ip_used_count": 10,  # 已用私网IP数
               "mem_size": 44260,        # 总内存GiB
               "mem_used_size": 4460,    # 已用内存GiB
               "cpu_count": 45040,       # cpu总数
@@ -91,6 +95,10 @@ class ServerServiceViewSet(NormalGenericViewSet):
         disk_count = 0
         ip_count = 0
         ip_used_count = 0
+        pub_ip_count = 0
+        pub_ip_used_count = 0
+        pri_ip_count = 0
+        pri_ip_used_count = 0
         mem_size = 0
         mem_used_size = 0
         cpu_count = 0
@@ -100,6 +108,10 @@ class ServerServiceViewSet(NormalGenericViewSet):
             disk_count = disk_count + obj.disk_count
             ip_count = ip_count + obj.ip_count
             ip_used_count = ip_used_count + obj.ip_used_count
+            pub_ip_count += obj.pub_ip_count
+            pub_ip_used_count += obj.pub_ip_used_count
+            pri_ip_count += obj.pri_ip_count
+            pri_ip_used_count += obj.pri_ip_used_count
             mem_size = mem_size + obj.mem_size
             mem_used_size = mem_used_size + obj.mem_used_size
             cpu_count = cpu_count + obj.cpu_count
@@ -110,6 +122,10 @@ class ServerServiceViewSet(NormalGenericViewSet):
             'disk_count': disk_count,
             'ip_count': ip_count,
             'ip_used_count': ip_used_count,
+            'pub_ip_count': pub_ip_count,
+            'pub_ip_used_count': pub_ip_used_count,
+            'pri_ip_count': pri_ip_count,
+            'pri_ip_used_count': pri_ip_used_count,
             'mem_size': mem_size,
             'mem_used_size': mem_used_size,
             'cpu_count': cpu_count,
