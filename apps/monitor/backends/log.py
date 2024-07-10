@@ -97,6 +97,7 @@ class LogLokiAPI:
         try:
             async with aiohttp.ClientSession() as client:
                 r = await client.get(url=url, timeout=aiohttp.ClientTimeout(connect=5, total=30))
+                await r.read()
         except aiohttp.ClientConnectionError:
             raise errors.Error(message='log backend,query api request timeout')
         except aiohttp.ClientError as exc:

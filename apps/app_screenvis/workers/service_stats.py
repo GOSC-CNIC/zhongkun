@@ -47,6 +47,7 @@ class BaseServiceStatsWorker:
                     url=api_url,
                     auth=aiohttp.BasicAuth(login=username, password=password),
                     timeout=aiohttp.ClientTimeout(connect=5, total=30))
+                await r.read()
         except aiohttp.ClientConnectionError:
             raise Exception('api request timeout')
         except aiohttp.ClientError as exc:
