@@ -9,6 +9,7 @@ from drf_yasg import openapi
 from apps.app_screenvis.managers import ScreenWebMonitorManager, WebQueryChoices
 from apps.app_screenvis.utils import errors
 from apps.app_screenvis.permissions import ScreenAPIIPPermission
+from apps.app_screenvis.models import WebsiteMonitorTask
 from . import NormalGenericViewSet
 
 
@@ -41,15 +42,18 @@ class WebsiteMonitorViewSet(NormalGenericViewSet):
 
             Http Code: 状态码200，返回数据格式最外层key-value格式，key是查询指标参数值，value是单个查询指标的数据：
             {
+                "tasks": [      # url监控任务列表
+                    {
+                      "id": "3i2o4ouiei72p871uqtshh4io",
+                      "name": "test1",
+                      "url": "https://tes6t2.com",
+                      "url_hash": "72564636674e26802b61e5ec4893a5e40bd698f0",
+                      "is_tamper_resistant": true
+                    }
+                ],
                 "http_duration_seconds": [     # 数组，可能为空，单项，多项
-                    [                          # 一个url http请求各个部分耗时
-                        {"metric": {}, "value": [1718864229.841, "0.150246683"]},
-                        {"metric": {}, "value": [1718864229.841, "0.150246683"]}
-                    ]
-                ]
-            }
-            or
-            {
+                    {"metric": {}, "value": [1718864229.841, "0.150246683"]},   # 一个url http请求过程中单个细分过程耗时
+                ],
                 'duration_seconds' [
                     {"metric": {}, "value": [1718864229.841, "0.150246683"]},   # 一个url http请求总耗时
                 ]
@@ -69,18 +73,8 @@ class WebsiteMonitorViewSet(NormalGenericViewSet):
             return self.exception_response(exc)
 
         ret_data = data
-        if 'http_duration_seconds' in data:
-            url_data_dict = {}
-            for item in data['http_duration_seconds']:
-                if item.get('metric') and item['metric'].get('url'):
-                    url = item['metric']['url']
-                    if url in url_data_dict:
-                        url_data_dict[url].append(item)
-                    else:
-                        url_data_dict[url] = [item]
-
-                    ret_data = {'http_duration_seconds': url_data_dict.values()}
-
+        tasks = WebsiteMonitorTask.objects.all().values('id', 'name', 'url', 'url_hash', 'is_tamper_resistant')
+        ret_data['tasks'] = tasks
         return Response(data=ret_data, status=200)
 
     def get_serializer_class(self):
