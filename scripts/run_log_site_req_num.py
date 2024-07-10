@@ -18,7 +18,7 @@ from apps.app_global.task_locks import monitor_log_time_count_lock
 
 def main_use_lock(timed_minutes: int):
     nt = dj_timezone.now()
-    ok, exc = monitor_log_time_count_lock.acquire(expire_time=(nt + timedelta(minutes=5)))  # 先拿锁
+    ok, exc = monitor_log_time_count_lock.acquire(expire_time=(nt + timedelta(minutes=10)))  # 先拿锁
     if not ok:  # 未拿到锁退出
         return
 
