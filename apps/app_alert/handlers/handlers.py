@@ -8,11 +8,6 @@ from apps.monitor.models import MonitorJobCeph
 from apps.monitor.models import MonitorJobTiDB
 from apps.app_alert.utils.utils import DateUtils
 from django.db.utils import IntegrityError
-from apps.app_alert.models import ServiceAdminUser
-from apps.app_alert.models import AlertAbstractModel
-from apps.app_alert.models import ServiceLog
-from apps.app_alert.models import ServiceMetric
-from apps.app_alert.utils import errors
 
 
 def move_to_resolved(obj):
@@ -41,7 +36,7 @@ class UserMonitor(object):
         self.request = request
 
     def monitor_cluster_list(self):
-        metric_tag_list = self.server_list() + self.alert_server_list() + self.tidb_list() + self.ceph_list()
+        metric_tag_list = self.server_list() + self.tidb_list() + self.ceph_list()
         log_tag_list = [_.replace("_metric", "_log") for _ in metric_tag_list if _.endswith("_metric")]
         return list(set(metric_tag_list + log_tag_list))
 
@@ -55,20 +50,6 @@ class UserMonitor(object):
         queryset = queryset.distinct()
         job_tag_list = [_.job_tag for _ in queryset]
         return job_tag_list
-
-    def alert_server_list(self):
-        user = self.request.user
-        queryset = ServiceAdminUser.objects.filter(userprofile=user)
-        tag_list = list()
-        for obj in queryset:
-            service = obj.service
-            for metric in service.service_metric_set.all():
-                if metric.job_tag:
-                    tag_list.append(metric.job_tag)
-            for log in service.service_log_set.all():
-                if log.job_tag:
-                    tag_list.append(log.job_tag)
-        return tag_list
 
     def tidb_list(self):
         user = self.request.user
@@ -164,37 +145,3 @@ class EmailNotificationCleaner(object):
             obj.update({"alert": alert})
             items.append(obj)
         return items
-
-
-class AlertServerAdapter(object):
-    def __init__(self, alerts):
-        self.alerts = alerts
-
-    def get_service_set(self):
-        service_set = set()
-        for cluster in self.get_cluster_set():
-            service = self.search_cluster_service(cluster=cluster)
-            service_set.add(service)
-        if not service_set:
-            raise errors.InvalidArgument("unknown service")
-        if len(service_set) > 1:
-            raise errors.InvalidArgument("multi service is not supported")
-        return list(service_set)[0]
-
-    def get_cluster_set(self):
-        cluster_set = set()
-        for alert_obj in self.alerts:
-            if alert_obj.cluster == AlertAbstractModel.AlertType.WEBMONITOR.value:
-                continue
-            cluster_set.add(alert_obj.cluster)
-        return cluster_set
-
-    @staticmethod
-    def search_cluster_service(cluster):
-        service_log_obj = ServiceLog.objects.filter(job_tag=cluster).first()
-        if service_log_obj:
-            return service_log_obj.service
-        service_metric_obj = ServiceMetric.objects.filter(job_tag=cluster).first()
-        if service_metric_obj:
-            return service_metric_obj.service
-        return None
