@@ -261,9 +261,6 @@ class ProbeHandlers:
             f.write('scrape_configs:' + '\n')
             for line in website:
 
-                if not line.url.endswith('/'):
-                    line.url = line.url + '/'
-
                 if line.url.startswith('http'):
                     yml_http = prometheus_blackbox_http_yml.format(url_hash=line.url_hash, url=line.url,
                                                                    local_ip='127.0.0.1:9115')
@@ -288,8 +285,6 @@ class ProbeHandlers:
             f.write('scrape_configs:' + '\n')
 
             for line in website:
-                if not line.url.endswith('/'):
-                    line.url = line.url + '/'
 
                 if line.url.startswith('tcp'):
                     yml_tcp = prometheus_blackbox_tcp_yml.format(tcp_hash=line.url_hash, tcp_url=line.url,
