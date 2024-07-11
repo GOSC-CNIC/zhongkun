@@ -30,14 +30,14 @@ class Migration(migrations.Migration):
             model_name='alertworkorder',
             name='creator',
         ),
-        migrations.RemoveField(
-            model_name='serviceadminuser',
-            name='service',
-        ),
-        migrations.RemoveField(
-            model_name='serviceadminuser',
-            name='userprofile',
-        ),
+        # migrations.RemoveField(
+        #     model_name='serviceadminuser',
+        #     name='service',
+        # ),
+        # migrations.RemoveField(
+        #     model_name='serviceadminuser',
+        #     name='userprofile',
+        # ),
         migrations.RemoveField(
             model_name='servicelog',
             name='service',
@@ -54,14 +54,14 @@ class Migration(migrations.Migration):
             model_name='servicemetric',
             name='users',
         ),
-        migrations.RemoveField(
-            model_name='tickethandler',
-            name='ticket',
-        ),
-        migrations.RemoveField(
-            model_name='tickethandler',
-            name='user',
-        ),
+        # migrations.RemoveField(
+        #     model_name='tickethandler',
+        #     name='ticket',
+        # ),
+        # migrations.RemoveField(
+        #     model_name='tickethandler',
+        #     name='user',
+        # ),
         migrations.RemoveField(
             model_name='ticketresolution',
             name='category',
