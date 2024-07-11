@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
                 ('module_name', models.CharField(choices=[
                     ('screen', '大屏展示'), ('email', '邮件发送API'),
                     ('alert-receiver', '告警接收API'),
-                    ('portal', 'Portal门户接口'), ('admin', 'Admin后台'),
+                    ('portal', 'Portal门户接口'), ('admin', 'Admin后台'), ('all', '所有功能')
                 ], help_text='此IP白名单适用的功能模块', max_length=32, verbose_name='功能模块')),
                 ('ip_value', models.CharField(help_text='192.168.1.1、 192.168.1.1/24、192.168.1.66 - 192.168.1.100', max_length=100, verbose_name='IP')),
                 ('remark', models.CharField(blank=True, default='', max_length=255, verbose_name='备注')),

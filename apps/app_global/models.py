@@ -122,6 +122,7 @@ class IPAccessWhiteList(models.Model):
         ALERT = 'alert-receiver', _('告警接收API')
         PORTAL = 'portal', _('Portal门户接口')
         ADMIN = 'admin', _('Admin后台')
+        ALL_MODULE = 'all', _('所有功能')
 
     id = models.BigAutoField(primary_key=True)
     module_name = models.CharField(

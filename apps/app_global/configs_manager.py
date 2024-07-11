@@ -108,6 +108,11 @@ class IPAccessWhiteListManager(Singleton):
     def get_module_ip_whitelist(module_name: str) -> List[Union[ipaddress.IPv4Network, IPRange]]:
         ip_whitelist_map = IPAccessWhiteListManager.get_whitelist_map_use_cahce()
         module_whitelist = ip_whitelist_map.get(module_name, [])
+        # 所有功能模块白名单
+        all_module_whitelist = ip_whitelist_map.get(IPAccessWhiteListManager.ModuleName.ALL_MODULE.value, [])
+        if all_module_whitelist:
+            module_whitelist += all_module_whitelist
+
         allowed_ips = []
         for ip_rule in module_whitelist:
             try:
