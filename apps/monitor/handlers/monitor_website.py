@@ -330,7 +330,7 @@ class MonitorWebsiteHandler:
                 website=website, tag=query, start=start, end=end, step=step, dp_id=detection_point_id)
         except errors.Error as exc:
             return view.exception_response(exc)
-        
+
         return Response(data=data, status=200)
 
     @staticmethod
@@ -457,17 +457,19 @@ class MonitorWebsiteHandler:
             point = mw_mgr.get_detection_ponit(dp_id=detection_point_id)
             detection_points = {detection_point_id: point}
         else:
-            detection_points = mw_mgr.get_detection_ponits()
+            detection_points = mw_mgr.get_detection_ponits(enable=True)
 
         dp_map_data = {}
         for dp in detection_points.values():
             try:
+                mntr_label = dp.get_mntr_label()
                 if is_query_all:
                     res = mw_mgr.query_duration_avg(
-                        provider=dp.provider, start=start, end=end, site_urls=None, group='web')
+                        provider=dp.provider, mntr_label=mntr_label, start=start, end=end, site_urls=None, group='web')
                 else:
                     res = mw_mgr.query_duration_avg(
-                        provider=dp.provider, start=start, end=end, site_urls=site_urls, group='web')
+                        provider=dp.provider, mntr_label=mntr_label, start=start, end=end,
+                        site_urls=site_urls, group='web')
             except Exception as exc:
                 res = []
 
@@ -557,14 +559,17 @@ class MonitorWebsiteHandler:
                 point = mw_mgr.get_detection_ponit(dp_id=detection_point_id)
                 detection_points = {detection_point_id: point}
             else:
-                detection_points = mw_mgr.get_detection_ponits()
+                detection_points = mw_mgr.get_detection_ponits(enable=True)
 
             for dp in detection_points.values():
                 try:
+                    mntr_label = dp.get_mntr_label()
                     if is_query_all:
-                        res = mw_mgr.query_http_status_code(provider=dp.provider, timestamp=now_st, site_urls=None)
+                        res = mw_mgr.query_http_status_code(
+                            provider=dp.provider, mntr_label=mntr_label, timestamp=now_st, site_urls=None)
                     else:
-                        res = mw_mgr.query_http_status_code(provider=dp.provider, timestamp=now_st, site_urls=site_urls)
+                        res = mw_mgr.query_http_status_code(
+                            provider=dp.provider, mntr_label=mntr_label, timestamp=now_st, site_urls=site_urls)
                 except Exception as exc:
                     res = []
 

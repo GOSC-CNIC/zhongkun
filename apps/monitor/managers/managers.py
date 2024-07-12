@@ -612,9 +612,10 @@ class MonitorWebsiteManager:
         """
         detection_point = self.get_detection_ponit(dp_id=dp_id)
         provider = detection_point.provider
-        return self.request_data(provider=provider, tag=tag, url=website.full_url)
+        mntr_label = detection_point.get_mntr_label()
+        return self.request_data(provider=provider, mntr_label=mntr_label, tag=tag, url=website.full_url)
 
-    def request_data(self, provider: MonitorProvider, tag: str, url: str):
+    def request_data(self, provider: MonitorProvider, mntr_label: str, tag: str, url: str):
         """
         :return:
             [
@@ -638,7 +639,7 @@ class MonitorWebsiteManager:
             ]
         :raises: Error
         """
-        params = {'provider': provider, 'url': url}
+        params = {'provider': provider, 'mntr_label': mntr_label, 'url': url}
         f = {
             WebsiteQueryChoices.DURATION_SECONDS.value: self.backend.duration_seconds_period,
             WebsiteQueryChoices.SUCCESS.value: self.backend.success_period,
@@ -654,10 +655,13 @@ class MonitorWebsiteManager:
         """
         detection_point = self.get_detection_ponit(dp_id=dp_id)
         provider = detection_point.provider
+        mntr_label = detection_point.get_mntr_label()
         return self.request_range_data(
-            provider=provider, tag=tag, url=website.full_url, start=start, end=end, step=step)
+            provider=provider, mntr_label=mntr_label, tag=tag, url=website.full_url, start=start, end=end, step=step)
 
-    def request_range_data(self, provider: MonitorProvider, tag: str, url: str, start: int, end: int, step: int):
+    def request_range_data(
+            self, provider: MonitorProvider, mntr_label: str, tag: str, url: str, start: int, end: int, step: int
+    ):
         """
         :return:
             [
@@ -680,7 +684,7 @@ class MonitorWebsiteManager:
             ]
         :raises: Error
         """
-        params = {'provider': provider, 'url': url, 'start': start, 'end': end, 'step': step}
+        params = {'provider': provider, 'mntr_label': mntr_label, 'url': url, 'start': start, 'end': end, 'step': step}
         f = {
             WebsiteQueryChoices.SUCCESS.value: self.backend.success_range,
             WebsiteQueryChoices.DURATION_SECONDS.value: self.backend.duration_seconds_range,
@@ -690,8 +694,10 @@ class MonitorWebsiteManager:
 
         return f(**params)
 
-    def query_duration_avg(self, provider: MonitorProvider, start: int, end: int, site_urls: list = None,
-                           group: str = 'web'):
+    def query_duration_avg(
+            self, provider: MonitorProvider, mntr_label: str, start: int, end: int, site_urls: list = None,
+            group: str = 'web'
+    ):
         """
         site_urls: 指定要查询的url，当url数量在10以内可以用此参数
         group: in [web, tcp]
@@ -721,17 +727,20 @@ class MonitorWebsiteManager:
         if site_urls:
             site_querys = []
             for url in site_urls:
-                query = f'avg_over_time(probe_duration_seconds{{group="{group}", url="{url}"}}[{minutes}m])'
+                query = f'avg_over_time(probe_duration_seconds{{group="{group}",monitor="{mntr_label}",' \
+                        f'url="{url}"}}[{minutes}m])'
                 site_querys.append(query)
 
             query = ' or '.join(site_querys)
         else:
-            query = f'avg_over_time(probe_duration_seconds{{group="{group}"}}[{minutes}m])'
+            query = f'avg_over_time(probe_duration_seconds{{group="{group}",monitor="{mntr_label}"}}[{minutes}m])'
 
         return self.backend.raw_query(
             provider=provider, params={'query': query, 'time': end})
 
-    def query_http_status_code(self, provider: MonitorProvider, timestamp: int, site_urls: list = None):
+    def query_http_status_code(
+            self, provider: MonitorProvider, mntr_label: str, timestamp: int, site_urls: list = None
+    ):
         """
         site_urls: 指定要查询的url，当url数量在10以内可以用此参数
 
@@ -748,12 +757,12 @@ class MonitorWebsiteManager:
         if site_urls:
             site_querys = []
             for url in site_urls:
-                query = f'probe_http_status_code{{group="web",url="{url}"}}'
+                query = f'probe_http_status_code{{group="web",monitor="{mntr_label}",url="{url}"}}'
                 site_querys.append(query)
 
             query = ' or '.join(site_querys)
         else:
-            query = f'probe_http_status_code{{group="web"}}'
+            query = f'probe_http_status_code{{group="web",monitor="{mntr_label}"}}'
 
         return self.backend.raw_query(
             provider=provider, params={'query': query, 'time': timestamp})

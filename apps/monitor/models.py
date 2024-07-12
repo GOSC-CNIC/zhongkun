@@ -360,6 +360,9 @@ class WebsiteDetectionPoint(UuidModel):
     endpoint_url = models.CharField(verbose_name=_('监控任务提交探针服务地址'), max_length=255, blank=True, default='')
     auth_username = models.CharField(verbose_name=_('探针服务认证用户'), max_length=128, blank=True, default='')
     auth_password = models.CharField(verbose_name=_('探针服务认证密码'), max_length=128, blank=True, default='')
+    mntr_label = models.CharField(
+        verbose_name=_('探测点标签'), max_length=32, blank=True, default='',
+        help_text=_('用于区分多个探测点的数据'))
 
     class Meta:
         db_table = 'website_detection_point'
@@ -376,6 +379,9 @@ class WebsiteDetectionPoint(UuidModel):
             URLValidator(schemes=['http', 'https'])(self.endpoint_url)
         except ValidationError:
             raise ValidationError(message={'endpoint_url': gettext('不是一个有效的网址')})
+
+    def get_mntr_label(self) -> str:
+        return self.mntr_label
 
 
 class ProbeTaskSubmitLog(UuidModel):

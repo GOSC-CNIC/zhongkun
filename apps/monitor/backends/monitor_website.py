@@ -14,20 +14,20 @@ class ExpressionQuery:
     http_duration_seconds = 'probe_http_duration_seconds'
 
     @staticmethod
-    def build_http_status_code_query(url: str):
-        return f'probe_http_status_code{{url="{url}"}}'
+    def build_http_status_code_query(url: str, mntr_label: str):
+        return f'probe_http_status_code{{monitor="{mntr_label}", url="{url}"}}'
 
     @staticmethod
-    def build_duration_seconds_query(url: str):
-        return f'probe_duration_seconds{{url="{url}"}}'
+    def build_duration_seconds_query(url: str, mntr_label: str):
+        return f'probe_duration_seconds{{monitor="{mntr_label}", url="{url}"}}'
 
     @staticmethod
-    def build_http_duration_seconds_query(url: str):
-        return f'probe_http_duration_seconds{{url="{url}"}}'
+    def build_http_duration_seconds_query(url: str, mntr_label: str):
+        return f'probe_http_duration_seconds{{monitor="{mntr_label}", url="{url}"}}'
 
     @staticmethod
-    def build_success_query(url: str):
-        return f'probe_success{{url="{url}"}}'
+    def build_success_query(url: str, mntr_label: str):
+        return f'probe_success{{monitor="{mntr_label}", url="{url}"}}'
 
 
 class MonitorWebsiteQueryAPI:
@@ -44,7 +44,7 @@ class MonitorWebsiteQueryAPI:
                 'receive_cluster': 'webmonitor',
                 'receive_replica': '0',
                 'tenant_id': 'default-tenant',
-                'url': 'http://www.nairc.com/'
+                'url': 'https://www.nairc.com/'
             },
             "value": [1630267851.781, "1622079296241664"]       # when query
             "values": [                                         # when query_rang
@@ -55,7 +55,7 @@ class MonitorWebsiteQueryAPI:
     ]
     """
 
-    def http_status_code(self, provider: MonitorProvider, url: str):
+    def http_status_code(self, provider: MonitorProvider, mntr_label: str, url: str):
         """
         :return:
             [
@@ -69,11 +69,11 @@ class MonitorWebsiteQueryAPI:
             ]
         :raises: Error
         """
-        expression_query = ExpressionQuery().build_http_status_code_query(url=url)
+        expression_query = ExpressionQuery().build_http_status_code_query(url=url, mntr_label=mntr_label)
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(api_url)
 
-    def http_status_code_period(self, provider: MonitorProvider, url: str):
+    def http_status_code_period(self, provider: MonitorProvider, mntr_label: str, url: str):
         """
         [
             {
@@ -86,11 +86,11 @@ class MonitorWebsiteQueryAPI:
             }
         ]
         """
-        expression_query = ExpressionQuery().build_http_status_code_query(url=url) + '[5m]'
+        expression_query = ExpressionQuery().build_http_status_code_query(url=url, mntr_label=mntr_label) + '[5m]'
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(api_url)
 
-    def duration_seconds(self, provider: MonitorProvider, url: str):
+    def duration_seconds(self, provider: MonitorProvider, mntr_label: str, url: str):
         """
         http or tcp
         :return:
@@ -105,11 +105,11 @@ class MonitorWebsiteQueryAPI:
             ]
         :raises: Error
         """
-        expression_query = ExpressionQuery().build_duration_seconds_query(url=url)
+        expression_query = ExpressionQuery().build_duration_seconds_query(url=url, mntr_label=mntr_label)
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(api_url)
 
-    def duration_seconds_period(self, provider: MonitorProvider, url: str):
+    def duration_seconds_period(self, provider: MonitorProvider, mntr_label: str, url: str):
         """
         http or tcp
         [
@@ -123,11 +123,11 @@ class MonitorWebsiteQueryAPI:
             }
         ]
         """
-        expression_query = ExpressionQuery().build_duration_seconds_query(url=url) + '[5m]'
+        expression_query = ExpressionQuery().build_duration_seconds_query(url=url, mntr_label=mntr_label) + '[5m]'
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(api_url)
 
-    def success(self, provider: MonitorProvider, url: str):
+    def success(self, provider: MonitorProvider, mntr_label: str, url: str):
         """
         http or tcp
         :return:
@@ -142,11 +142,11 @@ class MonitorWebsiteQueryAPI:
             ]
         :raises: Error
         """
-        expression_query = ExpressionQuery().build_success_query(url=url)
+        expression_query = ExpressionQuery().build_success_query(url=url, mntr_label=mntr_label)
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(api_url)
 
-    def success_period(self, provider: MonitorProvider, url: str):
+    def success_period(self, provider: MonitorProvider, mntr_label: str, url: str):
         """
         http or tcp
         [
@@ -160,11 +160,11 @@ class MonitorWebsiteQueryAPI:
             }
         ]
         """
-        expression_query = ExpressionQuery().build_success_query(url=url) + '[5m]'
+        expression_query = ExpressionQuery().build_success_query(url=url, mntr_label=mntr_label) + '[5m]'
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(api_url)
 
-    def http_duration_seconds(self, provider: MonitorProvider, url: str):
+    def http_duration_seconds(self, provider: MonitorProvider, mntr_label: str, url: str):
         """
         :return:
             [
@@ -179,11 +179,11 @@ class MonitorWebsiteQueryAPI:
             ]
         :raises: Error
         """
-        expression_query = ExpressionQuery().build_http_duration_seconds_query(url=url)
+        expression_query = ExpressionQuery().build_http_duration_seconds_query(url=url, mntr_label=mntr_label)
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(api_url)
 
-    def http_duration_seconds_period(self, provider: MonitorProvider, url: str):
+    def http_duration_seconds_period(self, provider: MonitorProvider, mntr_label: str, url: str):
         """
         [
             {
@@ -197,11 +197,13 @@ class MonitorWebsiteQueryAPI:
             ...
         ]
         """
-        expression_query = ExpressionQuery().build_http_duration_seconds_query(url=url) + '[5m]'
+        expression_query = ExpressionQuery().build_http_duration_seconds_query(url=url, mntr_label=mntr_label) + '[5m]'
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(api_url)
 
-    def http_status_code_range(self, provider: MonitorProvider, url: str, start: int, end: int, step: int):
+    def http_status_code_range(
+            self, provider: MonitorProvider, mntr_label: str, url: str, start: int, end: int, step: int
+    ):
         """
         :return:
             [
@@ -214,12 +216,14 @@ class MonitorWebsiteQueryAPI:
             ]
         :raises: Error
         """
-        expression_query = ExpressionQuery().build_http_status_code_query(url=url)
+        expression_query = ExpressionQuery().build_http_status_code_query(url=url, mntr_label=mntr_label)
         api_url = self._build_query_range_api(endpoint_url=provider.endpoint_url, expression_query=expression_query,
                                               start=start, end=end, step=step)
         return self._request_query_api(api_url)
 
-    def duration_seconds_range(self, provider: MonitorProvider, url: str, start: int, end: int, step: int):
+    def duration_seconds_range(
+            self, provider: MonitorProvider, mntr_label: str, url: str, start: int, end: int, step: int
+    ):
         """
         :return:
             [
@@ -232,12 +236,12 @@ class MonitorWebsiteQueryAPI:
             ]
         :raises: Error
         """
-        expression_query = ExpressionQuery().build_duration_seconds_query(url=url)
+        expression_query = ExpressionQuery().build_duration_seconds_query(url=url, mntr_label=mntr_label)
         api_url = self._build_query_range_api(endpoint_url=provider.endpoint_url, expression_query=expression_query,
                                               start=start, end=end, step=step)
         return self._request_query_api(api_url)
 
-    def success_range(self, provider: MonitorProvider, url: str, start: int, end: int, step: int):
+    def success_range(self, provider: MonitorProvider, mntr_label: str, url: str, start: int, end: int, step: int):
         """
         http or tcp
         [
@@ -251,12 +255,14 @@ class MonitorWebsiteQueryAPI:
             }
         ]
         """
-        expression_query = ExpressionQuery().build_success_query(url=url)
+        expression_query = ExpressionQuery().build_success_query(url=url, mntr_label=mntr_label)
         api_url = self._build_query_range_api(
             endpoint_url=provider.endpoint_url, expression_query=expression_query, start=start, end=end, step=step)
         return self._request_query_api(api_url)
 
-    def http_duration_seconds_range(self, provider: MonitorProvider, url: str, start: int, end: int, step: int):
+    def http_duration_seconds_range(
+            self, provider: MonitorProvider, mntr_label: str, url: str, start: int, end: int, step: int
+    ):
         """
         :return:
             [
@@ -271,7 +277,7 @@ class MonitorWebsiteQueryAPI:
             ]
         :raises: Error
         """
-        expression_query = ExpressionQuery().build_http_duration_seconds_query(url=url)
+        expression_query = ExpressionQuery().build_http_duration_seconds_query(url=url, mntr_label=mntr_label)
         api_url = self._build_query_range_api(endpoint_url=provider.endpoint_url, expression_query=expression_query,
                                               start=start, end=end, step=step)
         return self._request_query_api(api_url)
