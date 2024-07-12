@@ -6,6 +6,8 @@ from django.core.exceptions import ValidationError
 
 from utils.model import UuidModel
 from utils.iprestrict import convert_iprange
+from .prometheus_configs_default_template import prometheus_blackbox_http_default, prometheus_blackbox_tcp_default, \
+    prometheus_exporter_node_default, prometheus_base_default, prometheus_exporter_ceph_default, prometheus_exporter_tidb_default
 
 
 class TimedTaskLock(UuidModel):
@@ -86,12 +88,12 @@ class GlobalConfig(models.Model):
         ConfigName.AAI_LOGIN_CLIENT_ID.value: '',
         ConfigName.AAI_LOGIN_CLIENT_SECRET.value: '',
         ConfigName.PROMETHEUS_SERVICE_URL.value: 'http://127.0.0.1:9090',
-        ConfigName.PROMETHEUS_BASE.value: '',
-        ConfigName.PROMETHEUS_BLACKBOX_HTTP.value: '',
-        ConfigName.PROMETHEUS_BLACKBOX_TCP.value: '',
-        ConfigName.PROMETHEUS_EXPORTER_NODE.value: '',
-        ConfigName.PROMETHEUS_EXPORTER_TIDB.value: '',
-        ConfigName.PROMETHEUS_EXPORTER_CEPH.value: '',
+        ConfigName.PROMETHEUS_BASE.value: prometheus_base_default,
+        ConfigName.PROMETHEUS_BLACKBOX_HTTP.value: prometheus_blackbox_http_default,
+        ConfigName.PROMETHEUS_BLACKBOX_TCP.value: prometheus_blackbox_tcp_default,
+        ConfigName.PROMETHEUS_EXPORTER_NODE.value: prometheus_exporter_node_default,
+        ConfigName.PROMETHEUS_EXPORTER_TIDB.value: prometheus_exporter_tidb_default,
+        ConfigName.PROMETHEUS_EXPORTER_CEPH.value: prometheus_exporter_ceph_default,
         ConfigName.SALES_CUSTOMER_SERVICE_INFO.value: ''
     }
 
