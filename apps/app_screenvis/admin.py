@@ -175,7 +175,8 @@ class VPNTimedStatsAdmin(BaseModelAdmin):
 @admin.register(ObjectServiceTimedStats)
 class ObjectServiceTimedStatsAdmin(BaseModelAdmin):
     list_display_links = ('id',)
-    list_display = ('id', 'service', 'show_time', 'bucket_count', 'bucket_storage', 'storage_used', 'storage_capacity')
+    list_display = ('id', 'service', 'show_time', 'bucket_count', 'bucket_storage', 'storage_used', 'storage_capacity',
+                    'user_count')
     list_filter = ['service']
     list_select_related = ('service',)
     raw_id_fields = ('service',)

@@ -266,31 +266,31 @@ class ObjectServiceStatsTests(MyAPITestCase):
         site1_obj1 = ObjectServiceTimedStats(
             service_id=site1.id, timestamp=now_ts,
             bucket_count=10, bucket_storage=8,
-            storage_capacity=200, storage_used=88
+            storage_capacity=200, storage_used=88, user_count=123
         )
         site1_obj1.save(force_insert=True)
         site1_obj2 = ObjectServiceTimedStats(
             service_id=site1.id, timestamp=now_ts - 60,
             bucket_count=242, bucket_storage=3533,
-            storage_capacity=57474, storage_used=5343
+            storage_capacity=57474, storage_used=5343, user_count=234
         )
         site1_obj2.save(force_insert=True)
         site2_obj1 = ObjectServiceTimedStats(
             service_id=site2.id, timestamp=now_ts - 120,
             bucket_count=54, bucket_storage=5644,
-            storage_capacity=64757, storage_used=3222
+            storage_capacity=64757, storage_used=3222, user_count=2325
         )
         site2_obj1.save(force_insert=True)
         site3_obj1 = ObjectServiceTimedStats(
             service_id=site3.id, timestamp=now_ts,
             bucket_count=423, bucket_storage=2424,
-            storage_capacity=53535, storage_used=24245
+            storage_capacity=53535, storage_used=24245, user_count=4564
         )
         site3_obj1.save(force_insert=True)
         site4_obj1 = ObjectServiceTimedStats(
             service_id=site4.id, timestamp=now_ts,
             bucket_count=353, bucket_storage=353,
-            storage_capacity=4646, storage_used=674
+            storage_capacity=4646, storage_used=674, user_count=395
         )
         site4_obj1.save(force_insert=True)
 
@@ -311,6 +311,8 @@ class ObjectServiceStatsTests(MyAPITestCase):
                          site1_obj1.storage_capacity + site2_obj1.storage_capacity + site4_obj1.storage_capacity)
         self.assertEqual(response.data['storage_used'],
                          site1_obj1.storage_used + site2_obj1.storage_used + site4_obj1.storage_used)
+        self.assertEqual(response.data['user_count'],
+                         site1_obj1.user_count + site2_obj1.user_count + site4_obj1.user_count)
 
         # 1\2
         site4.status = site4.Status.DELETED.value
@@ -322,3 +324,4 @@ class ObjectServiceStatsTests(MyAPITestCase):
         self.assertEqual(response.data['bucket_storage'], site1_obj1.bucket_storage + site2_obj1.bucket_storage)
         self.assertEqual(response.data['storage_capacity'], site1_obj1.storage_capacity + site2_obj1.storage_capacity)
         self.assertEqual(response.data['storage_used'], site1_obj1.storage_used + site2_obj1.storage_used)
+        self.assertEqual(response.data['user_count'], site1_obj1.user_count + site2_obj1.user_count)

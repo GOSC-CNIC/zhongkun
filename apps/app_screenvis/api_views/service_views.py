@@ -262,6 +262,7 @@ class ObjectServiceViewSet(NormalGenericViewSet):
               "bucket_storage": 46,     # 存储桶总数据量GiB
               "storage_capacity": 44260,# 总存储容量GiB
               "storage_used": 4460,     # 已用存储容量GiB
+              "user_count": 132         # 用户数
             }
         """
         return self.get_object_stats_response()
@@ -288,17 +289,20 @@ class ObjectServiceViewSet(NormalGenericViewSet):
         bucket_storage = 0
         storage_used = 0
         storage_capacity = 0
+        user_count = 0
         for obj in obj_list:
             bucket_count = bucket_count + obj.bucket_count
             bucket_storage = bucket_storage + obj.bucket_storage
             storage_used = storage_used + obj.storage_used
             storage_capacity = storage_capacity + obj.storage_capacity
+            user_count += obj.user_count
 
         return Response(data={
             'bucket_count': bucket_count,
             'bucket_storage': bucket_storage,
             'storage_used': storage_used,
-            'storage_capacity': storage_capacity
+            'storage_capacity': storage_capacity,
+            'user_count': user_count
         })
 
     def get_serializer_class(self):

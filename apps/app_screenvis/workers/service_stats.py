@@ -261,7 +261,8 @@ class ObjectServiceStatsWorker(BaseServiceStatsWorker):
             bucket_count=int(data['bucket_count']),
             bucket_storage=int(data['bucket_all_size']),
             storage_used=int(data['ceph_use']),
-            storage_capacity=int(data['ceph_total'])
+            storage_capacity=int(data['ceph_total']),
+            user_count=int(data.get('user_count', 0))
         )
         obj.enforce_id()
         return obj

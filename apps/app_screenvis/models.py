@@ -264,6 +264,7 @@ class ObjectServiceTimedStats(BaseTimed):
     bucket_storage = models.BigIntegerField(verbose_name=_('存储桶总数据量(GiB)'), blank=True, default=0)
     storage_used = models.BigIntegerField(verbose_name=_('已用容量(GiB)'), blank=True, default=0)
     storage_capacity = models.BigIntegerField(verbose_name=_('总容量(GiB)'), blank=True, default=0)
+    user_count = models.IntegerField(verbose_name=_('用户数'), blank=True, default=0)
 
     class Meta:
         db_table = 'screenvis_object_timedstats'
