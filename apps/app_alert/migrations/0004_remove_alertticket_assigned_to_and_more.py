@@ -13,15 +13,15 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name='alertticket',
-            name='assigned_to',
-        ),
-        migrations.AlterField(
-            model_name='alertticket',
-            name='status',
-            field=models.CharField(choices=[('accepted', '已受理'), ('changed', '已转移'), ('closed', '已完成')], default='accepted', max_length=16, verbose_name='状态'),
-        ),
+        # migrations.RemoveField(
+        #     model_name='alertticket',
+        #     name='assigned_to',
+        # ),
+        # migrations.AlterField(
+        #     model_name='alertticket',
+        #     name='status',
+        #     field=models.CharField(choices=[('accepted', '已受理'), ('changed', '已转移'), ('closed', '已完成')], default='accepted', max_length=16, verbose_name='状态'),
+        # ),
         # migrations.CreateModel(
         #     name='TicketHandler',
         #     fields=[
