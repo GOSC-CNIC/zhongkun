@@ -252,9 +252,9 @@ class LogSiteReqCounter:
 
         provider = build_loki_provider(odc=site.org_data_center)
         try:
-            result = await LogLokiAPI().async_query(provider=provider, querys=querys)
+            result = await LogLokiAPI().async_query(provider=provider, querys=querys, total_timeout=30)
         except Exception:
-            result = await LogLokiAPI().async_query(provider=provider, querys=querys)
+            result = await LogLokiAPI().async_query(provider=provider, querys=querys, total_timeout=20)
 
         if result:
             value = result[0]['value']

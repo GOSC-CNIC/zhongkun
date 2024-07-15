@@ -41,6 +41,7 @@ def main_use_lock(timed_minutes: int):
         ok, exc = monitor_log_time_count_lock.release(run_desc=run_desc)  # 释放锁
         # 锁释放失败，发送通知
         if not ok:
+            print(f'释放状态锁失败，{str(exc)}')
             monitor_log_time_count_lock.notify_unrelease()
 
 

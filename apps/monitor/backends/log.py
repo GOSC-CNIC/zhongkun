@@ -82,21 +82,21 @@ class LogLokiAPI:
         query = parse.urlencode(query=querys)
         return f'{endpoint_url}/loki/api/v1/query?{query}'
 
-    async def async_query(self, provider: LokiProvider, querys: dict):
+    async def async_query(self, provider: LokiProvider, querys: dict, total_timeout: float = 30):
         """
         :return:
         """
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, querys=querys)
-        return await self._async_request_query_api(url=api_url)
+        return await self._async_request_query_api(url=api_url, total_timeout=total_timeout)
 
     @staticmethod
-    async def _async_request_query_api(url: str):
+    async def _async_request_query_api(url: str, total_timeout: float = 30):
         """
         :raises: Error
         """
         try:
             async with aiohttp.ClientSession() as client:
-                r = await client.get(url=url, timeout=aiohttp.ClientTimeout(connect=5, total=30))
+                r = await client.get(url=url, timeout=aiohttp.ClientTimeout(connect=5, total=total_timeout))
                 await r.read()
         except aiohttp.ClientConnectionError:
             raise errors.Error(message='log backend,query api request timeout')
