@@ -200,6 +200,7 @@ class LogSiteReqCounter:
 
         ok_site_ids = []
         objs = []
+        site_err_map = {}
         for r in results:
             if isinstance(r, tuple) and len(r) == 3:
                 site_id, r_num, now_timestamp = r
@@ -208,6 +209,7 @@ class LogSiteReqCounter:
                     req_num = r_num
                 else:
                     req_num = -1
+                    site_err_map[site_id] = r_num
 
                 obj = LogSiteTimeReqNum(timestamp=now_timestamp, site_id=site_id, count=req_num)
                 obj.enforce_id()    # 生成填充id，批量插入不调用save方法
@@ -221,6 +223,12 @@ class LogSiteReqCounter:
                 objs = LogSiteTimeReqNum.objects.bulk_create(objs=objs, batch_size=200)
             except Exception as exc:
                 pass
+
+        try:
+            for err in site_err_map.values():
+                print(err)
+        except Exception as exc:
+            pass
 
         return ok_site_ids, objs
 
