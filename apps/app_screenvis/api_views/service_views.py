@@ -20,32 +20,6 @@ class ServerServiceViewSet(NormalGenericViewSet):
     lookup_field = 'id'
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('查询一个数据中心下各云主机服务单元总的统计数据'),
-        deprecated=True,
-        responses={
-            200: ''''''
-        }
-    )
-    @action(methods=['GET'], detail=False, url_path=r'dc/(?P<dc_id>[^/]+)', url_name='dc')
-    def dc_server_stats(self, request, *args, **kwargs):
-        """
-        查询一个数据中心下各服务单元总的统计数据
-
-            http code 200:
-            {
-              "server_count": 44,       # 云主机数
-              "disk_count": 46,         # 云硬盘数
-              "ip_count": 136,          # 总ip数
-              "ip_used_count": 26,      # 已用IP数
-              "mem_size": 44260,        # 总内存GiB
-              "mem_used_size": 4460,    # 已用内存GiB
-              "cpu_count": 45040,       # cpu总数
-              "cpu_used_count": 480     # cpu已用数
-            }
-        """
-        return self.get_server_stats_response()
-
-    @swagger_auto_schema(
         operation_summary=gettext_lazy('查询各云主机服务单元总的统计数据'),
         responses={
             200: ''''''
@@ -143,27 +117,6 @@ class VPNServiceViewSet(NormalGenericViewSet):
     lookup_field = 'id'
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('查询一个数据中心下各云主机服务单元总的VPN统计数据'),
-        deprecated=True,
-        responses={
-            200: ''''''
-        }
-    )
-    @action(methods=['GET'], detail=False, url_path=r'dc/(?P<dc_id>[^/]+)', url_name='dc')
-    def dc_vpn_stats(self, request, *args, **kwargs):
-        """
-        查询一个数据中心下各云主机服务单元总的VPN统计数据
-
-            http code 200:
-            {
-              "vpn_online_count": 44,       # 在线数
-              "vpn_active_count": 46,       # 有效数
-              "vpn_count": 136              # 总数
-            }
-        """
-        return self.get_vpn_stats_response()
-
-    @swagger_auto_schema(
         operation_summary=gettext_lazy('查询各云主机服务单元总的VPN统计数据'),
         responses={
             200: ''''''
@@ -223,28 +176,6 @@ class ObjectServiceViewSet(NormalGenericViewSet):
     permission_classes = [ScreenAPIIPPermission]
     pagination_class = None
     lookup_field = 'id'
-
-    @swagger_auto_schema(
-        operation_summary=gettext_lazy('查询一个数据中心下各对象存储服务单元总的统计数据'),
-        deprecated=True,
-        responses={
-            200: ''''''
-        }
-    )
-    @action(methods=['GET'], detail=False, url_path=r'dc/(?P<dc_id>[^/]+)', url_name='dc')
-    def dc_object_stats(self, request, *args, **kwargs):
-        """
-        查询一个数据中心下各对象存储服务单元总的统计数据
-
-            http code 200:
-            {
-              "bucket_count": 44,       # 存储桶数
-              "bucket_storage": 46,     # 存储桶总数据量GiB
-              "storage_capacity": 44260,# 总存储容量GiB
-              "storage_used": 4460,     # 已用存储容量GiB
-            }
-        """
-        return self.get_object_stats_response()
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('查询各对象存储服务单元总的统计数据'),

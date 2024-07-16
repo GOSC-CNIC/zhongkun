@@ -18,17 +18,6 @@ class DataCenterViewSet(NormalGenericViewSet):
     lookup_field = 'id'
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('查询一个数据中心下关联的各服务单元信息'),
-        deprecated=True,
-        responses={
-            200: ''''''
-        }
-    )
-    @action(methods=['GET'], detail=True, url_path='units', url_name='units-old')
-    def odc_units(self, request, *args, **kwargs):
-        return self.list_dc_units_response()
-
-    @swagger_auto_schema(
         operation_summary=gettext_lazy('查询数据中心下的各指标单元信息'),
         responses={
             200: ''''''

@@ -44,7 +44,7 @@ class AlertTests(MyAPITestCase):
             fingerprint='fingerprint1', name='name1', type=AlertModel.AlertType.METRIC.value,
             instance='instance1', port='1', cluster='ceph1_metric', summary='summary1', description='description1',
             start=int(nt_ts), end=int(nt_ts), recovery=int(nt_ts), status=AlertModel.AlertStatus.FIRING.value,
-            ticket=None, count=1, creation=nt_ts, modification=int(nt_ts),
+            count=1, creation=nt_ts, modification=int(nt_ts),
             first_notification=None, last_notification=None
         )
         alert1.save(force_insert=True)
@@ -55,7 +55,7 @@ class AlertTests(MyAPITestCase):
             fingerprint='fingerprint2', name='name2', type=ResolvedAlertModel.AlertType.METRIC.value,
             instance='instance2', port='2', cluster='ceph1_metric', summary='summary2', description='description2',
             start=int(nt_ts), end=int(nt_ts), recovery=int(nt_ts), status=ResolvedAlertModel.AlertStatus.RESOLVED.value,
-            ticket=None, count=2, creation=nt_ts, modification=int(nt_ts),
+            count=2, creation=nt_ts, modification=int(nt_ts),
             first_notification=None, last_notification=None
         )
         rl_alert2.save(force_insert=True)
@@ -66,7 +66,7 @@ class AlertTests(MyAPITestCase):
             fingerprint='fingerprint3', name='name3', type=AlertModel.AlertType.METRIC.value,
             instance='instance3', port='3', cluster='mail_log', summary='summary3', description='description3',
             start=int(nt_ts), end=int(nt_ts), recovery=int(nt_ts), status=AlertModel.AlertStatus.FIRING.value,
-            ticket=None, count=3, creation=nt_ts, modification=int(nt_ts),
+            count=3, creation=nt_ts, modification=int(nt_ts),
             first_notification=None, last_notification=None
         )
         alert3.save(force_insert=True)
@@ -77,7 +77,7 @@ class AlertTests(MyAPITestCase):
             fingerprint='fingerprint4', name='name4', type=ResolvedAlertModel.AlertType.METRIC.value,
             instance='instance4', port='4', cluster='host1_metric', summary='summary4', description='description4',
             start=int(nt_ts), end=int(nt_ts), recovery=int(nt_ts), status=ResolvedAlertModel.AlertStatus.RESOLVED.value,
-            ticket=None, count=2, creation=nt_ts, modification=int(nt_ts),
+            count=2, creation=nt_ts, modification=int(nt_ts),
             first_notification=None, last_notification=None
         )
         rl_alert4.save(force_insert=True)
@@ -88,7 +88,7 @@ class AlertTests(MyAPITestCase):
             fingerprint='fingerprint5', name='name5', type=AlertModel.AlertType.METRIC.value,
             instance='instance5', port='5', cluster='host1_metric', summary='summary5', description='description5',
             start=int(nt_ts), end=int(nt_ts), recovery=int(nt_ts), status=AlertModel.AlertStatus.FIRING.value,
-            ticket=None, count=3, creation=nt_ts, modification=int(nt_ts),
+            count=3, creation=nt_ts, modification=int(nt_ts),
             first_notification=None, last_notification=None
         )
         alert5.save(force_insert=True)
