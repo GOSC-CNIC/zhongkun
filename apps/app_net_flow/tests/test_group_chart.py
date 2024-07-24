@@ -31,9 +31,9 @@ class NetflowGroupChartListTests(GlobalAdministratorTests):
         url = f'{base_url}?menu={group_id}'
         self.client.force_login(self.user1)
         response = self.client.get(url)
-        self.assertEqual(response.status_code, 403)
-        self.assertKeysIn(['code', "message"], response.data)
-        self.assertEqual(response.data["code"], "permission_denied")
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', "next", 'previous', 'results'], response.data)
+        self.assertEqual(response.data["results"], [])
 
     def test_group_user(self):
         """
@@ -63,6 +63,80 @@ class NetflowGroupChartListTests(GlobalAdministratorTests):
         self.assertTrue(item.get('device_ip') is None)
         self.assertTrue(item.get('port_name') is None)
 
+        url = f'{base_url}?menu={self.first_level_menu1.id}'
+        self.client.force_login(self.group_user1)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', "next", 'previous', 'results'], response.data)
+        data = response.data
+        self.assertTrue(data.get('count') == 3)
+        self.assertTrue(data.get('next') is None)
+        self.assertTrue(data.get('previous') is None)
+        self.assertTrue(response.data['results'])
+        results = data.get('results')
+        self.assertKeysIn([
+            'id', "instance_name", 'global_title', 'global_remark', 'remark', 'sort_weight', 'if_alias',
+            'if_address', 'device_ip', 'port_name', 'class_uuid', 'band_width'
+        ], results[0])
+        item = results[0]
+        self.assertFalse(item.get('remark') is None)
+        self.assertTrue(item.get('admin_remark') is None)
+        self.assertTrue(item.get('device_ip') is None)
+        self.assertTrue(item.get('port_name') is None)
+
+        url = f'{base_url}?menu={self.top_level_menu1.id}'
+        self.client.force_login(self.group_user1)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', "next", 'previous', 'results'], response.data)
+        data = response.data
+        self.assertTrue(data.get('count') == 3)
+        self.assertTrue(data.get('next') is None)
+        self.assertTrue(data.get('previous') is None)
+        self.assertTrue(response.data['results'])
+        results = data.get('results')
+        self.assertKeysIn([
+            'id', "instance_name", 'global_title', 'global_remark', 'remark', 'sort_weight', 'if_alias',
+            'if_address', 'device_ip', 'port_name', 'class_uuid', 'band_width'
+        ], results[0])
+        item = results[0]
+        self.assertFalse(item.get('remark') is None)
+        self.assertTrue(item.get('admin_remark') is None)
+        self.assertTrue(item.get('device_ip') is None)
+        self.assertTrue(item.get('port_name') is None)
+
+        url = f'{base_url}?menu={self.root.id}'
+        self.client.force_login(self.group_user1)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', "next", 'previous', 'results'], response.data)
+        data = response.data
+        self.assertTrue(data.get('count') == 3)
+        self.assertTrue(data.get('next') is None)
+        self.assertTrue(data.get('previous') is None)
+        self.assertTrue(response.data['results'])
+        results = data.get('results')
+        self.assertKeysIn([
+            'id', "instance_name", 'global_title', 'global_remark', 'remark', 'sort_weight', 'if_alias',
+            'if_address', 'device_ip', 'port_name', 'class_uuid', 'band_width'
+        ], results[0])
+        item = results[0]
+        self.assertFalse(item.get('remark') is None)
+        self.assertTrue(item.get('admin_remark') is None)
+        self.assertTrue(item.get('device_ip') is None)
+        self.assertTrue(item.get('port_name') is None)
+
+        url = f'{base_url}?menu={self.top_level_menu2.id}'
+        self.client.force_login(self.group_user1)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', "next", 'previous', 'results'], response.data)
+        data = response.data
+        self.assertTrue(data.get('count') == 0)
+        self.assertTrue(data.get('next') is None)
+        self.assertTrue(data.get('previous') is None)
+        self.assertTrue(data.get('results') == [])
+
     def test_group_admin_user(self):
         """
         查询组内元素列表
@@ -86,10 +160,84 @@ class NetflowGroupChartListTests(GlobalAdministratorTests):
             'if_address', 'device_ip', 'port_name', 'class_uuid', 'band_width'
         ], results[0])
         item = results[0]
-        self.assertFalse(item.get('remark') is None)
-        self.assertFalse(item.get('admin_remark') is None)
-        self.assertFalse(item.get('device_ip') is None)
-        self.assertFalse(item.get('port_name') is None)
+        self.assertTrue(item.get('remark') is not None)
+        self.assertTrue(item.get('admin_remark') is not None)
+        self.assertTrue(item.get('device_ip') is not None)
+        self.assertTrue(item.get('port_name') is not None)
+
+        url = f'{base_url}?menu={self.first_level_menu1.id}'
+        self.client.force_login(self.group_admin1)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', "next", 'previous', 'results'], response.data)
+        data = response.data
+        self.assertTrue(data.get('count') == 3)
+        self.assertTrue(data.get('next') is None)
+        self.assertTrue(data.get('previous') is None)
+        self.assertTrue(response.data['results'])
+        results = data.get('results')
+        self.assertKeysIn([
+            'id', "instance_name", 'global_title', 'global_remark', 'remark', 'sort_weight', 'if_alias',
+            'if_address', 'device_ip', 'port_name', 'class_uuid', 'band_width'
+        ], results[0])
+        item = results[0]
+        self.assertTrue(item.get('remark') is not None)
+        self.assertTrue(item.get('admin_remark') is not None)
+        self.assertTrue(item.get('device_ip') is not None)
+        self.assertTrue(item.get('port_name') is not None)
+
+        url = f'{base_url}?menu={self.top_level_menu1.id}'
+        self.client.force_login(self.group_admin1)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', "next", 'previous', 'results'], response.data)
+        data = response.data
+        self.assertTrue(data.get('count') == 3)
+        self.assertTrue(data.get('next') is None)
+        self.assertTrue(data.get('previous') is None)
+        self.assertTrue(response.data['results'])
+        results = data.get('results')
+        self.assertKeysIn([
+            'id', "instance_name", 'global_title', 'global_remark', 'remark', 'sort_weight', 'if_alias',
+            'if_address', 'device_ip', 'port_name', 'class_uuid', 'band_width'
+        ], results[0])
+        item = results[0]
+        self.assertTrue(item.get('remark') is not None)
+        self.assertTrue(item.get('admin_remark') is not None)
+        self.assertTrue(item.get('device_ip') is not None)
+        self.assertTrue(item.get('port_name') is not None)
+
+        url = f'{base_url}?menu={self.root.id}'
+        self.client.force_login(self.group_admin1)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', "next", 'previous', 'results'], response.data)
+        data = response.data
+        self.assertTrue(data.get('count') == 3)
+        self.assertTrue(data.get('next') is None)
+        self.assertTrue(data.get('previous') is None)
+        self.assertTrue(response.data['results'])
+        results = data.get('results')
+        self.assertKeysIn([
+            'id', "instance_name", 'global_title', 'global_remark', 'remark', 'sort_weight', 'if_alias',
+            'if_address', 'device_ip', 'port_name', 'class_uuid', 'band_width'
+        ], results[0])
+        item = results[0]
+        self.assertTrue(item.get('remark') is not None)
+        self.assertTrue(item.get('admin_remark') is not None)
+        self.assertTrue(item.get('device_ip') is not None)
+        self.assertTrue(item.get('port_name') is not None)
+
+        url = f'{base_url}?menu={self.top_level_menu2.id}'
+        self.client.force_login(self.group_admin1)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', "next", 'previous', 'results'], response.data)
+        data = response.data
+        self.assertTrue(data.get('count') == 0)
+        self.assertTrue(data.get('next') is None)
+        self.assertTrue(data.get('previous') is None)
+        self.assertTrue(data.get('results') == [])
 
     def test_obs_user(self):
         """
@@ -114,10 +262,84 @@ class NetflowGroupChartListTests(GlobalAdministratorTests):
             'if_address', 'device_ip', 'port_name', 'class_uuid', 'band_width'
         ], results[0])
         item = results[0]
-        self.assertFalse(item.get('remark') is None)
-        self.assertFalse(item.get('admin_remark') is None)
-        self.assertFalse(item.get('device_ip') is None)
-        self.assertFalse(item.get('port_name') is None)
+        self.assertTrue(item.get('remark') is not None)
+        self.assertTrue(item.get('admin_remark') is not None)
+        self.assertTrue(item.get('device_ip') is not None)
+        self.assertTrue(item.get('port_name') is not None)
+
+        url = f'{base_url}?menu={self.first_level_menu1.id}'
+        self.client.force_login(self.obs_user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', "next", 'previous', 'results'], response.data)
+        data = response.data
+        self.assertTrue(data.get('count') == 3)
+        self.assertTrue(data.get('next') is None)
+        self.assertTrue(data.get('previous') is None)
+        self.assertTrue(response.data['results'])
+        results = data.get('results')
+        self.assertKeysIn([
+            'id', "instance_name", 'global_title', 'global_remark', 'remark', 'sort_weight', 'if_alias',
+            'if_address', 'device_ip', 'port_name', 'class_uuid', 'band_width'
+        ], results[0])
+        item = results[0]
+        self.assertTrue(item.get('remark') is not None)
+        self.assertTrue(item.get('admin_remark') is not None)
+        self.assertTrue(item.get('device_ip') is not None)
+        self.assertTrue(item.get('port_name') is not None)
+
+        url = f'{base_url}?menu={self.top_level_menu1.id}'
+        self.client.force_login(self.obs_user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', "next", 'previous', 'results'], response.data)
+        data = response.data
+        self.assertTrue(data.get('count') == 4)
+        self.assertTrue(data.get('next') is None)
+        self.assertTrue(data.get('previous') is None)
+        self.assertTrue(response.data['results'])
+        results = data.get('results')
+        self.assertKeysIn([
+            'id', "instance_name", 'global_title', 'global_remark', 'remark', 'sort_weight', 'if_alias',
+            'if_address', 'device_ip', 'port_name', 'class_uuid', 'band_width'
+        ], results[0])
+        item = results[0]
+        self.assertTrue(item.get('remark') is not None)
+        self.assertTrue(item.get('admin_remark') is not None)
+        self.assertTrue(item.get('device_ip') is not None)
+        self.assertTrue(item.get('port_name') is not None)
+
+        url = f'{base_url}?menu={self.root.id}'
+        self.client.force_login(self.obs_user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', "next", 'previous', 'results'], response.data)
+        data = response.data
+        self.assertTrue(data.get('count') == 4)
+        self.assertTrue(data.get('next') is None)
+        self.assertTrue(data.get('previous') is None)
+        self.assertTrue(response.data['results'])
+        results = data.get('results')
+        self.assertKeysIn([
+            'id', "instance_name", 'global_title', 'global_remark', 'remark', 'sort_weight', 'if_alias',
+            'if_address', 'device_ip', 'port_name', 'class_uuid', 'band_width'
+        ], results[0])
+        item = results[0]
+        self.assertTrue(item.get('remark') is not None)
+        self.assertTrue(item.get('admin_remark') is not None)
+        self.assertTrue(item.get('device_ip') is not None)
+        self.assertTrue(item.get('port_name') is not None)
+
+        url = f'{base_url}?menu={self.top_level_menu2.id}'
+        self.client.force_login(self.obs_user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', "next", 'previous', 'results'], response.data)
+        data = response.data
+        self.assertTrue(data.get('count') == 0)
+        self.assertTrue(data.get('next') is None)
+        self.assertTrue(data.get('previous') is None)
+        self.assertTrue(data.get('results') == [])
 
     def test_super_user(self):
         """
@@ -146,6 +368,80 @@ class NetflowGroupChartListTests(GlobalAdministratorTests):
         self.assertFalse(item.get('admin_remark') is None)
         self.assertFalse(item.get('device_ip') is None)
         self.assertFalse(item.get('port_name') is None)
+
+        url = f'{base_url}?menu={self.first_level_menu1.id}'
+        self.client.force_login(self.super_user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', "next", 'previous', 'results'], response.data)
+        data = response.data
+        self.assertTrue(data.get('count') == 3)
+        self.assertTrue(data.get('next') is None)
+        self.assertTrue(data.get('previous') is None)
+        self.assertTrue(response.data['results'])
+        results = data.get('results')
+        self.assertKeysIn([
+            'id', "instance_name", 'global_title', 'global_remark', 'remark', 'sort_weight', 'if_alias',
+            'if_address', 'device_ip', 'port_name', 'class_uuid', 'band_width'
+        ], results[0])
+        item = results[0]
+        self.assertTrue(item.get('remark') is not None)
+        self.assertTrue(item.get('admin_remark') is not None)
+        self.assertTrue(item.get('device_ip') is not None)
+        self.assertTrue(item.get('port_name') is not None)
+
+        url = f'{base_url}?menu={self.top_level_menu1.id}'
+        self.client.force_login(self.super_user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', "next", 'previous', 'results'], response.data)
+        data = response.data
+        self.assertTrue(data.get('count') == 4)
+        self.assertTrue(data.get('next') is None)
+        self.assertTrue(data.get('previous') is None)
+        self.assertTrue(response.data['results'])
+        results = data.get('results')
+        self.assertKeysIn([
+            'id', "instance_name", 'global_title', 'global_remark', 'remark', 'sort_weight', 'if_alias',
+            'if_address', 'device_ip', 'port_name', 'class_uuid', 'band_width'
+        ], results[0])
+        item = results[0]
+        self.assertTrue(item.get('remark') is not None)
+        self.assertTrue(item.get('admin_remark') is not None)
+        self.assertTrue(item.get('device_ip') is not None)
+        self.assertTrue(item.get('port_name') is not None)
+
+        url = f'{base_url}?menu={self.root.id}'
+        self.client.force_login(self.super_user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', "next", 'previous', 'results'], response.data)
+        data = response.data
+        self.assertTrue(data.get('count') == 4)
+        self.assertTrue(data.get('next') is None)
+        self.assertTrue(data.get('previous') is None)
+        self.assertTrue(response.data['results'])
+        results = data.get('results')
+        self.assertKeysIn([
+            'id', "instance_name", 'global_title', 'global_remark', 'remark', 'sort_weight', 'if_alias',
+            'if_address', 'device_ip', 'port_name', 'class_uuid', 'band_width'
+        ], results[0])
+        item = results[0]
+        self.assertTrue(item.get('remark') is not None)
+        self.assertTrue(item.get('admin_remark') is not None)
+        self.assertTrue(item.get('device_ip') is not None)
+        self.assertTrue(item.get('port_name') is not None)
+
+        url = f'{base_url}?menu={self.top_level_menu2.id}'
+        self.client.force_login(self.super_user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', "next", 'previous', 'results'], response.data)
+        data = response.data
+        self.assertTrue(data.get('count') == 0)
+        self.assertTrue(data.get('next') is None)
+        self.assertTrue(data.get('previous') is None)
+        self.assertTrue(data.get('results') == [])
 
 
 class NetflowGroupChartCreateTests(GlobalAdministratorTests):
@@ -234,16 +530,17 @@ class NetflowGroupChartCreateTests(GlobalAdministratorTests):
         chart_id = self.chart1.id
 
         response = self.client.post(base_url, data={'menu': group_id, 'chart': chart_id})
-        self.assertEqual(response.data["code"], "invalid")
-        self.assertTrue('字段 menu, chart 必须能构成唯一集合。' in response.data["message"])
+        self.assertEqual(response.data["code"], "Existed")
+        self.assertTrue('元素已经存在，请勿重复添加' in response.data["message"])
 
         group_id = self.first_level_menu2.id
         chart_id = self.chart1.id
 
-        response = self.client.post(base_url, data={'menu': group_id,
-                                                    'chart': chart_id,
-                                                    'remark': '备注',
-                                                    'admin_remark': "管理员备注"}
+        response = self.client.post(base_url,
+                                    data={'menu': group_id,
+                                          'chart': chart_id,
+                                          'remark': '备注',
+                                          'admin_remark': "管理员备注"}
                                     )
         self.assertEqual(response.status_code, 201)
         self.assertKeysIn(

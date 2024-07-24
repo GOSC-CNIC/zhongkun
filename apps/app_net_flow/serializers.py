@@ -6,6 +6,9 @@ from apps.app_net_flow.models import Menu2Member
 from apps.app_net_flow.models import GlobalAdminModel
 from apps.users.models import UserProfile
 from apps.app_net_flow.permission import PermissionManager
+from apps.users.models import UserProfile
+from django.utils.translation import gettext_lazy as _
+from apps.app_alert.utils.errors import GroupMemberExistedError
 
 
 class ChartSerializer(serializers.ModelSerializer):
@@ -37,7 +40,7 @@ class GlobalAdminSerializer(serializers.ModelSerializer):
     def validate_member(self, value):
         user = UserProfile.objects.filter(username=value).first()
         if not user:
-            raise serializers.ValidationError(f"Invalid User {value}")
+            raise serializers.ValidationError(_('用户不存在'))
         return user
 
 
@@ -59,11 +62,15 @@ class Menu2MemberSerializer(serializers.ModelSerializer):
     member = serializers.EmailField(required=True, write_only=True, label='用户邮箱')
 
     def validate_member(self, value):
-        from apps.users.models import UserProfile
-        user = UserProfile.objects.filter(username=value).first()
-        if not user:
-            raise serializers.ValidationError(f"Invalid User {value}")
-        return user
+        user_object = UserProfile.objects.filter(username=value).first()
+        if not user_object:
+            raise serializers.ValidationError(detail=_("无效的用户邮箱"))
+        menu = self.initial_data.get('menu')
+        menu_object = MenuModel.objects.filter(id=menu).first()
+        menu2member_object = Menu2Member.objects.filter(menu=menu_object, member=user_object).first()
+        if menu2member_object:
+            raise GroupMemberExistedError()
+        return user_object
 
     class Meta:
         model = Menu2Member

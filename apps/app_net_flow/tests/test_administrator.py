@@ -197,7 +197,6 @@ class GlobalAdministratorTests(MyAPITransactionTestCase):
             inviter="test@cnic.cn",
         )
 
-
         Menu2Member.objects.create(
             menu=self.second_level_menu2,
             member=self.group_user2,
@@ -206,7 +205,7 @@ class GlobalAdministratorTests(MyAPITransactionTestCase):
         )
         # 添加ip 白名单
         NetFlowAPIIPRestrictor.add_ip_rule(ip_value='127.0.0.1')
-        NetFlowAPIIPRestrictor.clear_cache()    # 有缓存，需要清除缓存
+        NetFlowAPIIPRestrictor.clear_cache()  # 有缓存，需要清除缓存
 
 
 class GlobalAdministratorListTests(GlobalAdministratorTests):
@@ -399,6 +398,16 @@ class GlobalAdministratorCreateTests(GlobalAdministratorTests):
         self.assertTrue(response.data['username'] == 'test3@cnic.com')
         self.assertTrue(response.data['inviter'] == 'superuser@cnic.com')
         self.assertTrue(response.data['role'] == GlobalAdminModel.Roles.SUPER_ADMIN.value)
+        # 重复添加
+        response = self.client.post(base_url,
+                                    data={
+                                        'member': 'test3@cnic.com',
+                                        'role': GlobalAdminModel.Roles.SUPER_ADMIN.value
+                                    })
+        self.assertEqual(response.status_code, 400)
+        self.assertKeysIn(['code', "message"], response.data)
+        self.assertTrue(response.data['message'] == '管理员已经存在，请勿重复添加')
+        self.assertTrue(response.data['code'] == 'Existed')
 
 
 class GlobalAdministratorRetrieveTests(GlobalAdministratorTests):
@@ -427,7 +436,7 @@ class GlobalAdministratorRetrieveTests(GlobalAdministratorTests):
         查看指定 全局管理员
         需要登陆
         """
-        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
+        base_url = reverse('netflow-api:administrator-detail', args=[self.global_admin_id])
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 401)
         self.assertKeysIn(['code', "message"], response.data)
@@ -439,7 +448,7 @@ class GlobalAdministratorRetrieveTests(GlobalAdministratorTests):
         查看指定 全局管理员
         普通用户 无权限
         """
-        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
+        base_url = reverse('netflow-api:administrator-detail', args=[self.global_admin_id])
         self.client.force_login(self.user1)
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 403)
@@ -451,7 +460,7 @@ class GlobalAdministratorRetrieveTests(GlobalAdministratorTests):
         查看指定  全局管理员
         组管理员 无权限
         """
-        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
+        base_url = reverse('netflow-api:administrator-detail', args=[self.global_admin_id])
         self.client.force_login(self.group_admin1)
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 403)
@@ -463,7 +472,7 @@ class GlobalAdministratorRetrieveTests(GlobalAdministratorTests):
         查看指定 全局管理员
         组员 无权限
         """
-        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
+        base_url = reverse('netflow-api:administrator-detail', args=[self.global_admin_id])
         self.client.force_login(self.group_user1)
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 403)
@@ -475,7 +484,7 @@ class GlobalAdministratorRetrieveTests(GlobalAdministratorTests):
         查看指定 全局管理员
         运维管理员 有权限
         """
-        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
+        base_url = reverse('netflow-api:administrator-detail', args=[self.global_admin_id])
         self.client.force_login(self.obs_user)
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
@@ -487,7 +496,7 @@ class GlobalAdministratorRetrieveTests(GlobalAdministratorTests):
         查看指定全局管理员
         超级管理员 有权限
         """
-        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
+        base_url = reverse('netflow-api:administrator-detail', args=[self.global_admin_id])
         self.client.force_login(self.super_user)
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
@@ -522,7 +531,7 @@ class GlobalAdministratorUpdateTests(GlobalAdministratorTests):
         修改 全局管理员
         需要登陆
         """
-        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
+        base_url = reverse('netflow-api:administrator-detail', args=[self.global_admin_id])
         response = self.client.put(base_url, data={'test': 'test'})
         self.assertEqual(response.status_code, 401)
         self.assertKeysIn(['code', "message"], response.data)
@@ -535,7 +544,7 @@ class GlobalAdministratorUpdateTests(GlobalAdministratorTests):
         修改 全局管理员
         普通用户 无权限
         """
-        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
+        base_url = reverse('netflow-api:administrator-detail', args=[self.global_admin_id])
         self.client.force_login(self.user1)
         response = self.client.put(base_url, data={'test': 'test'})
         self.assertEqual(response.status_code, 403)
@@ -547,7 +556,7 @@ class GlobalAdministratorUpdateTests(GlobalAdministratorTests):
         修改 全局管理员
         组管理员 无权限
         """
-        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
+        base_url = reverse('netflow-api:administrator-detail', args=[self.global_admin_id])
         self.client.force_login(self.group_admin1)
         response = self.client.put(base_url, data={'test': 'test'})
         self.assertEqual(response.status_code, 403)
@@ -559,7 +568,7 @@ class GlobalAdministratorUpdateTests(GlobalAdministratorTests):
         修改全局管理员
         组员 无权限
         """
-        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
+        base_url = reverse('netflow-api:administrator-detail', args=[self.global_admin_id])
         self.client.force_login(self.group_user1)
         response = self.client.put(base_url, data={'test': 'test'})
         self.assertEqual(response.status_code, 403)
@@ -571,7 +580,7 @@ class GlobalAdministratorUpdateTests(GlobalAdministratorTests):
         修改全局管理员
         运维管理员 无权限
         """
-        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
+        base_url = reverse('netflow-api:administrator-detail', args=[self.global_admin_id])
         self.client.force_login(self.obs_user)
         response = self.client.put(base_url, data={'test': 'test'})
         self.assertEqual(response.status_code, 403)
@@ -583,7 +592,7 @@ class GlobalAdministratorUpdateTests(GlobalAdministratorTests):
         修改全局管理员
         超级管理员 有权限
         """
-        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
+        base_url = reverse('netflow-api:administrator-detail', args=[self.global_admin_id])
         self.client.force_login(self.super_user)
         response = self.client.put(base_url, data={'test': 'test'})
         self.assertEqual(response.status_code, 200)
@@ -626,7 +635,7 @@ class GlobalAdministratorDestroyTests(GlobalAdministratorTests):
         删除指定 全局管理员
         需要登陆
         """
-        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
+        base_url = reverse('netflow-api:administrator-detail', args=[self.global_admin_id])
         response = self.client.delete(base_url)
         self.assertEqual(response.status_code, 401)
         self.assertKeysIn(['code', "message"], response.data)
@@ -638,7 +647,7 @@ class GlobalAdministratorDestroyTests(GlobalAdministratorTests):
         删除指定 全局管理员
         普通用户 无权限
         """
-        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
+        base_url = reverse('netflow-api:administrator-detail', args=[self.global_admin_id])
         self.client.force_login(self.user1)
         response = self.client.delete(base_url)
         self.assertEqual(response.status_code, 403)
@@ -650,7 +659,7 @@ class GlobalAdministratorDestroyTests(GlobalAdministratorTests):
         删除指定  全局管理员
         组管理员 无权限
         """
-        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
+        base_url = reverse('netflow-api:administrator-detail', args=[self.global_admin_id])
         self.client.force_login(self.group_admin1)
         response = self.client.delete(base_url)
         self.assertEqual(response.status_code, 403)
@@ -662,7 +671,7 @@ class GlobalAdministratorDestroyTests(GlobalAdministratorTests):
         删除指定 全局管理员
         组员 无权限
         """
-        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
+        base_url = reverse('netflow-api:administrator-detail', args=[self.global_admin_id])
         self.client.force_login(self.group_user1)
         response = self.client.delete(base_url)
         self.assertEqual(response.status_code, 403)
@@ -674,7 +683,7 @@ class GlobalAdministratorDestroyTests(GlobalAdministratorTests):
         删除指定 全局管理员
         运维管理员 无权限
         """
-        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
+        base_url = reverse('netflow-api:administrator-detail', args=[self.global_admin_id])
         self.client.force_login(self.obs_user)
         response = self.client.delete(base_url)
         self.assertEqual(response.status_code, 403)
@@ -686,7 +695,7 @@ class GlobalAdministratorDestroyTests(GlobalAdministratorTests):
         删除指定全局管理员
         超级管理员 有权限
         """
-        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
+        base_url = reverse('netflow-api:administrator-detail', args=[self.global_admin_id])
         self.client.force_login(self.super_user)
         response = self.client.delete(base_url)
         self.assertEqual(response.status_code, 204)

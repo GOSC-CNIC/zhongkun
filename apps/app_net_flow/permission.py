@@ -21,8 +21,6 @@ class PermissionManager(object):
         self.relation_mapping = {_.get('id'): _.get('father_id') for _ in self.relation}
         self.group_role_mapping = self._get_group_role_mapping()
 
-
-
     def is_global_super_admin(self):
         """
         是否是流量模块超级管理员
@@ -258,12 +256,8 @@ class Menu2ChartListCustomPermission(BasePermission):
             return True
         meta = request.META
         request_method = meta.get('REQUEST_METHOD')
-        if request_method in SAFE_METHODS:
-            if perm.is_global_ops_admin():  # 运维管理员 读权限
-                return True
-            group_id = request.query_params.get("menu") or ''
-            if group_id and perm.has_group_permission(group_id):  # 组员或组管理员 读权限
-                return True
+        if request_method in SAFE_METHODS:  # 所有登录用户可读，仅返回有权限的元素集合
+            return True
 
 
 class Menu2ChartDetailCustomPermission(MenuDetailCustomPermission):

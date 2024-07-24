@@ -52,6 +52,7 @@ from django.forms.models import model_to_dict
 from django.http import QueryDict
 from apps.app_net_flow.permission import PermissionManager
 from apps.app_net_flow.handlers.logentry import NetflowLogEntry
+from apps.app_alert.utils.errors import GroupMemberExistedError
 
 
 # Create your views here.
@@ -300,11 +301,19 @@ class Menu2ChartListGenericAPIView(GenericAPIView, CreateModelMixin):
         }
     )
     def post(self, request, *args, **kwargs):
-        # kwargs.setdefault('context', self.get_serializer_context())
         serializer = Menu2ChartCreateSerializer(
             data=request.data,
             context=self.get_serializer_context()
         )
+        data = request.data
+        menu = data.get('menu') or ''
+        chart = data.get('chart') or ''
+        menu2chart_object = Menu2Chart.objects.filter(menu_id=menu, chart_id=chart).first()
+        if menu2chart_object:
+            return Response(
+                data={'code': "Existed", 'message': "元素已经存在，请勿重复添加"},
+                status=status_code.HTTP_400_BAD_REQUEST
+            )
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
@@ -434,8 +443,14 @@ class Menu2MemberListGenericAPIView(GenericAPIView, CreateModelMixin):
         raw, params = self.pretreatment(request)
         serializers = list()
         for param in params:
-            serializer = self.get_serializer(data=param)
-            serializer.is_valid(raise_exception=True)
+            try:
+                serializer = self.get_serializer(data=param)
+                serializer.is_valid(raise_exception=True)
+            except GroupMemberExistedError as err:
+                return Response(
+                    data={'code': err.default_code, 'message': err.default_detail},
+                    status=status_code.HTTP_400_BAD_REQUEST
+                )
             serializers.append(serializer)
         for serializer in serializers:
             self.perform_create(serializer)
@@ -580,6 +595,14 @@ class GlobalAdministratorListGenericAPIView(GenericAPIView, CreateModelMixin):
         }
     )
     def post(self, request, *args, **kwargs):
+        data = request.data
+        member = data.get('member') or ''
+        admin_object = GlobalAdminModel.objects.filter(member__username=member).first()
+        if admin_object:
+            return Response(
+                data={'code': "Existed", 'message': "管理员已经存在，请勿重复添加"},
+                status=status_code.HTTP_400_BAD_REQUEST
+            )
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
