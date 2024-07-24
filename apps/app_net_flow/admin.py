@@ -215,7 +215,7 @@ class Menu2ChartAdmin(NetflowLogEntryBaseModelAdmin):
     raw_id_fields = ('menu', 'chart')
     search_fields = (
         'id', 'menu__name', 'menu__id', 'chart__id',
-        'chart__instance_name', 'chart__device_ip', 'title'
+        'chart__instance_name', 'chart__device_ip',
     )  # 搜索字段
 
 
@@ -231,7 +231,7 @@ class Menu2MemberAdmin(NetflowLogEntryBaseModelAdmin):
     ]
     list_display_links = ('id',)
     raw_id_fields = ('menu', 'member')
-    search_fields = ('id', 'menu__id', 'menu__name', 'member__email', 'member__username', 'title')  # 搜索字段
+    search_fields = ('id', 'menu__id', 'menu__name', 'member__email', 'member__username')  # 搜索字段
 
     def save_model(self, request, obj, form, change):
         """
