@@ -13,9 +13,9 @@
         <ul class="nav nav-tabs">
             <li class="nav-item">
                 {% if active_service %}
-                    <a class="nav-link active" href="{% url 'servers:server-list' %}?service={{ active_service }}">云服务器</a>
+                    <a class="nav-link active" href="{% url 'servers:server-list' %}?service={{ active_service }}">{% trans '云服务器' %}</a>
                 {% else %}
-                    <a class="nav-link active" href="{% url 'servers:server-list' %}">云服务器</a>
+                    <a class="nav-link active" href="{% url 'servers:server-list' %}">{% trans '云服务器' %}</a>
                 {% endif %}
             </li>
             <li class="nav-item">

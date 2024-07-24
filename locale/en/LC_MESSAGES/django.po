@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-07-24 08:33+0000\n"
+"POT-Creation-Date: 2024-07-24 08:59+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -165,16 +165,18 @@ msgstr ""
 
 #: apps/api/apiviews/views.py:36
 msgid "获取VPN口令"
-msgstr ""
+msgstr "Get VPN account and password"
 
 #: apps/api/apiviews/views.py:86
 msgid ""
 "您和您所在的VO组在此服务单元中没有资源可用，不允许创建此服务单元的VPN账户"
 msgstr ""
+"You and your VO group have no resources available in this service unit, and creating "
+"a VPN account for this service unit is not allowed."
 
 #: apps/api/apiviews/views.py:95
 msgid "修改vpn口令"
-msgstr "Get VPN account and password"
+msgstr "Change VPN password"
 
 #: apps/api/apiviews/views.py:151
 msgid "vpn配置文件下载"
@@ -595,6 +597,14 @@ msgstr "Resolved alerts"
 #: apps/app_alert/models.py:121
 msgid "邮件通知记录"
 msgstr "Email notification record"
+
+#: apps/app_alert/utils/errors.py:40
+msgid "用户已经存在，请勿重复添加"
+msgstr "The user already exists, please do not add again"
+
+#: apps/app_alert/utils/errors.py:46
+msgid "元素已经存在，请勿重复添加"
+msgstr "The element already exists, please do not add it again"
 
 #: apps/app_alert/views.py:34
 msgid "接收异常告警"
@@ -1380,21 +1390,26 @@ msgstr "Notification of expired and unreleased timed task lock"
 #: apps/app_net_flow/admin.py:132
 #, python-format
 msgid "Add %s"
-msgstr ""
+msgstr "Add %s"
 
 #: apps/app_net_flow/admin.py:134
 #, python-format
 msgid "Change %s"
-msgstr ""
+msgstr "Change %s"
 
 #: apps/app_net_flow/admin.py:136
 #, python-format
 msgid "View %s"
-msgstr ""
+msgstr "View %s"
 
 #: apps/app_net_flow/apps.py:8
 msgid "网络流量"
 msgstr "Network Flow"
+
+#: apps/app_net_flow/filters.py:54
+#, python-brace-format
+msgid "无效的组id:{value}"
+msgstr "Invalid group id: {value}"
 
 #: apps/app_net_flow/models.py:31
 msgid "别名"
@@ -1543,31 +1558,31 @@ msgstr "01_Network Flow User Role"
 
 #: apps/app_net_flow/models.py:215
 msgid "action time"
-msgstr ""
+msgstr "action time"
 
 #: apps/app_net_flow/models.py:222
 msgid "user"
-msgstr ""
+msgstr "user"
 
 #: apps/app_net_flow/models.py:227
 msgid "content type"
-msgstr ""
+msgstr "content type"
 
 #: apps/app_net_flow/models.py:231
 msgid "object id"
-msgstr ""
+msgstr "object id"
 
 #: apps/app_net_flow/models.py:232
 msgid "object repr"
-msgstr ""
+msgstr "object repr"
 
 #: apps/app_net_flow/models.py:234
 msgid "action flag"
-msgstr ""
+msgstr "action flag"
 
 #: apps/app_net_flow/models.py:236
 msgid "change message"
-msgstr ""
+msgstr "change message"
 
 #: apps/app_net_flow/models.py:241
 msgid "流量模块操作日志"
@@ -1576,147 +1591,155 @@ msgstr "NetFlow operation log"
 #: apps/app_net_flow/models.py:251
 #, python-format
 msgid "Added “%(object)s”."
-msgstr ""
+msgstr "Added “%(object)s”."
 
 #: apps/app_net_flow/models.py:253
 #, python-format
 msgid "Changed “%(object)s” — %(changes)s"
-msgstr ""
+msgstr "Changed “%(object)s” — %(changes)s"
 
 #: apps/app_net_flow/models.py:258
 #, python-format
 msgid "Deleted “%(object)s.”"
-msgstr ""
+msgstr "Deleted “%(object)s.”"
 
 #: apps/app_net_flow/models.py:260
 msgid "LogEntry Object"
-msgstr ""
+msgstr "LogEntry Object"
 
 #: apps/app_net_flow/models.py:289
 #, python-brace-format
 msgid "Added {name} “{object}”."
-msgstr ""
+msgstr "Added {name} “{object}”."
 
 #: apps/app_net_flow/models.py:294
 msgid "Added."
-msgstr ""
+msgstr "Added."
 
 #: apps/app_net_flow/models.py:302
 msgid "and"
-msgstr ""
+msgstr "and"
 
 #: apps/app_net_flow/models.py:309
 #, python-brace-format
 msgid "Changed {fields} for {name} “{object}”."
-msgstr ""
+msgstr "Changed {fields} for {name} “{object}”."
 
 #: apps/app_net_flow/models.py:315
 #, python-brace-format
 msgid "Changed {fields}."
-msgstr ""
+msgstr "Changed {fields}."
 
 #: apps/app_net_flow/models.py:325
 #, python-brace-format
 msgid "Deleted {name} “{object}”."
-msgstr ""
+msgstr "Deleted {name} “{object}”."
 
 #: apps/app_net_flow/models.py:331
 msgid "No fields changed."
-msgstr ""
+msgstr "No fields changed."
 
-#: apps/app_net_flow/views.py:62
+#: apps/app_net_flow/serializers.py:43 core/errors.py:220
+msgid "用户不存在"
+msgstr "user does not exist"
+
+#: apps/app_net_flow/serializers.py:67
+msgid "无效的用户邮箱"
+msgstr "Invalid user email"
+
+#: apps/app_net_flow/views.py:63
 msgid "查询当前用户的角色"
 msgstr "Query the current user's role"
 
-#: apps/app_net_flow/views.py:87
+#: apps/app_net_flow/views.py:88
 msgid "查询当前用户权限内的分组列表"
 msgstr "Query the group list within the current user's permissions"
 
-#: apps/app_net_flow/views.py:116
+#: apps/app_net_flow/views.py:117
 msgid "创建分组"
 msgstr "Create a group"
 
-#: apps/app_net_flow/views.py:153
+#: apps/app_net_flow/views.py:154
 msgid "查询指定分组"
 msgstr "Query a group"
 
-#: apps/app_net_flow/views.py:166
+#: apps/app_net_flow/views.py:167
 msgid "修改指定分组"
 msgstr "Modify a group"
 
-#: apps/app_net_flow/views.py:197
+#: apps/app_net_flow/views.py:198
 msgid "删除指定分组"
 msgstr "Delete a group"
 
-#: apps/app_net_flow/views.py:228
+#: apps/app_net_flow/views.py:229
 msgid "查询端口列表"
 msgstr "Query port list"
 
-#: apps/app_net_flow/views.py:246
+#: apps/app_net_flow/views.py:247
 msgid "新增端口"
 msgstr "Add new port"
 
-#: apps/app_net_flow/views.py:279
+#: apps/app_net_flow/views.py:280
 msgid "查询组内元素列表"
 msgstr "Query the list of element within the group"
 
-#: apps/app_net_flow/views.py:295
+#: apps/app_net_flow/views.py:296
 msgid "添加组内元素"
 msgstr "Add element within the group"
 
-#: apps/app_net_flow/views.py:330
+#: apps/app_net_flow/views.py:339
 msgid "查询组内指定元素信息"
 msgstr "Query the specified element information within the group"
 
-#: apps/app_net_flow/views.py:343
+#: apps/app_net_flow/views.py:352
 msgid "修改组内指定元素信息"
 msgstr "Modify the specified element information within the group"
 
-#: apps/app_net_flow/views.py:374
+#: apps/app_net_flow/views.py:383
 msgid "删除组内指定元素"
 msgstr "Delete specified elements within the group"
 
-#: apps/app_net_flow/views.py:405
+#: apps/app_net_flow/views.py:414
 msgid "查询组内成员列表"
 msgstr "Query the list of members within the group"
 
-#: apps/app_net_flow/views.py:423
+#: apps/app_net_flow/views.py:432
 msgid "添加组内成员"
 msgstr "Add members to the group"
 
-#: apps/app_net_flow/views.py:482
+#: apps/app_net_flow/views.py:497
 msgid "查询组内指定成员信息"
 msgstr "Query the information of designated members within the group"
 
-#: apps/app_net_flow/views.py:495
+#: apps/app_net_flow/views.py:510
 msgid "修改组内指定成员角色"
 msgstr "Modify the role of member within the group"
 
-#: apps/app_net_flow/views.py:526
+#: apps/app_net_flow/views.py:541
 msgid "删除组内指定成员"
 msgstr "Remove members from the group"
 
-#: apps/app_net_flow/views.py:557
+#: apps/app_net_flow/views.py:572
 msgid "查询全局管理员列表"
 msgstr "Query the global administrator list"
 
-#: apps/app_net_flow/views.py:575
+#: apps/app_net_flow/views.py:590
 msgid "添加全局管理员"
 msgstr "Add Global Administrator"
 
-#: apps/app_net_flow/views.py:607
+#: apps/app_net_flow/views.py:630
 msgid "查询指定管理员信息"
 msgstr "Query administrator information"
 
-#: apps/app_net_flow/views.py:620
+#: apps/app_net_flow/views.py:643
 msgid "修改指定管理员角色"
 msgstr "Modify the role of the administrator"
 
-#: apps/app_net_flow/views.py:651
+#: apps/app_net_flow/views.py:674
 msgid "删除指定管理员"
 msgstr "Delete Administrator"
 
-#: apps/app_net_flow/views.py:677
+#: apps/app_net_flow/views.py:700
 msgid "查询指定端口流量数据"
 msgstr "Query port traffic data"
 
@@ -1992,7 +2015,7 @@ msgstr "The end IP address is invalid"
 #: apps/app_net_ipam/handlers/ipv4_handlers.py:163
 #: apps/app_net_ipam/handlers/ipv6_handlers.py:164
 msgid "只允许修改“未分配”和“预留”状态的IP地址段"
-msgstr ""
+msgstr "Only IP address segments with statuses of 'Wait' and 'Reserved' are allowed to be modified"
 
 #: apps/app_net_ipam/handlers/ipv4_handlers.py:190
 #: apps/app_net_ipam/handlers/ipv6_handlers.py:191
@@ -3507,7 +3530,7 @@ msgstr "Filename"
 
 #: apps/app_scan/models.py:173
 msgid "漏扫报告类型"
-msgstr ""
+msgstr "Report type"
 
 #: apps/app_scan/models.py:174
 msgid "漏扫报告内容"
@@ -4758,7 +4781,7 @@ msgstr "The value of parameter 'vo_id' is invalid"
 
 #: apps/app_wallet/handlers/cash_coupon_handler.py:76
 msgid "参数“app_service_category”值无效"
-msgstr ""
+msgstr "The value of the parameter 'app_deservice_category' is invalid"
 
 #: apps/app_wallet/handlers/cash_coupon_handler.py:81
 #: apps/app_wallet/handlers/cash_coupon_handler.py:222
@@ -5445,6 +5468,8 @@ msgid "支付应用APP"
 msgstr "Payment APP"
 
 #: apps/app_wallet/models.py:96 apps/servers/templates/server_list.html:9
+#: apps/servers/templates/server_list.html:16
+#: apps/servers/templates/server_list.html:18
 #: apps/service/templates/resources.html:44 apps/ticket/models.py:16
 msgid "云服务器"
 msgstr "Cloud server"
@@ -13688,7 +13713,7 @@ msgstr "Local login"
 
 #: apps/users/templates/registration/login.html:18
 #: apps/users/templates/registration/login.html:43
-#: apps/users/templates/signin.html:7
+#: apps/users/templates/signin.html:7 templates/base.html:104
 msgid "登录"
 msgstr "Login"
 
@@ -13700,7 +13725,7 @@ msgstr "CSTCloud Passport Account Login"
 msgid "本地账号登录"
 msgstr "Local account login"
 
-#: apps/users/views.py:331
+#: apps/users/views.py:331 templates/base.html:96
 msgid "修改密码"
 msgstr "Change Password"
 
@@ -13970,10 +13995,6 @@ msgstr "Parameter conflict"
 msgid "工单不存在"
 msgstr "The ticket does not exist"
 
-#: core/errors.py:220
-msgid "用户不存在"
-msgstr "user does not exist"
-
 #: core/errors.py:225
 msgid "交易记录不属于你。"
 msgstr "The transaction record do not belong to you."
@@ -14110,7 +14131,7 @@ msgstr ""
 msgid "管理员登录"
 msgstr "Administrator login"
 
-#: templates/about.html:5
+#: templates/about.html:5 templates/base.html:85
 msgid "关于"
 msgstr "About"
 
@@ -14139,6 +14160,26 @@ msgstr "Historical versions:"
 #: templates/about.html:50
 msgid "关于我们"
 msgstr "About Us"
+
+#: templates/base.html:82
+msgid "API交互文档"
+msgstr "API Interaction"
+
+#: templates/base.html:83
+msgid "API文档"
+msgstr "API Document"
+
+#: templates/base.html:84
+msgid "文档"
+msgstr "Document"
+
+#: templates/base.html:95
+msgid "登出"
+msgstr "Logout"
+
+#: templates/base.html:99
+msgid "后台管理"
+msgstr "Admin"
 
 #: templates/sidebar.html:15
 msgid "机构/数据中心"

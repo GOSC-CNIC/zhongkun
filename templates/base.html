@@ -79,10 +79,10 @@
                    <a class="nav-link dropdown-toggle" href="#" id="navbar-help-dropdown" role="button" data-toggle="dropdown"
                            aria-haspopup="false" aria-expanded="false"><i class="fa fa-question-circle"></i></a>
                     <div class="dropdown-menu" aria-labelledby="navbar-help-dropdown">
-                        <a class="dropdown-item" href="{% url 'apidocs' %}" target="view_window" >API交互文档</a>
-                        <a class="dropdown-item" href="{% url 'redoc' %}" target="view_window" >API文档</a>
-                        <a class="dropdown-item" href="{% url 'docs:docs' %}" target="view_window">文档</a>
-                        <a class="dropdown-item" href="{% url 'about' %}">关于</a>
+                        <a class="dropdown-item" href="{% url 'apidocs' %}" target="view_window" >{% trans 'API交互文档' %}</a>
+                        <a class="dropdown-item" href="{% url 'redoc' %}" target="view_window" >{% trans 'API文档' %}</a>
+                        <a class="dropdown-item" href="{% url 'docs:docs' %}" target="view_window">{% trans '文档' %}</a>
+                        <a class="dropdown-item" href="{% url 'about' %}">{% trans '关于' %}</a>
                     </div>
                 </li>
                 {% if user.is_authenticated %}
@@ -92,17 +92,17 @@
                             <i class="fa fa-user"></i>{{ user.username }}
                         </a>
                         <div class="dropdown-menu" aria-labelledby="navbar-user-dropdown">
-                            <a class="dropdown-item" href="{% url 'users:logout' %}?next=/">登出</a>
-                            <a class="dropdown-item" href="{% url 'users:password' %}">修改密码</a>
+                            <a class="dropdown-item" href="{% url 'users:logout' %}?next=/">{% trans '登出' %}</a>
+                            <a class="dropdown-item" href="{% url 'users:password' %}">{% trans '修改密码' %}</a>
                             <div class="dropdown-divider"></div>
                             {% if user.is_superuser %}
-                                <a class="dropdown-item" href="{% url 'admin:index' %}">后台管理</a>
+                                <a class="dropdown-item" href="{% url 'admin:index' %}">{% trans '后台管理' %}</a>
                             {% endif %}
                         </div>
                     </li>
                 {% else %}
-                    <li class="nav-item"><a class="nav-link" href="{% url 'users:login' %}">登录</a></li>
-{#                    <li class="nav-item"><a class="nav-link" href="{% url 'users:register' %}">注册</a></li>#}
+                    <li class="nav-item"><a class="nav-link" href="{% url 'users:login' %}">{% trans '登录' %}</a></li>
+{#                    <li class="nav-item"><a class="nav-link" href="{% url 'users:register' %}">{% trans '注册' %}</a></li>#}
                 {% endif %}
             </ul>
         </div>

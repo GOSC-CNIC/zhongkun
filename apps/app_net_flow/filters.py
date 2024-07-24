@@ -1,3 +1,5 @@
+from django.utils.translation import gettext as _
+
 import django_filters
 
 from apps.app_net_flow.models import ChartModel
@@ -7,7 +9,6 @@ from apps.app_net_flow.models import MenuModel
 from apps.app_net_flow.models import GlobalAdminModel
 from apps.app_net_flow.permission import PermissionManager
 from apps.app_alert.utils.errors import InvalidArgument
-from django.utils.translation import gettext_lazy as _
 
 
 class ChartFilter(django_filters.FilterSet):
@@ -51,7 +52,7 @@ class Menu2ChartFilter(django_filters.FilterSet):
         perm = PermissionManager(request=self.request)
         target_group = MenuModel.objects.filter(id=value).first()
         if target_group is None:
-            raise InvalidArgument(_(f'无效的组id:{value}'))
+            raise InvalidArgument(_('无效的组id:{value}').format(value=value))
         groups = perm.get_child_nodes(value)  # 当前分组以及所有下级分组
         has_permission_group_list = list()
         for group in groups:
