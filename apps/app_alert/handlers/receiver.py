@@ -1,6 +1,8 @@
 import json
 import re
 import datetime
+
+from django.utils.translation import gettext as _
 from apps.app_alert.utils.utils import hash_sha1
 from django.db.models import Count
 from apps.app_alert.utils import errors
@@ -10,7 +12,6 @@ from apps.app_alert.utils.utils import DateUtils
 from django.utils import timezone
 from apps.app_alert.alert_status_flow import AlertStatusFlow
 from apps.monitor.models import WebsiteDetectionPoint
-from django.utils.translation import gettext_lazy as _
 
 
 class AlertReceiver(object):
@@ -82,7 +83,9 @@ class AlertReceiver(object):
         elif cluster.endswith(AlertModel.AlertType.METRIC.value):
             alert_type = AlertModel.AlertType.METRIC.value
         else:
-            raise errors.InvalidArgument(_(f'无效的cluster:`{cluster}`，告警信息:{json.dumps(alert)}'))
+            raise errors.InvalidArgument(_('无效的cluster:`{cluster}`，告警信息:{data}').format(
+                cluster=cluster, data=json.dumps(alert)))
+
         return cluster, alert_type
 
     def parse_alert_instance(self, alert_type, alert):

@@ -705,7 +705,7 @@ class ServerHandler:
             ))
 
         if server.pay_type != PayType.PREPAID.value:
-            return view.exception_response(exceptions.RenewPrepostOnly(message=_('只允许包年包月按量计费的云服务器续费。')))
+            return view.exception_response(exceptions.RenewPrepostOnly(message=_('只允许包年包月预付费类型的云服务器续费。')))
 
         if server.task_status != server.TASK_CREATED_OK:
             return view.exception_response(exceptions.RenewDeliveredOkOnly(message=_('只允许为创建成功的云服务器续费。')))

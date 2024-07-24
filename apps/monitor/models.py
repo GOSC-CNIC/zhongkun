@@ -471,7 +471,7 @@ class LogSiteType(UuidModel):
     class Meta:
         db_table = "log_site_type"
         ordering = ['sort_weight']
-        verbose_name = "日志单元类别"
+        verbose_name = _("日志单元类别")
         verbose_name_plural = verbose_name
 
 
@@ -521,7 +521,7 @@ class LogSiteTimeReqNum(UuidModel):
     class Meta:
         db_table = 'log_site_time_req_num'
         ordering = ['-timestamp']
-        verbose_name = "日志单元时序请求量"
+        verbose_name = _("日志单元时序请求量")
         verbose_name_plural = verbose_name
         indexes = [
             models.Index(fields=['timestamp'], name='idx_timestamp')

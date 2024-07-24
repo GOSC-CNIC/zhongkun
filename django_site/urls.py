@@ -107,6 +107,7 @@ urlpatterns += [
     path('auth/callback/aai', AAISignIn.as_view(), name='auth-callback-aai'),
     path('admin/', admin.site.urls),
     path('baton/', include('baton.urls')),
+    path("i18n/", include("django.conf.urls.i18n")),
     re_path(r'api/v\d+/alerts', AlertReceiverAPIView.as_view(), name='alert-receiver'),
 ]
 

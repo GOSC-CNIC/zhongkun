@@ -9,9 +9,9 @@
 
         <div class="card" style="width: 18rem; margin-top: 20px; margin-left: 20px;">
             <div class="card-body">
-                <h5 class="card-title">探针：{{ probe.probe_name }}</h5>
-                <p class="card-text">版本号：{{ probe.version }}</p>
-                <p class="card-text">更新时间：{{ web_task.0.creation}}</p>
+                <h5 class="card-title">{% trans '探针' %}：{{ probe.probe_name }}</h5>
+                <p class="card-text">{% trans '版本号' %}：{{ probe.version }}</p>
+                <p class="card-text">{% trans '更新时间' %}：{{ web_task.0.creation}}</p>
             </div>
 
         </div>
@@ -51,13 +51,13 @@
 
     </div>
 
-    <div style="width: 78%; margin-top: 20px">
+    <div style="width: 78%; margin-top: 20px; margin-left: 20px;">
         <table class="table">
             <thead>
             <tr>
                 <th scope="col">#</th>
-                <th scope="col">网址</th>
-                <th scope="col">网址hash值</th>
+                <th scope="col">{% trans '网址' %}</th>
+                <th scope="col">{% trans '网址hash值' %}</th>
 {#                <th scope="col">时间</th>#}
 
 {#                <th scope="col">总耗时</th>#}

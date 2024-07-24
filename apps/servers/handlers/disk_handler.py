@@ -668,7 +668,7 @@ class DiskHandler:
             return view.exception_response(exc)
 
         if disk.pay_type != PayType.PREPAID.value:
-            return view.exception_response(exceptions.RenewPrepostOnly(message=_('只允许包年包月按量计费的云硬盘续费。')))
+            return view.exception_response(exceptions.RenewPrepostOnly(message=_('只允许包年包月预付费的云硬盘续费。')))
 
         if disk.expiration_time is None:
             return view.exception_response(exceptions.UnknownExpirationTime(message=_('没有过期时间的云硬盘无法续费。')))

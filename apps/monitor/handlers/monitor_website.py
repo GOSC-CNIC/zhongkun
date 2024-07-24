@@ -130,7 +130,7 @@ class MonitorWebsiteHandler:
                     message=_('无效的站点URI。') + s_errors['uri'][0], code='InvalidUri')
             elif 'remark' in s_errors:
                 exc = errors.BadRequest(
-                    message=_('问题相关的服务无效。') + s_errors['remark'][0])
+                    message=_('备注无效。') + s_errors['remark'][0])
             else:
                 msg = serializer_error_msg(serializer.errors)
                 exc = errors.BadRequest(message=msg)

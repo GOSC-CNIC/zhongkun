@@ -284,7 +284,7 @@ class ScannerManager:
         """
         scanner = VtScanner.objects.filter(name=name).first()
         if scanner is None:
-            raise errors.NotFound(message=_(f'{name}扫描器不存在。'))
+            raise errors.NotFound(message=_('扫描器({name})不存在。').format(name=name))
         return scanner
 
 

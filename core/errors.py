@@ -367,7 +367,7 @@ class ServiceStopped(ConflictError):
 
 
 class RenewPrepostOnly(ConflictError):
-    default_message = _('只允许包年包月按量计费的资源续费。')
+    default_message = _('只允许包年包月预付费的资源续费。')
     default_code = 'RenewPrepostOnly'
 
 

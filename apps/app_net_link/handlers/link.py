@@ -42,7 +42,7 @@ class LinkHandler:
 
         for status in link_status_set:
             if status not in Link.LinkStatus.values:
-                raise errors.InvalidArgument(message=_(f'参数“link_status”业务状态无效, val:{status}'))
+                raise errors.InvalidArgument(message=_('参数“link_status”业务状态无效') + f'val:{status}')
 
         return {
             'link_status': link_status_set if link_status_set else None,
@@ -106,7 +106,7 @@ class LinkHandler:
 
         # 校验链路状态参数
         if data['link_status'] not in Link.LinkStatus.values:
-            raise errors.InvalidArgument(message=_(f'参数“link_status”链路状态无效, val:{data["link_status"]}'))
+            raise errors.InvalidArgument(message=_('参数“link_status”链路状态无效') + f'val:{data["link_status"]}')
         
         if not VerifyUtils.is_empty_list(data['link_element']):
             # 校验link_element的index和subindex，要求index从1开始递增，subindex默认为1，若index相同，则subindex从1开始递增
@@ -117,12 +117,12 @@ class LinkHandler:
             for e in link_element:
                 id_list.append(e["element_id"])
                 if e["index"] != index and e["index"] != index + 1:
-                    raise errors.InvalidArgument(message=_(f'不符合要求的link_element参数：index, 网元信息:{e}'))
+                    raise errors.InvalidArgument(message=_('不符合要求的link_element参数：index, 网元信息:') + str(e))
                 if e["index"] == index + 1:
                     index = index + 1
                     sub_index = 1
                 if e["sub_index"] != sub_index:
-                    raise errors.InvalidArgument(message=_(f'不符合要求的link_element参数：sub_index, 网元信息:{e}'))
+                    raise errors.InvalidArgument(message=_('不符合要求的link_element参数：sub_index, 网元信息:') + str(e))
                 sub_index = sub_index + 1
             # 校验link_element的element_id不重复
             if len(id_list) != len(set(id_list)):

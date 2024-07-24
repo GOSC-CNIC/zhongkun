@@ -119,11 +119,11 @@ class Command(BaseCommand):
         elif '.' in start_ip and '.' in end_ip:
             ip_version = 4
         else:
-            self.stdout.write(self.style.DANGER(f'ip range invalid "{start_ip} - {end_ip}"'))
+            self.stdout.write(self.style.ERROR(f'ip range invalid "{start_ip} - {end_ip}"'))
 
         status = row[7]
         if status not in self.STATUS_CODE_MAP:
-            self.stdout.write(self.style.DANGER(f'status "{status}" not in {self.STATUS_CODE_MAP.keys()}'))
+            self.stdout.write(self.style.ERROR(f'status "{status}" not in {self.STATUS_CODE_MAP.keys()}'))
 
         return ip_version, {
             'start_ip': row[0],

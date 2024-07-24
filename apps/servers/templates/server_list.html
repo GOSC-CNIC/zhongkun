@@ -29,9 +29,9 @@
     </div>
         <div>
             <div class="p-2 mb-2 mt-2">
-                <span><strong>云服务器列表 ({{ count }})</strong></span>
+                <span><strong>{% trans '云服务器列表' %} ({{ count }})</strong></span>
                 <span><a class="btn btn-sm btn-primary float-right" href="{% url 'servers:create' %}">
-                    创建云服务器
+                    {% trans '创建云服务器' %}
                 </a></span>
             </div>
             <div>
@@ -41,13 +41,13 @@
                         <tr>
                             <th hidden></th>
                             <th style="width: 30px;"></th>
-                            <th>IP地址</th>
-                            <th>镜像</th>
+                            <th>{% trans 'IP地址' %}</th>
+                            <th>{% trans '镜像' %}</th>
                             <th>CPU/MEM</th>
-                            <th style="width: 180px">备注</th>
-                            <th>状态<button class="btn btn-sm btn-outline-success btn-update-vm-status"><i class="fa fa-sync"></i></button></th>
-                            <th>任务</th>
-                            <th>操作</th>
+                            <th style="width: 180px">{% trans '备注' %}</th>
+                            <th>{% trans '状态' %}<button class="btn btn-sm btn-outline-success btn-update-vm-status"><i class="fa fa-sync"></i></button></th>
+                            <th>{% trans '任务' %}</th>
+                            <th>{% trans '操作' %}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -71,13 +71,13 @@
                             <td class="mouse-hover">
                                 <div>
                                     <span>{{ vm.remarks|default_if_none:'' }}</span>
-                                    <span class="mouse-hover-show edit_vm_remark" data-server-id="{{ vm.id }}" title="修改备注">
+                                    <span class="mouse-hover-show edit_vm_remark" data-server-id="{{ vm.id }}" title="{% trans '修改备注' %}">
                                         <i class="fa fa-edit"></i>
                                     </span>
                                 </div>
                                 <div id="remarks_edit" style="display:none">
                                     <textarea id="remarks">{{ vm.remarks|default_if_none:'' }}</textarea>
-                                    <span class="save_vm_remark" title="保存备注" data-server-id="{{ vm.id }}">
+                                    <span class="save_vm_remark" title="{% trans '保存备注' %}" data-server-id="{{ vm.id }}">
                                         <i class="fa fa-save"></i>
                                     </span>
                                 </div>
@@ -93,7 +93,7 @@
                     </tbody>
                 </table>
                 {% else %}
-                    <div><p class="p-2">0云服务器实例</p></div>
+                    <div><p class="p-2">0{% trans '云服务器实例' %}</p></div>
                 {% endif %}
             </div>
             {% with page_list=page_nav.page_list previous=page_nav.previous next=page_nav.next %}

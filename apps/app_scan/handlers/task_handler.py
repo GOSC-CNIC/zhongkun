@@ -94,7 +94,7 @@ class TaskHandler:
                 )
             elif "remark" in s_errors:
                 exc = errors.BadRequest(
-                    message=_("问题相关的服务无效。") + s_errors["remark"][0]
+                    message=_("备注无效。") + s_errors["remark"][0]
                 )
             elif "uri" in s_errors:
                 exc = errors.BadRequest(

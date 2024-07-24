@@ -219,7 +219,7 @@ USE_L10N = True
 USE_TZ = True
 
 LANGUAGES = [
-    ('zh-hans', 'Simplified Chinese'),
+    ('zh-hans', '中文'),
     ('en', 'English')
 ]
 # 翻译文件所在目录

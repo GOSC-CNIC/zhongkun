@@ -67,7 +67,7 @@ class ElementManager:
             box = ConnectorBoxManager.get_connectorbox(id=element.object_id)
             return ElementDetailData(_type=object_type, box=box)
         else:
-            raise errors.Error(message=_(f'无法识别的网元种类, type: {object_type}'))
+            raise errors.Error(message=_('无法识别的网元种类') + f',type: {object_type}')
 
 
 class ConnectorBoxManager:
@@ -486,7 +486,7 @@ class LinkManager:
             object_type = elements[i].object_type
         for element in elements:
             if not element.is_linkable():
-                raise errors.InvalidArgument(message=_(f'不能在网元{element}上创建新链路'))
+                raise errors.InvalidArgument(message=_('不能在网元(%(value)s)上创建新链路') % {'value': element.id})
 
     @staticmethod
     def filter_queryset(link_status: list = None):

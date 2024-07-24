@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.utils.translation import gettext
+from django.utils.translation import gettext, get_language
 from django.utils.functional import lazy
 
 from apps.app_global.configs_manager import global_configs
@@ -11,7 +11,13 @@ site_configs = getattr(settings, 'WEBSITE_CONFIG', {})
 
 def get_website_brand(default: str = None):
     try:
-        return global_configs.get(global_configs.ConfigName.SITE_NAME.value)
+        lang = get_language()
+        if lang == 'en':
+            cfg_key = global_configs.ConfigName.SITE_NAME_EN.value
+        else:
+            cfg_key = global_configs.ConfigName.SITE_NAME.value
+
+        return global_configs.get(cfg_key)
     except Exception as exc:
         if default:
             return default
