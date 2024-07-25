@@ -15,7 +15,7 @@ class UserProfileAdmin(UserAdmin):
     form = UserModelForm
 
     list_display = ('id', 'username', 'fullname', 'company', 'telephone', 'is_active', 'is_superuser',
-                    'is_staff', 'is_fed_admin', 'date_joined')
+                    'is_staff', 'is_fed_admin', 'date_joined', 'last_active')
     list_display_links = ('id', 'username')
     list_filter = ('is_superuser', 'is_staff', 'is_fed_admin')
     search_fields = ('username', 'company', 'first_name', 'last_name')  # 搜索字段

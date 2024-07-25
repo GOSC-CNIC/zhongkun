@@ -1,4 +1,7 @@
+from datetime import timedelta
+
 from django.utils.translation import gettext as _
+from django.utils import timezone as dj_timezone
 from django.contrib.auth import get_user_model
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework import authentication
@@ -210,6 +213,12 @@ class CreateUserJWTAuthentication(authentication.BaseAuthentication):
         if org_name and org_name != user.company:
             user.company = org_name
             update_fields.append('company')
+
+        # 最后活跃日期更新
+        nt = dj_timezone.now()
+        if not user.last_active or (nt - user.last_active) > timedelta(hours=2):
+            user.last_active = nt
+            update_fields.append('last_active')
 
         if update_fields:
             user.save(update_fields=update_fields)
