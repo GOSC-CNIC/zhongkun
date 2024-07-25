@@ -11,15 +11,15 @@
                 <div class="p-2">
                     <h5 class="card-title">{% trans '关于服务' %}</h5>
                     {% get_website_title as site_title %}
-                    <p>{{ site_title }}{% trans '后端服务，包含云服务器、云硬盘、计量结算和监控等功能。' %}</p>
+                    <p>{{ site_title }} {% trans '后端服务，包含云服务器、云硬盘、计量结算和监控等功能。' %}</p>
                 </div>
                 <div class="p-2">
                     <h5 class="text-dark mb-4">{% trans '当前版本：' %}</h5>
                     <div>
                         <p>
                             <span class="text-info font-weight-bold"><i class="fa fa-tag"></i> {{ current_tag.0 }}</span>&emsp;
-                            <span>发布时间：{{ current_tag.1|date:'Y-m-d H:i:s' }}</span>&emsp;
-                            <span>发布人：{{ current_tag.2 }}</span>&emsp;
+                            <span>{% trans '发布时间' %}：{{ current_tag.1|date:'Y-m-d H:i:s' }}</span>&emsp;
+                            <span>{% trans '发布人' %}：{{ current_tag.2 }}</span>&emsp;
                             <span><a href="{% url 'docs:docs' %}#/changelog" target="view_window">
                             {% trans '变更日志' %}</a>
                             </span>
@@ -34,8 +34,8 @@
                             <div>
                                 <p>
                                     <span class="text-info font-weight-bold"><i class="fa fa-tag"></i> {{ tag.0 }}</span>&emsp;
-                                    <span>发布时间：{{ tag.1|date:'Y-m-d H:i:s' }}</span>&emsp;
-                                    <span>发布人：{{ tag.2 }}</span>
+                                    <span>{% trans '发布时间' %}：{{ tag.1|date:'Y-m-d H:i:s' }}</span>&emsp;
+                                    <span>{% trans '发布人' %}：{{ tag.2 }}</span>
                                 </p>
                                 <pre style="white-space: pre-wrap;word-wrap: break-word">{{ tag.4 }}</pre>
                             </div>

@@ -47,6 +47,13 @@ class BalanceAccountViewSet(CustomGenericViewSet):
         serializer = self.get_serializer(account)
         return Response(data=serializer.data)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询VO组的余额账户'),
+        request_body=no_body,
+        responses={
+            200: ''
+        }
+    )
     @action(methods=['get'], detail=False, url_path=r'vo/(?P<vo_id>.+)', url_name='balance-vo')
     def get_vo_balance(self, request, *args, **kwargs):
         """
