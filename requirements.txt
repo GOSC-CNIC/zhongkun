@@ -22,7 +22,7 @@ cryptography==37.0.4
 decorator==5.1.1
 DingtalkChatbot==1.5.7
 Django==4.2.9
-django-baton==4.0.1
+django-baton==4.1.0
 django-cors-headers==3.7.0
 django-debug-toolbar==3.5.0
 django-filter==23.1
