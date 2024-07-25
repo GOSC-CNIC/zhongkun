@@ -333,7 +333,7 @@ class IPv4RangeRecord(IPRangeRecordBase):
     class Meta:
         ordering = ('-creation_time',)
         db_table = 'net_ipam_ipv4_range_record'
-        verbose_name = 'IPv4段操作记录'
+        verbose_name = _('IPv4段操作记录')
         verbose_name_plural = verbose_name
 
     def __str__(self):
@@ -520,7 +520,7 @@ class IPv6RangeRecord(IPRangeRecordBase):
     class Meta:
         ordering = ('-creation_time',)
         db_table = 'net_ipam_ipv6_range_record'
-        verbose_name = 'IPv6段操作记录'
+        verbose_name = _('IPv6段操作记录')
         verbose_name_plural = verbose_name
 
     def __str__(self):

@@ -9,9 +9,9 @@
    <div>
        <div style="text-align: center">
            <p>{{ email.subject }}</p>
-           <p>标签：{{ email.get_tag_display }}</p>
+           <p>{% trans '标签' %}：{{ email.get_tag_display }}</p>
            <p>To: {{ email.receiver }}</p>
-           <p>发送时间: {{ email.send_time | date:'Y-m-d H:i:s' }}</p>
+           <p>{% trans '发送时间' %}: {{ email.send_time | date:'Y-m-d H:i:s' }}</p>
        </div>
        <hr>
        <div>

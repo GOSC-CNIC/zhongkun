@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-07-25 01:22+0000\n"
+"POT-Creation-Date: 2024-07-25 07:49+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -327,8 +327,8 @@ msgstr "ID"
 #: apps/report/serializers.py:73 apps/servers/models.py:69
 #: apps/servers/serializers.py:260 apps/service/serializers.py:95
 #: apps/storage/models.py:43 apps/storage/serializers.py:89
-#: apps/users/templates/registration/login.html:28 apps/vo/vo_serializers.py:31
-#: apps/vpn/templates/vpn.html:54
+#: apps/users/admin.py:49 apps/users/templates/registration/login.html:28
+#: apps/vo/vo_serializers.py:31 apps/vpn/templates/vpn.html:54
 msgid "用户名"
 msgstr "Username"
 
@@ -443,10 +443,9 @@ msgstr "Recovery time"
 #: apps/servers/models.py:1201 apps/servers/serializers.py:10
 #: apps/servers/serializers.py:297 apps/servers/serializers.py:371
 #: apps/service/models.py:23 apps/service/models.py:54
-#: apps/service/models.py:100 apps/storage/models.py:315
-#: apps/storage/models.py:412 apps/storage/serializers.py:13
-#: apps/users/models.py:107 apps/vo/models.py:19 apps/vo/vo_serializers.py:12
-#: apps/vpn/templates/vpn.html:56
+#: apps/service/models.py:100 apps/storage/models.py:312
+#: apps/storage/serializers.py:13 apps/users/models.py:107 apps/vo/models.py:19
+#: apps/vo/vo_serializers.py:12 apps/vpn/templates/vpn.html:56
 msgid "创建时间"
 msgstr "Creation time"
 
@@ -629,7 +628,7 @@ msgstr "Query the alert notification records of the current user."
 #: apps/monitor/models.py:391 apps/order/models.py:118 apps/order/models.py:443
 #: apps/servers/models.py:57 apps/servers/models.py:1146
 #: apps/servers/templates/vm_operations.html:13 apps/storage/models.py:30
-#: apps/storage/models.py:414 apps/vo/admin.py:19 apps/vo/models.py:28
+#: apps/vo/admin.py:19 apps/vo/models.py:28
 msgid "删除"
 msgstr "Deleted"
 
@@ -972,7 +971,7 @@ msgstr "Application amount"
 #: apps/app_wallet/trade_serializers.py:241 apps/servers/disk_serializers.py:38
 #: apps/servers/disk_serializers.py:91 apps/servers/models.py:541
 #: apps/servers/models.py:933 apps/servers/models.py:1202
-#: apps/servers/serializers.py:372 apps/storage/models.py:413
+#: apps/servers/serializers.py:372
 msgid "过期时间"
 msgstr "Expiration time"
 
@@ -1083,7 +1082,25 @@ msgstr "order id"
 msgid "为订单申请"
 msgstr "Apply for order"
 
-#: apps/app_global/admin.py:45
+#: apps/app_global/admin.py:16
+msgid "尝试释放选中的状态锁"
+msgstr "Try to release the selected state lock"
+
+#: apps/app_global/admin.py:37
+msgid ""
+"以下状态锁没有释放，因为锁没有到过期时间，如果确实需要释放锁，请手动修改更"
+"新。"
+msgstr ""
+"The following status locks have not been released because the locks have not "
+"reached their expiration time; If it is indeed necessary to release the "
+"lock, please manually modify the update."
+
+#: apps/app_global/admin.py:42
+#, python-brace-format
+msgid "成功释放{value}个状态锁"
+msgstr "Successfully released {value} status locks"
+
+#: apps/app_global/admin.py:75
 msgid "配置内容已保存到数据库，内容更新到对应配置文件时错误。"
 msgstr ""
 "The configuration content has been saved to the database, but there was an "
@@ -1155,7 +1172,7 @@ msgid "流量图表元素更新"
 msgstr "Flow chart elements updated"
 
 #: apps/app_global/models.py:30 apps/order/models.py:57
-#: apps/service/templatetags/services.py:55 apps/storage/models.py:310
+#: apps/service/templatetags/services.py:55 apps/storage/models.py:307
 msgid "无"
 msgstr "None"
 
@@ -1538,9 +1555,8 @@ msgstr "Group - Members"
 #: apps/monitor/models.py:192 apps/report/models.py:22
 #: apps/report/models.py:128 apps/report/models.py:169
 #: apps/servers/models.py:86 apps/service/models.py:254
-#: apps/storage/models.py:50 apps/storage/models.py:418
-#: apps/ticket/models.py:188 apps/vo/models.py:56 apps/vo/vo_serializers.py:37
-#: utils/model.py:46
+#: apps/storage/models.py:50 apps/ticket/models.py:188 apps/vo/models.py:56
+#: apps/vo/vo_serializers.py:37 utils/model.py:46
 msgid "用户"
 msgstr "User"
 
@@ -2512,6 +2528,10 @@ msgstr "Who operated"
 msgid "分配给机构二级对象"
 msgstr "Secondary organization"
 
+#: apps/app_net_ipam/models.py:336
+msgid "IPv4段操作记录"
+msgstr "IPv4 range operation record"
+
 #: apps/app_net_ipam/models.py:383 apps/app_net_ipam/models.py:518
 #: apps/app_net_ipam/serializers.py:129
 msgid "前缀长度"
@@ -2524,6 +2544,10 @@ msgstr "IPv6 address range"
 #: apps/app_net_ipam/models.py:494
 msgid "IPv6地址"
 msgstr "IPv6 address"
+
+#: apps/app_net_ipam/models.py:523
+msgid "IPv6段操作记录"
+msgstr "IPv6 range operation record"
 
 #: apps/app_net_ipam/serializers.py:10
 msgid "选中，用户拥有网络IP管理功能的管理员权限"
@@ -3161,12 +3185,12 @@ msgid "联系人记录不存在"
 msgstr "Contact record does not exist"
 
 #: apps/app_net_manage/models.py:17 apps/app_net_manage/serializers.py:50
-#: apps/service/models.py:19 apps/users/admin.py:39
+#: apps/service/models.py:19 apps/users/admin.py:39 apps/users/admin.py:49
 msgid "姓名"
 msgstr "Name"
 
 #: apps/app_net_manage/models.py:18 apps/app_net_manage/serializers.py:51
-#: apps/service/models.py:20 apps/users/models.py:30
+#: apps/service/models.py:20 apps/users/admin.py:49 apps/users/models.py:30
 msgid "电话"
 msgstr "Telephone"
 
@@ -3278,7 +3302,7 @@ msgstr "Probe service name"
 
 #: apps/app_probe/models.py:27 apps/app_probe/serializers.py:12
 #: apps/app_probe/templates/index.html:13 apps/servers/models.py:111
-#: apps/servers/serializers.py:335 apps/storage/models.py:79
+#: apps/servers/serializers.py:335 apps/storage/models.py:76
 #: apps/storage/serializers.py:61
 msgid "版本号"
 msgstr "Version"
@@ -3453,7 +3477,7 @@ msgid "安全扫描服务配置信息不存在。"
 msgstr ""
 "The security scanning service configuration information does not exist."
 
-#: apps/app_scan/models.py:114 apps/storage/models.py:163
+#: apps/app_scan/models.py:114 apps/storage/models.py:160
 msgid ""
 "结算服务单元不存在，请仔细确认。如果是新建服务单元不需要手动填写结算服务单元"
 "id，保持为空，保存后会自动注册对应的结算单元，并填充此字段"
@@ -3615,8 +3639,8 @@ msgstr "Task Status"
 msgid "扫描器"
 msgstr "Scanner"
 
-#: apps/app_scan/models.py:213 apps/storage/models.py:344
-#: apps/storage/models.py:394
+#: apps/app_scan/models.py:213 apps/storage/models.py:341
+#: apps/storage/models.py:391
 msgid "所属用户"
 msgstr "User"
 
@@ -4193,7 +4217,7 @@ msgstr "01_Screen Display Config"
 #: apps/app_screenvis/models.py:385 apps/monitor/models.py:381
 #: apps/servers/models.py:212 apps/service/models.py:151
 #: apps/service/models.py:157 apps/service/models.py:163
-#: apps/service/models.py:169 apps/storage/models.py:173 utils/validators.py:10
+#: apps/service/models.py:169 apps/storage/models.py:170 utils/validators.py:10
 msgid "不是一个有效的网址"
 msgstr "Not a valid website address"
 
@@ -5414,7 +5438,7 @@ msgstr ""
 #: apps/app_wallet/models.py:18 apps/app_wallet/models.py:65
 #: apps/app_wallet/models.py:92 apps/servers/admin.py:140
 #: apps/servers/admin.py:506 apps/servers/models.py:491
-#: apps/storage/bucket_handler.py:20 apps/storage/models.py:303
+#: apps/storage/bucket_handler.py:20 apps/storage/models.py:300
 msgid "正常"
 msgstr "Normal"
 
@@ -6623,7 +6647,7 @@ msgstr "List metering and billing aggregation statistics by user"
 #: apps/metering/handlers/metering_handler.py:456
 #: apps/metering/handlers/metering_handler.py:579
 #: apps/metering/handlers/metering_handler.py:1782
-#: apps/metering/handlers/metering_handler.py:1874
+#: apps/metering/handlers/metering_handler.py:1874 apps/users/admin.py:50
 msgid "单位/公司"
 msgstr "Company"
 
@@ -6670,7 +6694,7 @@ msgstr "List the metering and billing details of object storage services"
 #: apps/metering/handlers/metering_handler.py:1062
 #: apps/metering/metering_serializers.py:187 apps/report/models.py:159
 #: apps/report/models.py:232 apps/report/serializers.py:8
-#: apps/report/serializers.py:63 apps/storage/models.py:313
+#: apps/report/serializers.py:63 apps/storage/models.py:310
 #: apps/storage/serializers.py:11 apps/storage/serializers.py:43
 msgid "存储桶ID"
 msgstr "Bucket ID"
@@ -7095,7 +7119,7 @@ msgstr "Object storage bucket instance ID"
 #: apps/metering/models.py:224 apps/monitor/models.py:38
 #: apps/report/models.py:134 apps/report/models.py:160
 #: apps/report/models.py:233 apps/report/serializers.py:9
-#: apps/report/serializers.py:64 apps/storage/models.py:314
+#: apps/report/serializers.py:64 apps/storage/models.py:311
 #: apps/storage/serializers.py:7 apps/storage/serializers.py:12
 msgid "存储桶名称"
 msgstr "Bucket name"
@@ -9883,7 +9907,7 @@ msgstr "Storage increment (Byte)"
 
 #: apps/report/models.py:163 apps/report/models.py:239
 #: apps/report/serializers.py:12 apps/report/serializers.py:68
-#: apps/storage/models.py:325 apps/storage/serializers.py:18
+#: apps/storage/models.py:322 apps/storage/serializers.py:18
 msgid "桶对象数量"
 msgstr "Bucket objects count"
 
@@ -9982,21 +10006,21 @@ msgid "存储桶创建时间"
 msgstr "Creation time"
 
 #: apps/report/models.py:242 apps/report/serializers.py:70
-#: apps/servers/models.py:553 apps/storage/models.py:319
+#: apps/servers/models.py:553 apps/storage/models.py:316
 msgid "过期欠费管控情况"
 msgstr "Expired arrears control status"
 
-#: apps/report/models.py:244 apps/storage/models.py:320
+#: apps/report/models.py:244 apps/storage/models.py:317
 msgid "欠费状态下存储桶读写锁定管控情况"
 msgstr "Storage bucket read/write lockout control in delinquent state"
 
 #: apps/report/models.py:247 apps/report/serializers.py:71
-#: apps/servers/models.py:557 apps/storage/models.py:323
+#: apps/servers/models.py:557 apps/storage/models.py:320
 msgid "管控情况时间"
 msgstr "Control status time"
 
 #: apps/report/models.py:247 apps/report/serializers.py:71
-#: apps/storage/models.py:323
+#: apps/storage/models.py:320
 msgid "欠费管控开始时间"
 msgstr "Start of arrears control"
 
@@ -10705,7 +10729,7 @@ msgid "可用区名称"
 msgstr "Azone name"
 
 #: apps/servers/disk_serializers.py:37 apps/servers/models.py:539
-#: apps/servers/models.py:932 apps/storage/models.py:317
+#: apps/servers/models.py:932 apps/storage/models.py:314
 msgid "创建状态"
 msgstr "Create Status"
 
@@ -11779,19 +11803,19 @@ msgstr "Provide disk"
 msgid "仅管理员可见"
 msgstr "Admin only visible"
 
-#: apps/servers/models.py:109 apps/storage/models.py:77
+#: apps/servers/models.py:109 apps/storage/models.py:74
 msgid "服务单元对应监控任务ID"
 msgstr "Service monitor task ID"
 
-#: apps/servers/models.py:110 apps/storage/models.py:78
+#: apps/servers/models.py:110 apps/storage/models.py:75
 msgid "记录为服务单元创建的站点监控任务的ID"
 msgstr "Record the ID of the site monitoring task created for the service unit"
 
-#: apps/servers/models.py:111 apps/storage/models.py:79
+#: apps/servers/models.py:111 apps/storage/models.py:76
 msgid "服务当前的版本"
 msgstr "Service version"
 
-#: apps/servers/models.py:112 apps/storage/models.py:80
+#: apps/servers/models.py:112 apps/storage/models.py:77
 #: apps/storage/serializers.py:62
 msgid "版本号更新时间"
 msgstr "Version update time"
@@ -11883,17 +11907,17 @@ msgid "云主机服务单元的分享资源配额"
 msgstr "Server service unit shared quota"
 
 #: apps/servers/models.py:474 apps/servers/models.py:903
-#: apps/storage/models.py:298
+#: apps/storage/models.py:295
 msgid "创建成功"
 msgstr "Created success"
 
 #: apps/servers/models.py:475 apps/servers/models.py:904
-#: apps/storage/models.py:299
+#: apps/storage/models.py:296
 msgid "正在创建中"
 msgstr "Creating"
 
 #: apps/servers/models.py:476 apps/servers/models.py:905
-#: apps/storage/models.py:300
+#: apps/storage/models.py:297
 msgid "创建失败"
 msgstr "Creation failed"
 
@@ -12119,7 +12143,7 @@ msgstr ""
 "the cloud disk is about to expire"
 
 #: apps/servers/models.py:973 apps/servers/models.py:1227
-#: apps/storage/models.py:397
+#: apps/storage/models.py:394
 msgid "删除时间"
 msgstr "Delete Time"
 
@@ -12151,7 +12175,7 @@ msgstr "Operator"
 msgid "云硬盘变更日志"
 msgstr "Cloud disk change log"
 
-#: apps/servers/models.py:1141 apps/storage/models.py:351 utils/model.py:75
+#: apps/servers/models.py:1141 apps/storage/models.py:348 utils/model.py:75
 msgid "存储桶"
 msgstr "Bucket"
 
@@ -12875,15 +12899,15 @@ msgstr "Query object storage statistics data"
 msgid "存储"
 msgstr "Object Storage"
 
-#: apps/storage/bucket_handler.py:21 apps/storage/models.py:305
+#: apps/storage/bucket_handler.py:21 apps/storage/models.py:302
 msgid "欠费锁定读写"
 msgstr "Arrears locked read write"
 
-#: apps/storage/bucket_handler.py:22 apps/storage/models.py:306
+#: apps/storage/bucket_handler.py:22 apps/storage/models.py:303
 msgid "锁定读写"
 msgstr "Locked read write"
 
-#: apps/storage/bucket_handler.py:23 apps/storage/models.py:307
+#: apps/storage/bucket_handler.py:23 apps/storage/models.py:304
 msgid "锁定写(只读)"
 msgstr "ReadOnly"
 
@@ -12977,103 +13001,61 @@ msgstr ""
 "incurred the deduction; Under normal circumstances, this content will be "
 "automatically filled in and does not require manual input."
 
-#: apps/storage/models.py:74
-msgid "对应loki日志中集群标识"
-msgstr "Loki log tag"
-
-#: apps/storage/models.py:75
-msgid ""
-"服务单元在Loki访问日志中对应的对象存储集群标识，用于计量网络流量、请求量等信"
-"息时标识对应关系"
-msgstr ""
-"The service unit stores the cluster identifier of the corresponding object "
-"in the Loki access log, which is used to identify the corresponding "
-"relationship when measuring network traffic, request volume, and other "
-"information"
-
-#: apps/storage/models.py:85
+#: apps/storage/models.py:82
 msgid "对象存储服务单元接入配置"
 msgstr "Object Storage Service Unit"
 
-#: apps/storage/models.py:241 apps/storage/models.py:251
-#: apps/storage/models.py:276
+#: apps/storage/models.py:238 apps/storage/models.py:248
+#: apps/storage/models.py:273
 #, python-format
 msgid "自动为对象存储服务单元“%s”创建的监控任务"
 msgstr ""
 "Automatically create monitoring tasks for object storage service unit '%s'"
 
-#: apps/storage/models.py:304
+#: apps/storage/models.py:301
 msgid "欠费"
 msgstr "In arrears"
 
-#: apps/storage/models.py:311
+#: apps/storage/models.py:308
 msgid "专项"
 msgstr "Special"
 
-#: apps/storage/models.py:313
+#: apps/storage/models.py:310
 msgid "存储桶在对象存储服务单元中的id"
 msgstr "Storage bucket id in the object storage service unit"
 
-#: apps/storage/models.py:324 apps/storage/serializers.py:17
+#: apps/storage/models.py:321 apps/storage/serializers.py:17
 msgid "桶存储容量"
 msgstr "Storage capacity"
 
-#: apps/storage/models.py:326 apps/storage/serializers.py:19
+#: apps/storage/models.py:323 apps/storage/serializers.py:19
 msgid "桶资源统计时间"
 msgstr "Stats time"
 
-#: apps/storage/models.py:328 apps/users/models.py:108
+#: apps/storage/models.py:325 apps/users/models.py:108
+#: apps/users/templates/email_detail.html:12
 msgid "标签"
 msgstr "Tag"
 
-#: apps/storage/models.py:346 apps/storage/models.py:396
-#: apps/storage/models.py:420
+#: apps/storage/models.py:343 apps/storage/models.py:393
 msgid "所属服务"
 msgstr "Serive unit"
 
-#: apps/storage/models.py:391
+#: apps/storage/models.py:388
 msgid "存储桶删除前原始id"
 msgstr "Original id"
 
-#: apps/storage/models.py:392
+#: apps/storage/models.py:389
 msgid "存储桶删除前在存储桶表中原始id"
 msgstr "Original ID in the bucket table before deleting the bucket"
 
-#: apps/storage/models.py:398
+#: apps/storage/models.py:395
 msgid "删除归档人"
 msgstr "Delete Archiver"
 
-#: apps/storage/models.py:403
+#: apps/storage/models.py:400
 msgid "存储桶归档记录"
 msgstr "Bucket archive records"
-
-#: apps/storage/models.py:408
-msgid "存储桶数"
-msgstr "Total buckets"
-
-#: apps/storage/models.py:409
-msgid "已创建存储桶数"
-msgstr "Created buckets"
-
-#: apps/storage/models.py:410
-msgid "总存储容量"
-msgstr "Total storage"
-
-#: apps/storage/models.py:411
-msgid "已用存储容量"
-msgstr "Used storage"
-
-#: apps/storage/models.py:415
-msgid "是否邮件通知"
-msgstr "Is email notice"
-
-#: apps/storage/models.py:416
-msgid "是否邮件通知用户配额即将到期"
-msgstr "Do you notify users via email that their quota is about to expire"
-
-#: apps/storage/models.py:425
-msgid "存储配额"
-msgstr "storage quota "
 
 #: apps/ticket/apps.py:8 apps/ticket/models.py:83 apps/ticket/models.py:179
 #: apps/ticket/models.py:220
@@ -13569,23 +13551,39 @@ msgstr "The ticket submitter submits a rating to the closed ticket"
 msgid "查询一个工单的评价"
 msgstr "Query the rating of a ticket"
 
-#: apps/users/admin.py:25
+#: apps/users/admin.py:27
 msgid "个人信息"
 msgstr "Personal"
 
-#: apps/users/admin.py:26
+#: apps/users/admin.py:28
 msgid "权限信息"
 msgstr "Permissions"
 
-#: apps/users/admin.py:27
+#: apps/users/admin.py:29
 msgid "重要日期"
 msgstr "Dates"
 
-#: apps/users/admin.py:51
+#: apps/users/admin.py:43
+msgid "导出选中的用户"
+msgstr ""
+
+#: apps/users/admin.py:49
+msgid "邮箱"
+msgstr "Email"
+
+#: apps/users/admin.py:50
+msgid "加入日期"
+msgstr "Date joined"
+
+#: apps/users/admin.py:50 apps/users/models.py:34
+msgid "最后活跃日期"
+msgstr "Last active"
+
+#: apps/users/admin.py:76 apps/users/admin.py:79
 msgid "预览"
 msgstr "Preview"
 
-#: apps/users/admin.py:56
+#: apps/users/admin.py:82
 msgid "重试发送失败邮件"
 msgstr "Attempt to send failed email again"
 
@@ -13653,10 +13651,6 @@ msgstr "Company"
 msgid "第三方应用登录"
 msgstr "Third party login"
 
-#: apps/users/models.py:34
-msgid "最后活跃日期"
-msgstr "Last active"
-
 #: apps/users/models.py:88
 msgid "年度报表"
 msgstr "Annual report"
@@ -13713,6 +13707,10 @@ msgstr "Email records"
 msgid "邮件详情"
 msgstr "Email Detail"
 
+#: apps/users/templates/email_detail.html:14
+msgid "发送时间"
+msgstr "Sent time"
+
 #: apps/users/templates/registration/login.html:8
 msgid "本地登录"
 msgstr "Local login"
@@ -13722,6 +13720,15 @@ msgstr "Local login"
 #: apps/users/templates/signin.html:7 templates/base.html:104
 msgid "登录"
 msgstr "Login"
+
+#: apps/users/templates/registration/login.html:45
+msgid "暂不允许个人注册，请联系管理员"
+msgstr ""
+"Individual registration is not allowed. Please contact the administrator."
+
+#: apps/users/templates/registration/login.html:45
+msgid "注册"
+msgstr "Sign up"
 
 #: apps/users/templates/signin.html:16
 msgid "科技云通行证账户登录"
@@ -13989,7 +13996,7 @@ msgstr "VPN password (double-click to modify)"
 msgid "双击修改"
 msgstr "Double click to modify"
 
-#: core/aai/authentication.py:170
+#: core/aai/authentication.py:173
 msgid "User create failed"
 msgstr "User create failed"
 

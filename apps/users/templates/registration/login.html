@@ -42,7 +42,7 @@
                     <div class="form-group">
                         <input class="btn btn-primary" id="btn-submit" type="submit" value="{% trans '登录' %}">
 {#                        <a class="btn text-warning" href="{% url 'users:forget' %}">忘记密码</a>#}
-                        <a class="btn btn-outline-success float-right" onclick="alert('暂不允许个人注册，请联系管理员');return false;">注册</a>
+                        <a class="btn btn-outline-success float-right" onclick="alert('{% trans "暂不允许个人注册，请联系管理员" %}');return false;">{% trans '注册' %}</a>
                     </div>
                     {% use_kjy_signin as kjy_name %}
                     {% if kjy_name %}

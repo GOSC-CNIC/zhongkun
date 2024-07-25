@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext, gettext_lazy as _
 from django.utils.html import format_html
 from django.utils import timezone as dj_timezone
 from django.urls import reverse
@@ -46,7 +46,8 @@ class UserProfileAdmin(UserAdmin):
         filename = f"users-{t.year:04}{t.month:02}{t.day:02}{t.hour:02}{t.minute:02}{t.second:02}"
         csv_file = CSVFileInMemory(filename=filename)
         csv_file.writerow([
-            _('用户名'), _('姓名'), _('邮箱'), _('电话'), _('单位/公司'), _('加入日期'), _('最后活跃日期')
+            gettext('用户名'), gettext('姓名'), gettext('邮箱'), gettext('电话'),
+            gettext('单位/公司'), gettext('加入日期'), gettext('最后活跃日期')
         ])
 
         for user in queryset:
@@ -75,7 +76,8 @@ class EmailAdmin(BaseModelAdmin):
     @admin.display(description=_('预览'))
     def show_preview_url(self, obj):
         preview_url = reverse('users:email-detail', kwargs={'email_id': obj.id})
-        return format_html(f'<a target="view_frame" href="{preview_url}">预览</a>')
+        disp = gettext('预览')
+        return format_html(f'<a target="view_frame" href="{preview_url}">{disp}</a>')
 
     @admin.action(description=_('重试发送失败邮件'))
     def resend_failed_email(self, request, queryset):
