@@ -70,9 +70,6 @@ class ObjectsService(UuidModel):
         help_text=_('此服务单元对应的钱包结算服务单元（注册在余额结算中的APP服务）id，扣费时需要此id，用于指定哪个服务发生的扣费；'
                     '正常情况下此内容会自动填充，不需要手动输入'))
     sort_weight = models.IntegerField(verbose_name=_('排序值'), default=0, help_text=_('值越小排序越靠前'))
-    loki_tag = models.CharField(
-        verbose_name=_('对应loki日志中集群标识'), max_length=128, blank=True, default='',
-        help_text=_('服务单元在Loki访问日志中对应的对象存储集群标识，用于计量网络流量、请求量等信息时标识对应关系'))
     monitor_task_id = models.CharField(
         verbose_name=_('服务单元对应监控任务ID'), max_length=36, blank=True, default='', editable=False,
         help_text=_('记录为服务单元创建的站点监控任务的ID'))
@@ -401,26 +398,4 @@ class BucketArchive(BucketBase):
         db_table = 'bucket_archive'
         ordering = ['-delete_time']
         verbose_name = _('存储桶归档记录')
-        verbose_name_plural = verbose_name
-
-
-class StorageQuota(UuidModel):
-    count_total = models.IntegerField(verbose_name=_('存储桶数'), default=0)
-    count_used = models.IntegerField(verbose_name=_('已创建存储桶数'), default=0)
-    size_gb_total = models.IntegerField(verbose_name=_('总存储容量'), default=0, help_text='Gb')
-    size_gb_used = models.IntegerField(verbose_name=_('已用存储容量'), default=0, help_text='Gb')
-    creation_time = models.DateTimeField(auto_now_add=True, verbose_name=_('创建时间'))
-    expiration_time = models.DateTimeField(verbose_name=_('过期时间'), null=True, blank=True, default=None)
-    deleted = models.BooleanField(verbose_name=_('删除'), default=False)
-    is_email = models.BooleanField(verbose_name=_('是否邮件通知'), default=False,
-                                   help_text=_('是否邮件通知用户配额即将到期'))
-    user = models.ForeignKey(to=User, null=True, on_delete=models.SET_NULL,
-                             related_name='storage_quotas', verbose_name=_('用户'))
-    service = models.ForeignKey(to=ObjectsService, null=True, on_delete=models.SET_NULL,
-                                related_name='storage_quotas', verbose_name=_('所属服务'))
-
-    class Meta:
-        db_table = 'storage_quota'
-        ordering = ['-creation_time']
-        verbose_name = _('存储配额')
         verbose_name_plural = verbose_name

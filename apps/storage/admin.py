@@ -38,7 +38,7 @@ class ObjectsServiceAdmin(BaseModelAdmin):
 
     list_display = ('id', 'name', 'name_en', 'org_data_center', 'organization_name', 'service_type',
                     'sort_weight', 'version', 'version_update_time', 'endpoint_url', 'add_time', 'status',
-                    'username', 'raw_password', 'provide_ftp', 'pay_app_service_id', 'monitor_task_id', 'loki_tag')
+                    'username', 'raw_password', 'provide_ftp', 'pay_app_service_id', 'monitor_task_id')
 
     search_fields = ['name', 'name_en', 'endpoint_url', 'remarks']
     list_filter = [ServiceOrgFilter,]
