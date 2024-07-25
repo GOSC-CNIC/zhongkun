@@ -2,10 +2,12 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils.translation import gettext_lazy as _
 from django.utils.html import format_html
+from django.utils import timezone as dj_timezone
 from django.urls import reverse
 
 from core.taskqueue import submit_task
 from utils.model import BaseModelAdmin
+from utils.report_file import CSVFileInMemory, wrap_csv_file_response
 from .models import UserProfile, Email
 from .forms import UserModelForm
 
@@ -17,7 +19,7 @@ class UserProfileAdmin(UserAdmin):
     list_display = ('id', 'username', 'fullname', 'company', 'telephone', 'is_active', 'is_superuser',
                     'is_staff', 'is_fed_admin', 'date_joined', 'last_active')
     list_display_links = ('id', 'username')
-    list_filter = ('is_superuser', 'is_staff', 'is_fed_admin')
+    list_filter = ('is_superuser', 'is_staff', 'is_fed_admin', 'is_active')
     search_fields = ('username', 'company', 'first_name', 'last_name')  # 搜索字段
 
     fieldsets = (
@@ -27,16 +29,38 @@ class UserProfileAdmin(UserAdmin):
         (_('重要日期'), {'fields': ('date_joined',)}),
     )
     ordering = ['date_joined']
+    actions = ('export_select_users',)
 
     class Media:
         css = {
             'all': ['yunkun/admin/common.css']
         }
 
+    @admin.display(description=_('姓名'))
     def fullname(self, obj):
         return obj.get_full_name()
 
-    fullname.short_description = _('姓名')
+    @admin.action(description=_('导出选中的用户'))
+    def export_select_users(self, request, queryset):
+        t = dj_timezone.now()
+        filename = f"users-{t.year:04}{t.month:02}{t.day:02}{t.hour:02}{t.minute:02}{t.second:02}"
+        csv_file = CSVFileInMemory(filename=filename)
+        csv_file.writerow([
+            _('用户名'), _('姓名'), _('邮箱'), _('电话'), _('单位/公司'), _('加入日期'), _('最后活跃日期')
+        ])
+
+        for user in queryset:
+            row_items = [
+                user.username, user.get_full_name(), user.email,
+                user.telephone, user.company, user.date_joined.isoformat(),
+                user.last_active.isoformat(),
+            ]
+            csv_file.writerow(row_items)
+
+        filename = csv_file.filename
+        data = csv_file.to_bytes()
+        csv_file.close()
+        return wrap_csv_file_response(filename=filename, data=data)
 
 
 @admin.register(Email)
