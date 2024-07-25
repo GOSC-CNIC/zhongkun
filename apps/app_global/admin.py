@@ -1,5 +1,6 @@
 from django.contrib import admin, messages
-from django.utils.translation import gettext
+from django.utils.translation import gettext, gettext_lazy
+from django.utils import timezone as dj_timezone
 
 from utils.model import NoDeleteSelectModelAdmin, BaseModelAdmin
 from apps.app_global.models import TimedTaskLock, GlobalConfig, IPAccessWhiteList
@@ -10,6 +11,35 @@ from apps.app_global.configs_manager import global_configs
 class TimedTaskLockAdmin(NoDeleteSelectModelAdmin):
     list_display = ['task', 'status', 'start_time', 'end_time', 'host', 'run_desc', 'expire_time', 'notify_time']
     list_display_links = ('task',)
+    actions = ('release_lock',)
+
+    @admin.action(description=gettext_lazy('尝试释放选中的状态锁'))
+    def release_lock(self, request, queryset):
+        failed_locks = []
+        ok_locks = []
+        nt = dj_timezone.now()
+        for lk in queryset:
+            lk: TimedTaskLock
+            if lk.status != TimedTaskLock.Status.RUNNING.value:
+                continue
+
+            if not lk.expire_time or nt < lk.expire_time:
+                failed_locks.append(lk.get_task_display())
+                continue
+
+            lk.status = TimedTaskLock.Status.NONE.value
+            lk.save(update_fields=['status'])
+            ok_locks.append(lk)
+
+        if failed_locks:
+            self.message_user(
+                request, gettext(
+                    '以下状态锁没有释放，因为锁没有到过期时间，如果确实需要释放锁，请手动修改更新。'
+                ) + f'{failed_locks}', level=messages.WARNING)
+
+        if ok_locks:
+            self.message_user(
+                request, gettext('成功释放{value}个状态锁').format(value=len(ok_locks)), level=messages.SUCCESS)
 
 
 @admin.register(GlobalConfig)
