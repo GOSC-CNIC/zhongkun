@@ -582,6 +582,7 @@ class ErrorLog(UuidModel):
     message = models.TextField(verbose_name=_("日志信息"), blank=True, default='')
     creation = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
     username = models.CharField(verbose_name=_("请求用户"), max_length=128, blank=True, default='')
+    client_ip = models.CharField(verbose_name=_("IP"), max_length=64, blank=True, default='')
 
     class Meta:
         db_table = 'error_log'
@@ -594,7 +595,8 @@ class ErrorLog(UuidModel):
             raise ValidationError(message={'status_code': gettext('状态码必须在0-600之间')})
 
     @classmethod
-    def add_log(cls, status_code: int, method: str, full_path: str, message: str, username: str = ''):
+    def add_log(cls, status_code: int, method: str, full_path: str, message: str, username: str = '',
+                client_ip: str = ''):
         """
         创建一条错误日志
         :return:
@@ -602,7 +604,8 @@ class ErrorLog(UuidModel):
             ErrorLog()  # success
         """
         try:
-            ins = cls(status_code=status_code, method=method, full_path=full_path, message=message, username=username)
+            ins = cls(status_code=status_code, method=method, full_path=full_path, message=message, username=username,
+                      client_ip=client_ip)
             ins.save(force_insert=True)
         except Exception as exc:
             return exc

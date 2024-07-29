@@ -288,7 +288,7 @@ class LogSiteTimeReqNumAdmin(BaseModelAdmin):
 
 @admin.register(ErrorLog)
 class ErrorLogAdmin(BaseModelAdmin):
-    list_display = ('id', 'status_code', 'method', 'full_path', 'message', 'creation', 'username')
+    list_display = ('id', 'status_code', 'method', 'full_path', 'message', 'creation', 'username', 'client_ip')
     list_display_links = ('id', )
-    search_fields = ('full_path', 'username', 'message')
+    search_fields = ('full_path', 'username', 'message', 'client_ip')
     list_filter = ('status_code', 'method')

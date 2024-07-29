@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.exceptions import (APIException, NotAuthenticated, AuthenticationFailed)
 from drf_yasg import openapi
 
+from utils.iprestrict import IPRestrictor
 from core.request import request_service, request_vpn_service
 from core import errors as exceptions
 from apps.servers.managers import ServiceManager
@@ -64,6 +65,15 @@ def serializer_error_msg(errors, default=''):
     return msg
 
 
+def get_client_ip(request) -> str:
+    try:
+        client_ip, proxy_ips = IPRestrictor.get_remote_ip(request=request)
+    except Exception as exc:
+        return ''
+
+    return client_ip if client_ip else ''
+
+
 def exception_handler(exc, context):
     """
     Returns the response that should be used for any given exception.
@@ -100,6 +110,7 @@ def exception_handler(exc, context):
     full_path = ''
     username = ''
     err_msg = msg = str(exc)
+    client_ip = ''
     try:
         request = context.get('request', None)
         if request:
@@ -109,10 +120,12 @@ def exception_handler(exc, context):
                 username = request.user.username
 
             msg = f'{status_code} {method} {full_path} [{msg}]'
+            client_ip = get_client_ip(request)
     except Exception:
         pass
 
-    ErrorLog.add_log(status_code=status_code, method=method, full_path=full_path, message=err_msg, username=username)
+    ErrorLog.add_log(status_code=status_code, method=method, full_path=full_path, message=err_msg, username=username,
+                     client_ip=client_ip)
     logger.error(msg=msg)
     return Response(exc.err_data(), status=status_code)
 
@@ -140,7 +153,9 @@ def log_err_response(_logger, request, response):
     if bool(request.user and request.user.is_authenticated):
         username = request.user.username
 
-    ErrorLog.add_log(status_code=status_code, method=method, full_path=full_path, message=err_msg, username=username)
+    client_ip = get_client_ip(request)
+    ErrorLog.add_log(status_code=status_code, method=method, full_path=full_path, message=err_msg, username=username,
+                     client_ip=client_ip)
 
     if 400 <= response.status_code < 500:
         _logger.warning(msg)
