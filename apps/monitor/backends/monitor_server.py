@@ -122,7 +122,7 @@ class MonitorServerQueryAPI:
         """
         try:
             async with aiohttp.ClientSession() as client:
-                r = await client.get(url=url, timeout=aiohttp.ClientTimeout(connect=5, total=30))
+                r = await client.get(url=url, timeout=aiohttp.ClientTimeout(sock_connect=5, total=30))
                 await r.read()
         except aiohttp.ClientConnectionError:
             raise errors.Error(message='server backend,query api request timeout')

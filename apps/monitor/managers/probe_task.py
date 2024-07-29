@@ -200,7 +200,7 @@ class ProbeTaskClient:
             async with aiohttp.ClientSession() as client:
                 r = await client.post(
                     url=url, json=data, auth=aiohttp.BasicAuth(login=auth[0], password=auth[1]),
-                    timeout=aiohttp.ClientTimeout(connect=6, total=60))
+                    timeout=aiohttp.ClientTimeout(sock_connect=6, total=60))
         except aiohttp.ClientConnectionError:
             raise errors.Error(message='request timeout')
         except aiohttp.ClientError as exc:

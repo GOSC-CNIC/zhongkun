@@ -418,14 +418,14 @@ class SnapshotCreateSerializer(serializers.Serializer):
     snapshot_name = serializers.CharField(label=_('快照名称'), required=True, max_length=128)
     server_id = serializers.CharField(label=_('云主机ID'), required=True)
     period = serializers.IntegerField(label=_('订购时长，单位由period_unit指定'), required=True)
-    period_unit = serializers.CharField(label=_('时长单位'), required=True)
+    period_unit = serializers.CharField(label=_('时长单位'), required=True, help_text='choice in [day、month]')
     description = serializers.CharField(label=_('快照描述'), required=False, allow_blank=True, max_length=255, default='')
 
 
 class SnapshotRenewSerializer(serializers.Serializer):
     snapshot_id = serializers.CharField(label=_('快照ID'), required=True, max_length=36)
     period = serializers.IntegerField(label=_('订购时长，单位由period_unit指定'), required=True)
-    period_unit = serializers.CharField(label=_('时长单位'), required=True)
+    period_unit = serializers.CharField(label=_('时长单位'), required=True, help_text='choice in [day、month]')
 
 
 class SnapshotUpdateSerializer(serializers.Serializer):
