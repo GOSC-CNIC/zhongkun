@@ -22,6 +22,10 @@ from apps.report.workers.report_generator import (
     MonthlyReportGenerator, MonthlyReportNotifier, get_report_period_start_and_end,
     last_target_day_date
 )
+from apps.servers.managers import ServerSnapshotManager
+from apps.servers.models import ServerSnapshot
+from apps.app_scan.managers import TaskManager
+from apps.app_scan.models import VtTask
 
 
 class MonthlyReportTests(TransactionTestCase):
@@ -62,7 +66,7 @@ class MonthlyReportTests(TransactionTestCase):
             time=datetime.time(hour=23, minute=59, second=59, microsecond=999999, tzinfo=utc))
 
     @staticmethod
-    def create_order_date(payment_time: datetime.datetime, vo, user, length: int, resource_type=ResourceType.VM.value):
+    def create_order_data(payment_time: datetime.datetime, vo, user, length: int, resource_type=ResourceType.VM.value):
         order_list = []
         for i in range(length):
             order = Order(
@@ -100,9 +104,9 @@ class MonthlyReportTests(TransactionTestCase):
 
         return order_list
 
-    def init_order_date(self):
+    def init_order_data(self):
         # user1
-        order_list = self.create_order_date(
+        order_list = self.create_order_data(
             payment_time=self.report_period_start_time, user=self.user1, vo=None, length=6)
         # 1，2，3，4 in last month; ok (1, 2, 4), 0+1+3=4
         order1, order2, order3, order4, order5, order6 = order_list
@@ -125,7 +129,7 @@ class MonthlyReportTests(TransactionTestCase):
         order6.status = Order.Status.PAID.value
         order6.save(update_fields=['payment_time', 'status'])
 
-        disk_order_list = self.create_order_date(
+        disk_order_list = self.create_order_data(
             payment_time=self.report_period_start_time, user=self.user1, vo=None, length=6,
             resource_type=ResourceType.DISK.value)
         # 1，2，3 in last month; ok (1, 2), 0+1=1
@@ -150,7 +154,7 @@ class MonthlyReportTests(TransactionTestCase):
         d_order6.save(update_fields=['payment_time', 'status'])
 
         # vo1
-        order_list = self.create_order_date(
+        order_list = self.create_order_data(
             payment_time=self.report_period_start_time, user=None, vo=self.vo1, length=7)
         # 1，2，3，4, 7 in last month; ok (1, 2, 4, 7), 0+1+3+6=10
         order1, order2, order3, order4, order5, order6, order7 = order_list
@@ -177,7 +181,7 @@ class MonthlyReportTests(TransactionTestCase):
         order7.status = Order.Status.PAID.value
         order7.save(update_fields=['payment_time', 'status'])
 
-        disk_order_list = self.create_order_date(
+        disk_order_list = self.create_order_data(
             payment_time=self.report_period_start_time, user=None, vo=self.vo1, length=7,
             resource_type=ResourceType.DISK.value)
         # 1，4, 5, 6 in last month; ok (1, 4, 5, 6), 0+3+4+5=12
@@ -519,6 +523,216 @@ class MonthlyReportTests(TransactionTestCase):
         self.create_site_statement(
             date_=self.report_period_start, user=self.user2, length=8)
 
+    def init_vm_snapshot_orders(self):
+        # user1
+        snap_order_list = self.create_order_data(
+            payment_time=self.report_period_start_time, user=self.user1, vo=None, length=6,
+            resource_type=ResourceType.VM_SNAPSHOT.value)
+        # 1，2，3，6 in last month; ok (1, 2, 6), 0+1+5=6
+        sp_order1, sp_order2, sp_order3, sp_order4, sp_order5, sp_order6 = snap_order_list
+        sp_order2.payment_time = self.report_period_start_time + timedelta(minutes=10)
+        sp_order2.status = Order.Status.PAID.value
+        sp_order2.trading_status = Order.TradingStatus.COMPLETED.value
+        sp_order2.save(update_fields=['payment_time', 'status', 'trading_status'])
+        sp_order3.payment_time = self.report_period_start_time + timedelta(days=11)
+        sp_order3.status = Order.Status.UNPAID.value
+        sp_order3.save(update_fields=['payment_time', 'status'])
+
+        sp_order4.payment_time = self.report_period_start_time - timedelta(days=21, minutes=40)
+        sp_order4.status = Order.Status.PAID.value
+        sp_order4.trading_status = Order.TradingStatus.COMPLETED.value
+        sp_order4.save(update_fields=['payment_time', 'status', 'trading_status'])
+        sp_order5.payment_time = self.report_period_start_time - timedelta(minutes=50)
+        sp_order5.status = Order.Status.REFUND.value
+        sp_order5.save(update_fields=['payment_time', 'status'])
+        sp_order6.payment_time = self.report_period_start_time + timedelta(minutes=15)
+        sp_order6.status = Order.Status.PAID.value
+        sp_order6.save(update_fields=['payment_time', 'status'])
+
+        # vo1
+        vo_sp_order_list = self.create_order_data(
+            payment_time=self.report_period_start_time, user=None, vo=self.vo1, length=7,
+            resource_type=ResourceType.VM_SNAPSHOT.value)
+        # 1，4, 5, 6 in last month; ok (1, 4, 5, 6), 0+3+4+5=12
+        order1, vo_sp_order2, vo_sp_order3, order4, order5, order6, vo_sp_order7 = vo_sp_order_list
+        vo_sp_order2.payment_time = self.report_period_start_time - timedelta(minutes=12)
+        vo_sp_order2.status = Order.Status.PAID.value
+        vo_sp_order2.trading_status = Order.TradingStatus.COMPLETED.value
+        vo_sp_order2.save(update_fields=['payment_time', 'status', 'trading_status'])
+        vo_sp_order3.payment_time = self.report_period_start_time + timedelta(days=30)
+        vo_sp_order3.status = Order.Status.UNPAID.value
+        vo_sp_order3.save(update_fields=['payment_time', 'status'])
+        vo_sp_order7.payment_time = self.report_period_start_time - timedelta(days=25, minutes=6, seconds=1)
+        vo_sp_order7.status = Order.Status.PAID.value
+        vo_sp_order7.save(update_fields=['payment_time', 'status'])
+
+    def init_vm_snapshot_data(self):
+        self.init_vm_snapshot_orders()
+        ServerSnapshotManager.create_snapshot_metadata(
+            instance_id='', name='', size_dib=6, remarks='',
+            creation_time=self.report_period_start_time - timedelta(days=1),
+            expiration_time=self.report_period_start_time + timedelta(days=100),
+            start_time=self.report_period_start_time - timedelta(days=1),
+            pay_type=PayType.PREPAID.value,
+            classification=ServerSnapshot.Classification.PERSONAL.value,
+            user=self.user1, vo=None, server=None, service=None
+        )
+        u1_snap1 = ServerSnapshotManager.create_snapshot_metadata(
+            instance_id='', name='', size_dib=6, remarks='',
+            creation_time=self.report_period_start_time + timedelta(days=1),
+            expiration_time=self.report_period_start_time + timedelta(days=100),
+            start_time=self.report_period_start_time + timedelta(days=1),
+            pay_type=PayType.PREPAID.value,
+            classification=ServerSnapshot.Classification.PERSONAL.value,
+            user=self.user1, vo=None, server=None, service=None
+        )
+        u1_snap2 = ServerSnapshotManager.create_snapshot_metadata(
+            instance_id='', name='', size_dib=6, remarks='',
+            creation_time=self.report_period_start_time + timedelta(days=15),
+            expiration_time=self.report_period_start_time + timedelta(days=110),
+            start_time=self.report_period_start_time + timedelta(days=15),
+            pay_type=PayType.PREPAID.value,
+            classification=ServerSnapshot.Classification.PERSONAL.value,
+            user=self.user1, vo=None, server=None, service=None,
+            deleted=True, deleted_time=self.report_period_end_time + timedelta(days=1)
+        )
+        ServerSnapshotManager.create_snapshot_metadata(
+            instance_id='', name='', size_dib=6, remarks='',
+            creation_time=self.report_period_end_time + timedelta(days=1),
+            expiration_time=self.report_period_start_time + timedelta(days=110),
+            start_time=self.report_period_end_time + timedelta(days=1),
+            pay_type=PayType.PREPAID.value,
+            classification=ServerSnapshot.Classification.PERSONAL.value,
+            user=self.user1, vo=None, server=None, service=None
+        )
+
+        # vo1
+        vo1_snap1 = ServerSnapshotManager.create_snapshot_metadata(
+            instance_id='', name='', size_dib=6, remarks='',
+            creation_time=self.report_period_start_time + timedelta(days=15),
+            expiration_time=self.report_period_start_time + timedelta(days=110),
+            start_time=self.report_period_start_time + timedelta(days=15),
+            pay_type=PayType.PREPAID.value,
+            classification=ServerSnapshot.Classification.VO.value,
+            user=self.user1, vo=self.vo1, server=None, service=None
+        )
+        ServerSnapshotManager.create_snapshot_metadata(
+            instance_id='', name='', size_dib=6, remarks='',
+            creation_time=self.report_period_end_time + timedelta(days=1),
+            expiration_time=self.report_period_start_time + timedelta(days=110),
+            start_time=self.report_period_end_time + timedelta(days=1),
+            pay_type=PayType.PREPAID.value,
+            classification=ServerSnapshot.Classification.PERSONAL.value,
+            user=self.user2, vo=self.vo1, server=None, service=None
+        )
+
+    def init_scan_tasks(self):
+        # user1, this month 2 web task
+        web_task1 = TaskManager.create_task(
+            user_id=self.user1.id, name='web tast 1', type=VtTask.TaskType.WEB.value,
+            target='https://test1.cn', remark=''
+        )
+        web_task1.create_time = self.report_period_start_time - timedelta(days=1)
+        web_task1.save(update_fields=['create_time'])
+
+        web_task2 = TaskManager.create_task(
+            user_id=self.user1.id, name='web tast 2', type=VtTask.TaskType.WEB.value,
+            target='https://test3.cn', remark=''
+        )
+        web_task2.create_time = self.report_period_start_time + timedelta(days=1)
+        web_task2.save(update_fields=['create_time'])
+
+        web_task3 = TaskManager.create_task(
+            user_id=self.user1.id, name='web tast 3', type=VtTask.TaskType.WEB.value,
+            target='https://test3.cn', remark=''
+        )
+        web_task3.create_time = self.report_period_start_time + timedelta(days=25)
+        web_task3.save(update_fields=['create_time'])
+
+        web_task4 = TaskManager.create_task(
+            user_id=self.user1.id, name='web tast 4', type=VtTask.TaskType.WEB.value,
+            target='https://test3.cn', remark=''
+        )
+        web_task4.create_time = self.report_period_end_time + timedelta(days=1)
+        web_task4.save(update_fields=['create_time'])
+
+        # user2, this month 1 web task
+        web_task5 = TaskManager.create_task(
+            user_id=self.user2.id, name='web tast 5', type=VtTask.TaskType.WEB.value,
+            target='https://test5.cn', remark=''
+        )
+        web_task5.create_time = self.report_period_end_time - timedelta(days=1)
+        web_task5.save(update_fields=['create_time'])
+
+        # user2, this month 1 host task
+        host_task1 = TaskManager.create_task(
+            user_id=self.user1.id, name='host tast 1', type=VtTask.TaskType.HOST.value,
+            target='10.8.3.1', remark=''
+        )
+        host_task1.create_time = self.report_period_start_time - timedelta(days=1)
+        host_task1.save(update_fields=['create_time'])
+
+        host_task2 = TaskManager.create_task(
+            user_id=self.user1.id, name='host tast 2', type=VtTask.TaskType.HOST.value,
+            target='10.8.3.1', remark=''
+        )
+        host_task2.create_time = self.report_period_end_time - timedelta(days=1)
+        host_task2.save(update_fields=['create_time'])
+
+        host_task3 = TaskManager.create_task(
+            user_id=self.user1.id, name='host tast 3', type=VtTask.TaskType.HOST.value,
+            target='10.8.3.3', remark=''
+        )
+        host_task3.create_time = self.report_period_end_time + timedelta(days=1)
+        host_task3.save(update_fields=['create_time'])
+
+    def init_scan_orders(self):
+        # user1
+        scan_order_list = self.create_order_data(
+            payment_time=self.report_period_start_time, user=self.user1, vo=None, length=6,
+            resource_type=ResourceType.SCAN.value)
+        # 1，2，3，6 in last month; ok (1, 2, 6), 0+1+5=6
+        sp_order1, sp_order2, sp_order3, sp_order4, sp_order5, sp_order6 = scan_order_list
+        sp_order2.payment_time = self.report_period_start_time + timedelta(minutes=1)
+        sp_order2.status = Order.Status.PAID.value
+        sp_order2.trading_status = Order.TradingStatus.COMPLETED.value
+        sp_order2.save(update_fields=['payment_time', 'status', 'trading_status'])
+        sp_order3.payment_time = self.report_period_start_time + timedelta(days=16)
+        sp_order3.status = Order.Status.UNPAID.value
+        sp_order3.save(update_fields=['payment_time', 'status'])
+
+        sp_order4.payment_time = self.report_period_start_time - timedelta(days=22, minutes=40)
+        sp_order4.status = Order.Status.PAID.value
+        sp_order4.trading_status = Order.TradingStatus.COMPLETED.value
+        sp_order4.save(update_fields=['payment_time', 'status', 'trading_status'])
+        sp_order5.payment_time = self.report_period_start_time - timedelta(minutes=52)
+        sp_order5.status = Order.Status.REFUND.value
+        sp_order5.save(update_fields=['payment_time', 'status'])
+        sp_order6.payment_time = self.report_period_start_time + timedelta(minutes=13)
+        sp_order6.status = Order.Status.PAID.value
+        sp_order6.save(update_fields=['payment_time', 'status'])
+
+        # user2
+        scan_order_list = self.create_order_data(
+            payment_time=self.report_period_start_time, user=self.user2, vo=None, length=3,
+            resource_type=ResourceType.SCAN.value)
+        # 2 in last month; ok order2, amount=1
+        order1, order2, order3 = scan_order_list
+        order1.payment_time = self.report_period_start_time - timedelta(minutes=1)
+        order1.status = Order.Status.PAID.value
+        order1.trading_status = Order.TradingStatus.COMPLETED.value
+        order1.save(update_fields=['payment_time', 'status', 'trading_status'])
+        order2.payment_time = self.report_period_start_time + timedelta(days=16)
+        order2.status = Order.Status.PAID.value
+        order2.save(update_fields=['payment_time', 'status'])
+        order3.payment_time = self.report_period_start_time + timedelta(days=17)
+        order3.status = Order.Status.UNPAID.value
+        order3.save(update_fields=['payment_time', 'status'])
+
+    def init_scan_data(self):
+        self.init_scan_orders()
+        self.init_scan_tasks()
+
     def test_monthly_report(self):
         # ----- no data ----
         mrg = MonthlyReportGenerator(limit=1, log_stdout=True)
@@ -578,6 +792,11 @@ class MonthlyReportTests(TransactionTestCase):
         self.assertEqual(u1_report.site_original_amount, Decimal('0'))
         self.assertEqual(u1_report.site_payable_amount, Decimal('0'))
         self.assertEqual(u1_report.site_paid_amount, Decimal('0'))
+        self.assertEqual(u1_report.s_snapshot_count, 0)
+        self.assertEqual(u1_report.s_snapshot_prepaid_amount, Decimal('0'))
+        self.assertEqual(u1_report.scan_web_count, 0)
+        self.assertEqual(u1_report.scan_host_count, 0)
+        self.assertEqual(u1_report.scan_prepaid_amount, Decimal('0'))
         self.assertEqual(BucketMonthlyReport.objects.filter(
             user_id=self.user1.id, report_date=self.report_period_date).count(), 0)
 
@@ -587,7 +806,7 @@ class MonthlyReportTests(TransactionTestCase):
         self.assertEqual(len(mail.outbox), 0)
 
         # ----- init data ----
-        self.init_order_date()
+        self.init_order_data()
         self.init_server_metering_data()
         self.init_server_daily_statement()
         u1_b1, u1_ba2, u1_b3, u2_b4 = self.init_bucket_data()
@@ -597,6 +816,8 @@ class MonthlyReportTests(TransactionTestCase):
         self.init_disk_daily_statement()
         self.init_site_metering_data()
         self.init_site_statement_data()
+        self.init_vm_snapshot_data()
+        self.init_scan_data()
 
         # 再此运行不会重复产生月度报表
         MonthlyReportGenerator(limit=1, log_stdout=True).run(check_time=False)
@@ -631,6 +852,11 @@ class MonthlyReportTests(TransactionTestCase):
         self.assertEqual(u1_report.site_original_amount, Decimal('0'))
         self.assertEqual(u1_report.site_payable_amount, Decimal('0'))
         self.assertEqual(u1_report.site_paid_amount, Decimal('0'))
+        self.assertEqual(u1_report.s_snapshot_count, 0)
+        self.assertEqual(u1_report.s_snapshot_prepaid_amount, Decimal('0'))
+        self.assertEqual(u1_report.scan_web_count, 0)
+        self.assertEqual(u1_report.scan_host_count, 0)
+        self.assertEqual(u1_report.scan_prepaid_amount, Decimal('0'))
         self.assertEqual(BucketMonthlyReport.objects.filter(
             user_id=self.user1.id, report_date=self.report_period_date).count(), 0)
 
@@ -684,6 +910,12 @@ class MonthlyReportTests(TransactionTestCase):
         val = Decimal.from_float(2 + 3 + 4 + 5) + Decimal('0.12') * 4
         self.assertEqual(u1_report.site_paid_amount, val)
 
+        self.assertEqual(u1_report.s_snapshot_count, 3)
+        self.assertEqual(u1_report.s_snapshot_prepaid_amount, Decimal(f'{0 + 1 + 5}'))
+        self.assertEqual(u1_report.scan_web_count, 2)
+        self.assertEqual(u1_report.scan_host_count, 1)
+        self.assertEqual(u1_report.scan_prepaid_amount, Decimal(f'{0 + 1 + 5}'))
+
         # bucket
         self.assertEqual(BucketMonthlyReport.objects.filter(
             user_id=self.user1.id, report_date=self.report_period_date).count(), 3)
@@ -729,6 +961,11 @@ class MonthlyReportTests(TransactionTestCase):
         self.assertEqual(u2_report.site_payable_amount, Decimal(f'{2 + 3 + 4 + 5 + 6 + 7}'))
         val = Decimal.from_float(2 + 3 + 4 + 5 + 6 + 7) + Decimal('0.12') * 6
         self.assertEqual(u2_report.site_paid_amount, val)
+        self.assertEqual(u2_report.s_snapshot_count, 0)
+        self.assertEqual(u2_report.s_snapshot_prepaid_amount, Decimal('0'))
+        self.assertEqual(u2_report.scan_web_count, 1)
+        self.assertEqual(u2_report.scan_host_count, 0)
+        self.assertEqual(u2_report.scan_prepaid_amount, Decimal('1'))
 
         # vo1
         vo1_report: MonthlyReport = MonthlyReport.objects.filter(
@@ -770,6 +1007,12 @@ class MonthlyReportTests(TransactionTestCase):
         self.assertEqual(vo1_report.site_payable_amount, Decimal('0'))
         self.assertEqual(vo1_report.site_paid_amount, Decimal('0'))
 
+        self.assertEqual(vo1_report.s_snapshot_count, 1)
+        self.assertEqual(vo1_report.s_snapshot_prepaid_amount, Decimal(f'{3 + 4 + 5}'))
+        self.assertEqual(vo1_report.scan_web_count, 0)
+        self.assertEqual(vo1_report.scan_host_count, 0)
+        self.assertEqual(vo1_report.scan_prepaid_amount, Decimal('0'))
+
         # vo2
         vo2_report: MonthlyReport = MonthlyReport.objects.filter(
             report_date=self.report_period_date, vo_id=self.vo2.id, owner_type=OwnerType.VO.value).first()
@@ -802,6 +1045,11 @@ class MonthlyReportTests(TransactionTestCase):
         self.assertEqual(vo2_report.site_original_amount, Decimal('0'))
         self.assertEqual(vo2_report.site_payable_amount, Decimal('0'))
         self.assertEqual(vo2_report.site_paid_amount, Decimal('0'))
+        self.assertEqual(vo2_report.s_snapshot_count, 0)
+        self.assertEqual(vo2_report.s_snapshot_prepaid_amount, Decimal('0'))
+        self.assertEqual(vo2_report.scan_web_count, 0)
+        self.assertEqual(vo2_report.scan_host_count, 0)
+        self.assertEqual(vo2_report.scan_prepaid_amount, Decimal('0'))
 
         # 邮件
         self.assertEqual(len(mail.outbox), 0)

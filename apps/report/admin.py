@@ -1,21 +1,25 @@
 from django.contrib import admin
+from django.utils.translation import gettext, gettext_lazy as _
+from django.utils.html import format_html
+from django.urls import reverse
 
-from utils.model import NoDeleteSelectModelAdmin, BaseModelAdmin
+from utils.model import NoDeleteSelectModelAdmin, BaseModelAdmin, OwnerType
 from .models import MonthlyReport, BucketMonthlyReport, BucketStatsMonthly, ArrearServer, ArrearBucket
 
 
 @admin.register(MonthlyReport)
 class MonthlyReportAdmin(NoDeleteSelectModelAdmin):
     list_display_links = ('id',)
-    list_display = ('id', 'report_date', 'is_reported', 'owner_type', 'user', 'vo', 'server_count',
+    list_display = ('show_preview_url', 'id', 'report_date', 'is_reported', 'owner_type', 'user', 'vo', 'server_count',
                     'server_original_amount', 'server_payable_amount', 'server_postpaid_amount',
                     'server_prepaid_amount', 'server_cpu_days', 'server_ram_days', 'server_disk_days',
-                    'server_ip_days', 'bucket_count', 'storage_days', 'storage_original_amount',
+                    'server_ip_days', 's_snapshot_count', 's_snapshot_prepaid_amount',
+                    'bucket_count', 'storage_days', 'storage_original_amount',
                     'storage_payable_amount', 'storage_postpaid_amount',
                     'disk_count', 'disk_size_days', 'disk_original_amount', 'disk_payable_amount',
                     'disk_postpaid_amount', 'disk_prepaid_amount',
                     'site_count', 'site_days', 'site_tamper_days', 'site_original_amount', 'site_payable_amount',
-                    'site_paid_amount', 'notice_time')
+                    'site_paid_amount', 'scan_web_count', 'scan_host_count', 'scan_prepaid_amount', 'notice_time')
     search_fields = ['id', 'user__username', 'vo__name']
     list_filter = ['is_reported', 'owner_type']
     raw_id_fields = ('user', 'vo')
@@ -29,6 +33,15 @@ class MonthlyReportAdmin(NoDeleteSelectModelAdmin):
 
     def has_add_permission(self, request):
         return False
+
+    @admin.display(description=_('预览'))
+    def show_preview_url(self, obj):
+        if obj.owner_type == OwnerType.VO.value:
+            return ''
+
+        preview_url = reverse('report:detail-monthly-report', kwargs={'report_id': obj.id})
+        disp = gettext('预览')
+        return format_html(f'<a target="view_frame" href="{preview_url}">{disp}</a>')
 
 
 @admin.register(BucketMonthlyReport)

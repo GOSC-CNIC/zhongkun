@@ -73,6 +73,14 @@ class MonthlyReport(UuidModel):
     site_paid_amount = models.DecimalField(
         verbose_name=_('站点监控付费金额'), max_digits=10, decimal_places=2, default=Decimal('0.00'))
 
+    s_snapshot_count = models.IntegerField(verbose_name=_('云主机快照数'), default=0)
+    s_snapshot_prepaid_amount = models.DecimalField(
+        verbose_name=_('快照预付费金额'), max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    scan_web_count = models.IntegerField(verbose_name=_('Web安全扫描数'), default=0)
+    scan_host_count = models.IntegerField(verbose_name=_('Host安全扫描数'), default=0)
+    scan_prepaid_amount = models.DecimalField(
+        verbose_name=_('安全扫描预付费金额'), max_digits=10, decimal_places=2, default=Decimal('0.00'))
+
     class Meta:
         verbose_name = _('月度报表')
         verbose_name_plural = verbose_name
@@ -100,7 +108,7 @@ class MonthlyReport(UuidModel):
 
     @property
     def server_payment_amount(self):
-        return self.server_postpaid_amount + self.server_prepaid_amount
+        return self.server_postpaid_amount + self.server_prepaid_amount + self.s_snapshot_prepaid_amount
 
     @property
     def disk_payment_amount(self):
@@ -112,12 +120,16 @@ class MonthlyReport(UuidModel):
 
     @property
     def total_payment_amount(self):
-        return self.server_disk_payment_amount + self.storage_postpaid_amount
+        return (
+                self.server_disk_payment_amount + self.storage_postpaid_amount + self.scan_prepaid_amount
+                + self.site_paid_amount
+        )
 
     @property
     def has_resources(self):
         return (
-                self.server_count or self.disk_count or self.bucket_count
+                self.server_count or self.disk_count or self.bucket_count or self.site_count or self.scan_web_count
+                or self.scan_host_count
         )
 
 

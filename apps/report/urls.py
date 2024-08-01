@@ -8,5 +8,6 @@ app_name = 'report'
 
 urlpatterns = [
     path('monthly', views.monthly_report_view, name='monthly-report'),
+    path('monthly/<str:report_id>', views.detail_monthly_report_view, name='detail-monthly-report'),
 ]
 

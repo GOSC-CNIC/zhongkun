@@ -46,14 +46,15 @@
             </caption>
             {% if monthly_report.server_count %}
             <tr>
-                <td colspan="9" class="title1">开放科学云主机（数量：{{ monthly_report.server_count }}，总结算点数：{{ monthly_report.server_payment_amount }}）</td>
+                <td colspan="10" class="title1">开放科学云主机（数量：{{ monthly_report.server_count }}，总结算点数：{{ monthly_report.server_payment_amount }}）</td>
             </tr>
             <tr class="title2">
                 <td style="width: 14%;">云主机IP</td>
                 <td style="width: 10%;">公网IP<br>（个*天）</td>
-                <td style="width: 11%;">vCPU<br>（核*天）</td>
-                <td style="width: 11%;">内存<br>（GB*天）</td>
-                <td style="width: 11%;">系统硬盘<br>（GB*天）</td>
+                <td style="width: 10%;">vCPU<br>（核*天）</td>
+                <td style="width: 10%;">内存<br>（GB*天）</td>
+                <td style="width: 10%;">系统硬盘<br>（GB*天）</td>
+                <td style="width: 4%;">快照<br>（个）</td>
                 <td style="width: 11%">网络费用</td>
                 <td style="width: 12%">计量点数</td>
                 <td style="width: 12%">结算点数</td>
@@ -66,6 +67,7 @@
                     <td>{{ mr.total_cpu_hours|floatformat:2 }}</td>
                     <td>{{ mr.total_ram_hours|floatformat:2 }}</td>
                     <td>{{ mr.total_disk_hours|floatformat:2 }}</td>
+                    <td>{{ mr.snapshot_count }}</td>
                     <td>10Gb科技网共享限量免费</td>
                     <td>{{ mr.total_original_amount|floatformat:2 }}</td>
                     <td>{{ mr.total_amount|floatformat:2 }}</td>
@@ -77,12 +79,12 @@
             {% endif %}
             {% if user_disk_reports %}
             <tr class="title1">
-                <td colspan="9">云硬盘（数量：{{ monthly_report.disk_count }}，总结算点数：{{ monthly_report.disk_payment_amount }}）</td>
+                <td colspan="10">云硬盘（数量：{{ monthly_report.disk_count }}，总结算点数：{{ monthly_report.disk_payment_amount }}）</td>
             </tr>
             <tr class= "title2">
                 <td colspan="2">云硬盘ID和备注</td>
                 <td colspan="1">容量（GB）</td>
-                <td colspan="2">容量用量（GB*天）</td>
+                <td colspan="3">容量用量（GB*天）</td>
                 <td>网络费用</td>
                 <td>计量点数</td>
                 <td>结算点数</td>
@@ -92,7 +94,7 @@
             <tr class="content">
                 <td colspan="2"><span class="t-sec">{{ dmr.disk.id }}</span><br>{{ dmr.disk.remarks }}</td>
                 <td>{{ dmr.disk.size}}</td>
-                <td colspan="2">{{ dmr.total_size_hours|floatformat:2 }}</td>
+                <td colspan="3">{{ dmr.total_size_hours|floatformat:2 }}</td>
                 <td>10Gb科技网共享限量免费</td>
                 <td>{{ dmr.total_original_amount|floatformat:2 }}</td>
                 <td>{{ dmr.total_amount|floatformat:2 }}</td>
@@ -104,11 +106,11 @@
             {% endif %}
             {% if bucket_reports %}
             <tr class="title1">
-                <td colspan="9">对象存储（存储桶数量：{{ bucket_reports_len }}，总结算点数：{{ monthly_report.storage_postpaid_amount }}）</td>
+                <td colspan="10">对象存储（存储桶数量：{{ bucket_reports_len }}，总结算点数：{{ monthly_report.storage_postpaid_amount }}）</td>
             </tr>
             <tr class= "title2">
                 <td colspan="3">存储桶名称</td>
-                <td colspan="2">存储用量（GB*天）</td>
+                <td colspan="3">存储用量（GB*天）</td>
                 <td>网络费用</td>
                 <td>计量点数</td>
                 <td>结算点数</td>
@@ -117,7 +119,7 @@
             {% for b in bucket_reports %}
                 <tr>
                     <td colspan="3">{{ b.bucket_name }}</td>
-                    <td colspan="2">{{ b.storage_days | floatformat:2 }}</td>
+                    <td colspan="3">{{ b.storage_days | floatformat:2 }}</td>
                     <td>10Gb科技网共享限量免费</td>
                     <td>{{ b.original_amount }}</td>
                     <td>{{ b.payable_amount }}</td>
@@ -126,6 +128,42 @@
                     {% endif %}
                 </tr>
             {% endfor %}
+            {% endif %}
+            {% if monthly_report.site_count %}
+                <tr class="title1">
+                    <td colspan="10">站点监控</td>
+                </tr>
+                <tr class= "title2">
+                    <td colspan="3">监控站点数量</td>
+                    <td colspan="4">监控用量（个*天）</td>
+                    <td>计量点数</td>
+                    <td>结算点数</td>
+                    <td>用量明细</td>
+                </tr>
+                <tr>
+                    <td colspan="3">{{ monthly_report.site_count }}</td>
+                    <td colspan="4">{{ monthly_report.site_days | floatformat:2 }}</td>
+                    <td>{{ monthly_report.site_original_amount }}</td>
+                    <td>{{ monthly_report.site_paid_amount }}</td>
+                    <td rowspan="1"><a target="view_window" href="{{ own_site_url }}/my/stats/site" >点击查看使用明细</a></td>
+                </tr>
+            {% endif %}
+            {% if monthly_report.scan_web_count or monthly_report.scan_host_count %}
+                <tr class="title1">
+                    <td colspan="10">安全扫描</td>
+                </tr>
+                <tr class= "title2">
+                    <td colspan="3">Web扫描任务数</td>
+                    <td colspan="4">Host扫描任务数</td>
+                    <td colspan="2">结算点数</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td colspan="3">{{ monthly_report.scan_web_count }}</td>
+                    <td colspan="4">{{ monthly_report.scan_host_count }}</td>
+                    <td colspan="2">{{ monthly_report.scan_prepaid_amount }}</td>
+                    <td></td>
+                </tr>
             {% endif %}
         </table>
     {% endif %}
@@ -165,7 +203,8 @@
                             {% endif %}
                         </td>
                         <td colspan="3">{{ vo_info.own_role }}</td>
-                        <td colspan="3">云主机 {{ vmr.server_count }}{% if vmr.disk_count %}<br><br>云硬盘 {{ vmr.disk_count }}{% endif %}</td>
+                        <td colspan="3">云主机 {{ vmr.server_count }}{% if vmr.disk_count %}<br><br>云硬盘 {{ vmr.disk_count }}{% endif %}
+                        {% if vmr.s_snapshot_count %}<br><br>快照<br>{{ vmr.s_snapshot_count }}{% endif %}</td>
                         <td colspan="2">{{ vmr.server_disk_payment_amount }}</td>
                         <td colspan="6">
                             云主机：<br>
@@ -177,6 +216,7 @@
                             {% if vmr.disk_count %}<br>云硬盘：<br>
                             容量 {{ vmr.disk_size_days | floatformat:2 }} GB*天<br>
                             计量点数 {{ vmr.disk_original_amount | floatformat:2 }}{% endif %}
+                            {% if vmr.s_snapshot_count %}<br>云主机快照：<br>结算点数 {{ vmr.s_snapshot_prepaid_amount | floatformat:2 }}{% endif %}
                         </td>
                         <td colspan="2"><a target="view_window" href="{{ own_site_url }}/my/stats/consumption/group/{{ vo_info.vo.id }}">点击查询用量明细</a></td>
                     </tr>

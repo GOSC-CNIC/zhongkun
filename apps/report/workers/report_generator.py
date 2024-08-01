@@ -21,9 +21,10 @@ from apps.order.models import Order, Resource, ResourceType
 from utils.model import OwnerType, PayType
 from utils.time import utc
 from apps.app_wallet.models import CashCoupon, CashCouponPaymentHistory
-from apps.servers.models import Server, ServerArchive, Disk
+from apps.servers.models import Server, ServerArchive, Disk, ServerSnapshot
 from core import site_configs_manager as site_configs
 from core.loggers import config_script_logger
+from apps.app_scan.models import VtTask
 
 
 def get_target_month_first_day_last_day(target_date: datetime.date):
@@ -363,6 +364,28 @@ class MonthlyReportGenerator:
             total_trade_amount=Sum('trade_amount', default=Decimal('0.00'))
         )
 
+        # 月度云主机快照数，快照预付费金额
+        snap_report = MonthlyReportGenerator.get_vo_or_user_snapshot_report(
+            vo_id=None, user_id=user.id,
+            report_period_start_time=report_period_start_time, report_period_end_time=report_period_end_time
+        )
+
+        # 安全扫描预付费金额
+        scan_order_agg = Order.objects.filter(
+            user_id=user.id, owner_type=OwnerType.USER.value,
+            payment_time__gte=report_period_start_time, payment_time__lte=report_period_end_time,
+            status=Order.Status.PAID.value, pay_type=PayType.PREPAID.value, resource_type=ResourceType.SCAN.value
+        ).aggregate(
+            total_pay_amount=Sum('pay_amount')
+        )
+        # 安全扫描任务数
+        scan_web_count = VtTask.objects.filter(
+            user_id=user.id, type=VtTask.TaskType.WEB.value,
+            create_time__gte=report_period_start_time, create_time__lte=report_period_end_time).count()
+        scan_host_count = VtTask.objects.filter(
+            user_id=user.id, type=VtTask.TaskType.HOST.value,
+            create_time__gte=report_period_start_time, create_time__lte=report_period_end_time).count()
+
         month_report = MonthlyReport(
             creation_time=timezone.now(),
             report_date=report_date,
@@ -407,6 +430,15 @@ class MonthlyReportGenerator:
         month_report.site_original_amount = site_meter_agg['total_original_amount']
         month_report.site_payable_amount = site_meter_agg['total_trade_amount']
         month_report.site_paid_amount = site_state_agg['total_trade_amount']
+
+        # 云主机快照
+        month_report.s_snapshot_count = snap_report['snapshot_count']
+        month_report.s_snapshot_prepaid_amount = snap_report['total_pay_amount']
+        # 安全扫描
+        month_report.scan_web_count = scan_web_count
+        month_report.scan_host_count = scan_host_count
+        month_report.scan_prepaid_amount = scan_order_agg['total_pay_amount'] or Decimal('0.00')
+
         month_report.save(force_insert=True)
         return month_report
 
@@ -488,6 +520,43 @@ class MonthlyReportGenerator:
             'disk_prepaid_amount': disk_prepaid_amount
         }
 
+    @staticmethod
+    def get_vo_or_user_snapshot_report(
+            report_period_start_time, report_period_end_time,
+            user_id=None, vo_id=None
+    ):
+        # 云主机快照预付费金额
+        if user_id:
+            snap_order_agg_qs = Order.objects.filter(user_id=user_id, owner_type=OwnerType.USER.value)
+            snapshot_qs = ServerSnapshot.objects.filter(
+                user_id=user_id, classification=ServerSnapshot.Classification.PERSONAL.value
+            )
+        elif vo_id:
+            snap_order_agg_qs = Order.objects.filter(vo_id=vo_id, owner_type=OwnerType.VO.value)
+            snapshot_qs = ServerSnapshot.objects.filter(
+                vo_id=vo_id, classification=ServerSnapshot.Classification.VO.value
+            )
+        else:
+            raise Exception('get snapshot report, not submit "user_id" or "vo_id"')
+
+        snap_order_agg = snap_order_agg_qs.filter(
+            payment_time__gte=report_period_start_time, payment_time__lte=report_period_end_time,
+            status=Order.Status.PAID.value, pay_type=PayType.PREPAID.value, resource_type=ResourceType.VM_SNAPSHOT.value
+        ).aggregate(
+            total_pay_amount=Sum('pay_amount')
+        )
+        # 月度云主机快照数
+        snapshot_count = snapshot_qs.filter(
+            Q(creation_time__lte=report_period_end_time, deleted=False) |  # 未删除，创建时间在周期结束时间之前
+            Q(creation_time__lte=report_period_end_time, deleted_time__gte=report_period_start_time,
+              deleted=True)  # 删除，创建时间在周期结束时间之前, 删除时间在周期开始之后
+        ).count()
+
+        return {
+            'snapshot_count': snapshot_count,
+            'total_pay_amount': snap_order_agg['total_pay_amount'] or Decimal('0.00')
+        }
+
     def generate_report_for_vo(
             self, vo: VirtualOrganization, report_date: datetime.date,
             report_period_start: datetime.date, report_period_end: datetime.date,
@@ -564,6 +633,12 @@ class MonthlyReportGenerator:
             report_period_start_time=report_period_start_time, report_period_end_time=report_period_end_time
         )
 
+        # 月度云主机快照数，快照预付费金额
+        snap_report = MonthlyReportGenerator.get_vo_or_user_snapshot_report(
+            vo_id=vo.id, user_id=None,
+            report_period_start_time=report_period_start_time, report_period_end_time=report_period_end_time
+        )
+
         month_report = MonthlyReport(
             creation_time=timezone.now(),
             report_date=report_date,
@@ -609,6 +684,14 @@ class MonthlyReportGenerator:
         month_report.site_original_amount = Decimal('0.00')
         month_report.site_payable_amount = Decimal('0.00')
         month_report.site_paid_amount = Decimal('0.00')
+        # 云主机快照
+        month_report.s_snapshot_count = snap_report['snapshot_count']
+        month_report.s_snapshot_prepaid_amount = snap_report['total_pay_amount']
+        # 安全扫描
+        month_report.scan_web_count = 0
+        month_report.scan_host_count = 0
+        month_report.scan_prepaid_amount = Decimal('0.00')
+
         month_report.save(force_insert=True)
         return month_report
 
@@ -1034,6 +1117,28 @@ class MonthlyReportNotifier:
             user=user,
             report_period_start_time=report_period_start_time, report_period_end_time=report_period_end_time)
 
+        # 云主机快照数量和预付费金额
+        snapshot_qs = ServerSnapshot.objects.filter(
+            user_id=user.id, classification=ServerSnapshot.Classification.PERSONAL.value
+        ).filter(
+            Q(creation_time__lte=report_period_end_time, deleted=False) |  # 未删除，创建时间在周期结束时间之前
+            Q(creation_time__lte=report_period_end_time, deleted_time__gte=report_period_start_time,
+              deleted=True)  # 删除，创建时间在周期结束时间之前, 删除时间在周期开始之后
+        ).values('id', 'server_id')
+        snapshot_prepost_map = MonthlyReportNotifier.get_user_sv_snapshot_prepost_by_order(
+            user=user, report_period_start_time=report_period_start_time, report_period_end_time=report_period_end_time
+        )
+        sv_snapshot_map = {}
+        for spht in snapshot_qs:
+            snapshot_id = spht['id']
+            sv_id = spht['server_id']
+            if sv_id not in sv_snapshot_map:
+                sv_snapshot_map[sv_id] = {'snapshot_count': 0, 'pay_amount': Decimal('0.00')}
+
+            sv_snapshot_map[sv_id]['snapshot_count'] += 1
+            if snapshot_id in snapshot_prepost_map:
+                sv_snapshot_map[sv_id]['pay_amount'] += snapshot_prepost_map[snapshot_id]['pay_amount']
+
         for rpt in reports:
             total_cpu_hours = rpt['total_cpu_hours']
             total_cpu_hours = total_cpu_hours if total_cpu_hours else 0
@@ -1062,6 +1167,14 @@ class MonthlyReportNotifier:
                 rpt['total_prepost_amount'] = prepost_servers[server_id]['pay_amount']
             else:
                 rpt['total_prepost_amount'] = Decimal('0.00')
+
+            # 快照数和金额
+            sp_val = sv_snapshot_map.get(server_id, None)
+            if sp_val:
+                rpt['snapshot_count'] = sp_val['snapshot_count']
+                rpt['total_prepost_amount'] += sp_val['pay_amount']
+            else:
+                rpt['snapshot_count'] = 0
 
             rpt['total_amount'] = rpt['total_prepost_amount'] + rpt['total_trade_amount']
 
@@ -1366,3 +1479,19 @@ class MonthlyReportNotifier:
                 new_lines.append(line)
 
         return '\n'.join(new_lines)
+
+    @staticmethod
+    def get_user_sv_snapshot_prepost_by_order(user, report_period_start_time, report_period_end_time):
+        """
+        :return: {
+            "snapshot_id": {
+                "pay_amount": Decimal(),
+            }
+        }
+        """
+        # 云主机订购预付费金额
+        return MonthlyReportNotifier.get_user_resource_prepost_by_order(
+            user=user, report_period_start_time=report_period_start_time,
+            report_period_end_time=report_period_end_time,
+            resource_type=ResourceType.VM_SNAPSHOT.value
+        )
