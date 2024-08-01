@@ -1483,20 +1483,23 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
             creation=nt, modification=nt
         )
         self.website.save(force_insert=True)
+        self.mntr_label = testcase_settings['MONITOR_WEBSITE']['PROBE_LABEL']
 
     def test_query(self):
         website = self.website
 
         nt = timezone.now()
         detection_point1 = WebsiteDetectionPoint(
-            name='name1', name_en='name en1', creation=nt, modification=nt, remark='remark1', enable=True
+            name='name1', name_en='name en1', creation=nt, modification=nt, remark='remark1', enable=True,
+            mntr_label=self.mntr_label
         )
         detection_point1.save(force_insert=True)
 
         nt = timezone.now()
         detection_point2 = WebsiteDetectionPoint(
             name='name2', name_en='name en1', creation=nt, modification=nt,
-            remark='remark1', enable=False, provider=self.provider
+            remark='remark1', enable=False, provider=self.provider,
+            mntr_label=self.mntr_label
         )
         detection_point2.save(force_insert=True)
 
@@ -1657,14 +1660,15 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
         website = self.website
         nt = timezone.now()
         detection_point1 = WebsiteDetectionPoint(
-            name='name1', name_en='name en1', creation=nt, modification=nt, remark='remark1', enable=True
+            name='name1', name_en='name en1', creation=nt, modification=nt, remark='remark1', enable=True,
+            mntr_label=self.mntr_label
         )
         detection_point1.save(force_insert=True)
 
         nt = timezone.now()
         detection_point2 = WebsiteDetectionPoint(
             name='name2', name_en='name en1', creation=nt, modification=nt,
-            remark='remark1', enable=False, provider=self.provider
+            remark='remark1', enable=False, provider=self.provider, mntr_label=self.mntr_label
         )
         detection_point2.save(force_insert=True)
 
@@ -1912,14 +1916,14 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
         nt = timezone.now()
         detection_point1 = WebsiteDetectionPoint(
             name='name1', name_en='name en1', creation=nt, modification=nt, remark='remark1', enable=True,
-            provider=self.provider
+            provider=self.provider, mntr_label=self.mntr_label
         )
         detection_point1.save(force_insert=True)
 
         nt = timezone.now()
         detection_point2 = WebsiteDetectionPoint(
             name='name2', name_en='name en1', creation=nt, modification=nt,
-            remark='remark1', enable=False, provider=self.provider
+            remark='remark1', enable=False, provider=self.provider, mntr_label=self.mntr_label
         )
         detection_point2.save(force_insert=True)
 
@@ -1952,6 +1956,9 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
         r = self.duration_query_response(start=start, end=end, detection_point_id=detection_point2.id)
         self.assertErrorResponse(status_code=409, code='Conflict', response=r)
 
+        detection_point2.enable = True
+        detection_point2.save(update_fields=['enable'])
+
         # ok
         # 清除 可能的 探测点 缓存
         django_cache.delete(MonitorWebsiteManager.CACHE_KEY_DETECTION_POINT)
@@ -1978,14 +1985,14 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
         nt = timezone.now()
         detection_point1 = WebsiteDetectionPoint(
             name='name1', name_en='name en1', creation=nt, modification=nt, remark='remark1', enable=True,
-            provider=self.provider
+            provider=self.provider, mntr_label=self.mntr_label
         )
         detection_point1.save(force_insert=True)
 
         nt = timezone.now()
         detection_point2 = WebsiteDetectionPoint(
             name='name2', name_en='name en1', creation=nt, modification=nt,
-            remark='remark1', enable=False, provider=self.provider
+            remark='remark1', enable=False, provider=self.provider, mntr_label=self.mntr_label
         )
         detection_point2.save(force_insert=True)
 

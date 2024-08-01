@@ -224,7 +224,11 @@ class ServerSnapshotViewSet(CustomGenericViewSet):
         return SnapshotHandler.delete_server_snapshot(view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('用户个人或vo组的云主机回滚到快照')
+        operation_summary=gettext_lazy('用户个人或vo组的云主机回滚到快照'),
+        request_body=no_body,
+        responses={
+            200: ''
+        }
     )
     @action(methods=['POST'], detail=True, url_path=r'rollback/server/(?P<server_id>[^/]+)', url_name='rollback')
     def rollback_server(self, request, *args, **kwargs):

@@ -35,14 +35,15 @@ TEST_CASE = {
     },
     'MONITOR_WEBSITE': {
         'PROVIDER': {
-            'endpoint_url': 'http://thanoswrite.cstcloud.cn:19192/',
+            'endpoint_url': 'https://mimir.cstcloud.cn/mimir/',
             'username': '',
             'password': ''
         },
         'WEBSITE_URL': "http://www.acas.ac.cn/",
         'WEBSITE_SCHEME': "http://",
         'WEBSITE_HOSTNAME': "www.acas.ac.cn",
-        'WEBSITE_URI': "/"
+        'WEBSITE_URI': "/",
+        'PROBE_LABEL': 'cstnet'    # 探针标签
     },
     'MONITOR_TIDB': {
         'PROVIDER': {

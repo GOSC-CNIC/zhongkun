@@ -219,8 +219,9 @@ class Order(models.Model):
             self.save(update_fields=['order_action'])
 
     def set_completed(self):
-        update_fields = ['trading_status']
+        update_fields = ['trading_status', 'completion_time']
         self.trading_status = self.TradingStatus.COMPLETED.value
+        self.completion_time = timezone.now()
         try:
             self.save(update_fields=update_fields)
         except Exception as e:
