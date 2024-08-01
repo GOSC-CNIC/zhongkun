@@ -30,10 +30,10 @@ class MonthlyReport(UuidModel):
         verbose_name=_('所属类型'), max_length=16, choices=OwnerType.choices)
     server_count = models.IntegerField(verbose_name=_('本月度云主机数'), default=0)
     server_original_amount = models.DecimalField(
-        verbose_name=_('计费金额'), max_digits=10, decimal_places=2)
-    server_payable_amount = models.DecimalField(verbose_name=_('按量应付金额'), max_digits=10, decimal_places=2)
-    server_postpaid_amount = models.DecimalField(verbose_name=_('按量后付费金额'), max_digits=10, decimal_places=2)
-    server_prepaid_amount = models.DecimalField(verbose_name=_('订购预付费金额'), max_digits=10, decimal_places=2)
+        verbose_name=_('云主机计费金额'), max_digits=10, decimal_places=2)
+    server_payable_amount = models.DecimalField(verbose_name=_('云主机按量应付金额'), max_digits=10, decimal_places=2)
+    server_postpaid_amount = models.DecimalField(verbose_name=_('云主机按量后付费金额'), max_digits=10, decimal_places=2)
+    server_prepaid_amount = models.DecimalField(verbose_name=_('云主机订购预付费金额'), max_digits=10, decimal_places=2)
     server_cpu_days = models.FloatField(
         verbose_name=_('CPU*Day'), blank=True, default=0, help_text=_('云服务器的CPU Day数'))
     server_ram_days = models.FloatField(
@@ -47,9 +47,9 @@ class MonthlyReport(UuidModel):
     storage_days = models.FloatField(
         verbose_name=_('存储容量GiB*Day'), blank=True, default=0, help_text=_('存储桶的存储容量GiB Day数'))
     storage_original_amount = models.DecimalField(
-        verbose_name=_('计费金额'), max_digits=10, decimal_places=2)
-    storage_payable_amount = models.DecimalField(verbose_name=_('按量应付金额'), max_digits=10, decimal_places=2)
-    storage_postpaid_amount = models.DecimalField(verbose_name=_('按量后付费金额'), max_digits=10, decimal_places=2)
+        verbose_name=_('存储桶计费金额'), max_digits=10, decimal_places=2)
+    storage_payable_amount = models.DecimalField(verbose_name=_('存储桶按量应付金额'), max_digits=10, decimal_places=2)
+    storage_postpaid_amount = models.DecimalField(verbose_name=_('存储桶按量后付费金额'), max_digits=10, decimal_places=2)
     disk_count = models.IntegerField(verbose_name=_('本月度云硬盘数'), default=0)
     disk_size_days = models.FloatField(
         verbose_name=_('云硬盘容量GiB*Day'), blank=True, default=0, help_text=_('云硬盘的容量大小GiB Day数'))
@@ -75,7 +75,7 @@ class MonthlyReport(UuidModel):
 
     s_snapshot_count = models.IntegerField(verbose_name=_('云主机快照数'), default=0)
     s_snapshot_prepaid_amount = models.DecimalField(
-        verbose_name=_('快照预付费金额'), max_digits=10, decimal_places=2, default=Decimal('0.00'))
+        verbose_name=_('云主机快照预付费金额'), max_digits=10, decimal_places=2, default=Decimal('0.00'))
     scan_web_count = models.IntegerField(verbose_name=_('Web安全扫描数'), default=0)
     scan_host_count = models.IntegerField(verbose_name=_('Host安全扫描数'), default=0)
     scan_prepaid_amount = models.DecimalField(

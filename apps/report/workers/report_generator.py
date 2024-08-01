@@ -277,9 +277,8 @@ class MonthlyReportGenerator:
 
             return True, report
 
-    @staticmethod
     def _generate_report_for_user(
-            user: UserProfile, report_date: datetime.date,
+            self, user: UserProfile, report_date: datetime.date,
             report_period_start: datetime.date, report_period_end: datetime.date,
             report_period_start_time: datetime.datetime, report_period_end_time: datetime.datetime
     ):
@@ -309,35 +308,12 @@ class MonthlyReportGenerator:
             total_trade_amount=Sum('trade_amount')
         )
 
-        # 云主机计量信息
-        server_meter_qs = MeteringServerManager().filter_user_server_metering(
-            user=user, date_start=report_period_start, date_end=report_period_end
-        )
-        server_m_agg = server_meter_qs.aggregate(
-            total_cpu_hours=Sum('cpu_hours'),
-            total_ram_hours=Sum('ram_hours'),
-            total_disk_hours=Sum('disk_hours'),
-            total_public_ip_hours=Sum('public_ip_hours'),
-            total_original_amount=Sum('original_amount'),
-            total_trade_amount=Sum('trade_amount'),
-            server_count=Count('server_id', distinct=True)
-        )
-
-        # 云主机日结算单
-        state_server_agg = StatementServerManager().filter_statement_server_queryset(
-            date_start=report_period_start, date_end=report_period_end,
-            payment_status=PaymentStatus.PAID.value, user_id=user.id
-        ).aggregate(
-            total_trade_amount=Sum('trade_amount')
-        )
-
-        # 云主机订购预付费金额
-        order_agg = Order.objects.filter(
-            user_id=user.id, owner_type=OwnerType.USER.value,
-            payment_time__gte=report_period_start_time, payment_time__lte=report_period_end_time,
-            status=Order.Status.PAID.value, pay_type=PayType.PREPAID.value, resource_type=ResourceType.VM.value
-        ).aggregate(
-            total_pay_amount=Sum('pay_amount')
+        # 云主机
+        server_report = self.get_vo_or_user_server_report(
+            report_period_start_time=report_period_start_time,
+            report_period_end_time=report_period_end_time,
+            report_period_start=report_period_start, report_period_end=report_period_end,
+            user=user, vo=None
         )
 
         # 云硬盘
@@ -407,15 +383,16 @@ class MonthlyReportGenerator:
         month_report.storage_postpaid_amount = state_storage_agg['total_trade_amount'] or Decimal('0.00')
 
         # 云主机
-        month_report.server_cpu_days = hours_to_days(server_m_agg['total_cpu_hours'])
-        month_report.server_ram_days = hours_to_days(server_m_agg['total_ram_hours'])
-        month_report.server_disk_days = hours_to_days(server_m_agg['total_disk_hours'])
-        month_report.server_ip_days = hours_to_days(server_m_agg['total_public_ip_hours'])
-        month_report.server_count = server_m_agg['server_count'] or 0
-        month_report.server_original_amount = server_m_agg['total_original_amount'] or Decimal('0.00')
-        month_report.server_payable_amount = server_m_agg['total_trade_amount'] or Decimal('0.00')
-        month_report.server_postpaid_amount = state_server_agg['total_trade_amount'] or Decimal('0.00')
-        month_report.server_prepaid_amount = order_agg['total_pay_amount'] or Decimal('0.00')
+        month_report.server_cpu_days = server_report['server_cpu_days']
+        month_report.server_ram_days = server_report['server_ram_days']
+        month_report.server_disk_days = server_report['server_disk_days']
+        month_report.server_ip_days = server_report['server_ip_days']
+        month_report.server_count = server_report['server_count']
+        month_report.server_original_amount = server_report['server_original_amount']
+        month_report.server_payable_amount = server_report['server_payable_amount']
+        month_report.server_prepaid_amount = server_report['server_prepaid_amount']
+        month_report.server_postpaid_amount = server_report['server_postpaid_amount']
+
         # 云硬盘
         month_report.disk_count = disk_report['disk_count']
         month_report.disk_size_days = disk_report['disk_size_days']
@@ -557,6 +534,70 @@ class MonthlyReportGenerator:
             'total_pay_amount': snap_order_agg['total_pay_amount'] or Decimal('0.00')
         }
 
+    @staticmethod
+    def get_vo_or_user_server_report(
+            report_period_start_time, report_period_end_time, report_period_start, report_period_end,
+            user=None, vo=None
+    ):
+        if user:
+            # 云主机计量信息
+            server_meter_qs = MeteringServerManager().filter_user_server_metering(
+                user=user, date_start=report_period_start, date_end=report_period_end
+            )
+            # 云主机日结算单
+            state_server_agg = StatementServerManager().filter_statement_server_queryset(
+                date_start=report_period_start, date_end=report_period_end,
+                payment_status=PaymentStatus.PAID.value, user_id=user.id
+            ).aggregate(
+                total_trade_amount=Sum('trade_amount')
+            )
+
+            # 云主机预付费金额
+            server_order_qs = Order.objects.filter(user_id=user.id, owner_type=OwnerType.USER.value)
+
+        elif vo:
+            server_meter_qs = MeteringServerManager().filter_server_metering_queryset(
+                vo_id=vo.id, date_start=report_period_start, date_end=report_period_end
+            )
+            state_server_agg = StatementServerManager().filter_statement_server_queryset(
+                date_start=report_period_start, date_end=report_period_end,
+                payment_status=PaymentStatus.PAID.value, vo_id=vo.id, user_id=None
+            ).aggregate(
+                total_trade_amount=Sum('trade_amount')
+            )
+            server_order_qs = Order.objects.filter(vo_id=vo.id, owner_type=OwnerType.VO.value)
+        else:
+            raise Exception('get server report, not submit "user_id" or "vo_id"')
+
+        # 云主机订购预付费金额
+        server_order_agg = server_order_qs.filter(
+            payment_time__gte=report_period_start_time, payment_time__lte=report_period_end_time,
+            status=Order.Status.PAID.value, pay_type=PayType.PREPAID.value, resource_type=ResourceType.VM.value
+        ).aggregate(
+            total_pay_amount=Sum('pay_amount')
+        )
+        server_m_agg = server_meter_qs.aggregate(
+            total_cpu_hours=Sum('cpu_hours'),
+            total_ram_hours=Sum('ram_hours'),
+            total_disk_hours=Sum('disk_hours'),
+            total_public_ip_hours=Sum('public_ip_hours'),
+            total_original_amount=Sum('original_amount'),
+            total_trade_amount=Sum('trade_amount'),
+            server_count=Count('server_id', distinct=True)
+        )
+
+        return {
+            'server_cpu_days': hours_to_days(server_m_agg['total_cpu_hours']),
+            'server_ram_days': hours_to_days(server_m_agg['total_ram_hours']),
+            'server_disk_days': hours_to_days(server_m_agg['total_disk_hours']),
+            'server_ip_days': hours_to_days(server_m_agg['total_public_ip_hours']),
+            'server_count': server_m_agg['server_count'] or 0,
+            'server_original_amount': server_m_agg['total_original_amount'] or Decimal('0.00'),
+            'server_payable_amount': server_m_agg['total_trade_amount'] or Decimal('0.00'),
+            'server_postpaid_amount': state_server_agg['total_trade_amount'] or Decimal('0.00'),
+            'server_prepaid_amount': server_order_agg['total_pay_amount'] or Decimal('0.00')
+        }
+
     def generate_report_for_vo(
             self, vo: VirtualOrganization, report_date: datetime.date,
             report_period_start: datetime.date, report_period_end: datetime.date,
@@ -587,44 +628,20 @@ class MonthlyReportGenerator:
 
             return True, report
 
-    @staticmethod
     def _generate_report_for_vo(
-            vo: VirtualOrganization, report_date: datetime.date,
+            self, vo: VirtualOrganization, report_date: datetime.date,
             report_period_start: datetime.date, report_period_end: datetime.date,
             report_period_start_time: datetime.datetime, report_period_end_time: datetime.datetime
     ):
         """
         为vo生成月度报表
         """
-        # 云主机计量信息
-        server_meter_qs = MeteringServerManager().filter_server_metering_queryset(
-            vo_id=vo.id, date_start=report_period_start, date_end=report_period_end
-        )
-        server_m_agg = server_meter_qs.aggregate(
-            total_cpu_hours=Sum('cpu_hours'),
-            total_ram_hours=Sum('ram_hours'),
-            total_disk_hours=Sum('disk_hours'),
-            total_public_ip_hours=Sum('public_ip_hours'),
-            total_original_amount=Sum('original_amount'),
-            total_trade_amount=Sum('trade_amount'),
-            server_count=Count('server_id', distinct=True)
-        )
-
-        # 云主机日结算单
-        state_server_agg = StatementServerManager().filter_statement_server_queryset(
-            date_start=report_period_start, date_end=report_period_end,
-            payment_status=PaymentStatus.PAID.value, vo_id=vo.id, user_id=None
-        ).aggregate(
-            total_trade_amount=Sum('trade_amount')
-        )
-
-        # 云主机订购预付费金额
-        order_agg = Order.objects.filter(
-            vo_id=vo.id, owner_type=OwnerType.VO.value,
-            payment_time__gte=report_period_start_time, payment_time__lte=report_period_end_time,
-            status=Order.Status.PAID.value, pay_type=PayType.PREPAID.value, resource_type=ResourceType.VM.value
-        ).aggregate(
-            total_pay_amount=Sum('pay_amount')
+        # 云主机
+        server_report = self.get_vo_or_user_server_report(
+            report_period_start_time=report_period_start_time,
+            report_period_end_time=report_period_end_time,
+            report_period_start=report_period_start, report_period_end=report_period_end,
+            user=None, vo=vo
         )
 
         # 云硬盘
@@ -653,15 +670,15 @@ class MonthlyReportGenerator:
             owner_type=OwnerType.VO.value
         )
         # 云主机
-        month_report.server_cpu_days = hours_to_days(server_m_agg['total_cpu_hours'])
-        month_report.server_ram_days = hours_to_days(server_m_agg['total_ram_hours'])
-        month_report.server_disk_days = hours_to_days(server_m_agg['total_disk_hours'])
-        month_report.server_ip_days = hours_to_days(server_m_agg['total_public_ip_hours'])
-        month_report.server_count = server_m_agg['server_count'] or 0
-        month_report.server_original_amount = server_m_agg['total_original_amount'] or Decimal('0.00')
-        month_report.server_payable_amount = server_m_agg['total_trade_amount'] or Decimal('0.00')
-        month_report.server_prepaid_amount = order_agg['total_pay_amount'] or Decimal('0.00')
-        month_report.server_postpaid_amount = state_server_agg['total_trade_amount'] or Decimal('0.00')
+        month_report.server_cpu_days = server_report['server_cpu_days']
+        month_report.server_ram_days = server_report['server_ram_days']
+        month_report.server_disk_days = server_report['server_disk_days']
+        month_report.server_ip_days = server_report['server_ip_days']
+        month_report.server_count = server_report['server_count']
+        month_report.server_original_amount = server_report['server_original_amount']
+        month_report.server_payable_amount = server_report['server_payable_amount']
+        month_report.server_prepaid_amount = server_report['server_prepaid_amount']
+        month_report.server_postpaid_amount = server_report['server_postpaid_amount']
 
         # 云硬盘
         month_report.disk_count = disk_report['disk_count']

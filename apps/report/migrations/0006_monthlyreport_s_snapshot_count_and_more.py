@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='monthlyreport',
             name='s_snapshot_prepaid_amount',
-            field=models.DecimalField(decimal_places=2, default=Decimal('0.00'), max_digits=10, verbose_name='快照预付费金额'),
+            field=models.DecimalField(decimal_places=2, default=Decimal('0.00'), max_digits=10, verbose_name='云主机快照预付费金额'),
         ),
         migrations.AddField(
             model_name='monthlyreport',
