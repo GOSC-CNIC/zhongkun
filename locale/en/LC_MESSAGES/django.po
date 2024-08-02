@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-07-25 07:49+0000\n"
+"POT-Creation-Date: 2024-08-02 07:08+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -319,10 +319,10 @@ msgstr "ID"
 #: apps/metering/models.py:282 apps/metering/models.py:373
 #: apps/metering/models.py:427 apps/metering/models.py:470
 #: apps/metering/models.py:522 apps/monitor/models.py:246
-#: apps/order/models.py:110 apps/order/models.py:439
+#: apps/order/models.py:110 apps/order/models.py:440
 #: apps/order/serializers.py:29 apps/report/models.py:24
-#: apps/report/models.py:129 apps/report/models.py:171
-#: apps/report/models.py:207 apps/report/models.py:249
+#: apps/report/models.py:141 apps/report/models.py:183
+#: apps/report/models.py:219 apps/report/models.py:261
 #: apps/report/serializers.py:16 apps/report/serializers.py:51
 #: apps/report/serializers.py:73 apps/servers/models.py:69
 #: apps/servers/serializers.py:260 apps/service/serializers.py:95
@@ -342,7 +342,7 @@ msgstr "Role"
 msgid "联邦管理员"
 msgstr "Federal Administrator"
 
-#: apps/api/viewsets.py:160
+#: apps/api/viewsets.py:175
 msgid ""
 "以管理员身份请求，如果无管理员权限会返回403错误； 参数不需要值，存在即有效"
 msgstr ""
@@ -350,17 +350,17 @@ msgstr ""
 "administrator permission; Parameters do not require values, they are valid "
 "if they exist."
 
-#: apps/api/viewsets.py:257 apps/api/viewsets.py:304
+#: apps/api/viewsets.py:272 apps/api/viewsets.py:319
 msgid "参数\"service_id\"值无效."
 msgstr "The value of parameter 'service_id' is invalid."
 
-#: apps/api/viewsets.py:325
+#: apps/api/viewsets.py:340
 msgid "以指定的身份请求，如果无对应权限会返回403错误。"
 msgstr ""
 "Requesting with the specified identity will return a 403 error if there is "
 "no corresponding permission."
 
-#: apps/api/viewsets.py:345
+#: apps/api/viewsets.py:360
 msgid "指定的身份无效"
 msgstr "The specified identity is invalid"
 
@@ -434,9 +434,9 @@ msgstr "Recovery time"
 #: apps/monitor/serializers.py:61 apps/monitor/serializers.py:81
 #: apps/monitor/serializers.py:98 apps/monitor/serializers.py:133
 #: apps/monitor/serializers.py:141 apps/monitor/serializers.py:153
-#: apps/order/models.py:100 apps/order/models.py:244 apps/order/models.py:361
-#: apps/order/models.py:389 apps/order/serializers.py:27
-#: apps/report/models.py:173 apps/report/serializers.py:18
+#: apps/order/models.py:100 apps/order/models.py:245 apps/order/models.py:362
+#: apps/order/models.py:390 apps/order/serializers.py:27
+#: apps/report/models.py:185 apps/report/serializers.py:18
 #: apps/servers/disk_serializers.py:35 apps/servers/disk_serializers.py:89
 #: apps/servers/models.py:422 apps/servers/models.py:537
 #: apps/servers/models.py:869 apps/servers/models.py:929
@@ -625,7 +625,7 @@ msgstr "Query the alert notification records of the current user."
 #: apps/app_net_ipam/models.py:310 apps/app_scan/models.py:22
 #: apps/app_scan/models.py:140 apps/app_screenvis/models.py:137
 #: apps/app_wallet/models.py:228 apps/monitor/models.py:243
-#: apps/monitor/models.py:391 apps/order/models.py:118 apps/order/models.py:443
+#: apps/monitor/models.py:391 apps/order/models.py:118 apps/order/models.py:444
 #: apps/servers/models.py:57 apps/servers/models.py:1146
 #: apps/servers/templates/vm_operations.html:13 apps/storage/models.py:30
 #: apps/vo/admin.py:19 apps/vo/models.py:28
@@ -908,7 +908,7 @@ msgstr ""
 "There are already multiple unapproved applications, and no more applications "
 "can be submitted at this time."
 
-#: apps/app_apply/models.py:13 apps/order/models.py:412
+#: apps/app_apply/models.py:13 apps/order/models.py:413
 msgid "取消"
 msgstr "cancel"
 
@@ -1066,7 +1066,7 @@ msgid "订单ID"
 msgstr "order id"
 
 #: apps/app_apply/serializers.py:46 apps/order/apps.py:8
-#: apps/order/models.py:129 apps/order/models.py:238
+#: apps/order/models.py:129 apps/order/models.py:239
 msgid "订单"
 msgstr "Order"
 
@@ -1130,7 +1130,7 @@ msgstr "Metering Charging"
 msgid "存储桶月度统计"
 msgstr "Monthly statistics of storage buckets"
 
-#: apps/app_global/models.py:17 apps/report/models.py:77
+#: apps/app_global/models.py:17 apps/report/models.py:85
 #: apps/users/models.py:89
 msgid "月度报表"
 msgstr "Monthly Report"
@@ -1369,7 +1369,7 @@ msgid "此IP白名单适用的功能模块"
 msgstr "The functional modules applicable to this IP whitelist"
 
 #: apps/app_global/models.py:133 apps/app_net_flow/models.py:33
-#: apps/app_net_manage/models.py:109
+#: apps/app_net_manage/models.py:109 apps/monitor/models.py:585
 msgid "IP"
 msgstr "IP"
 
@@ -1472,7 +1472,7 @@ msgstr "Sort by this value in positive order"
 #: apps/monitor/models.py:164 apps/monitor/models.py:314
 #: apps/monitor/models.py:353 apps/monitor/models.py:466
 #: apps/monitor/models.py:495 apps/monitor/serializers.py:99
-#: apps/monitor/serializers.py:142 apps/order/models.py:423
+#: apps/monitor/serializers.py:142 apps/order/models.py:424
 #: apps/ticket/models.py:58 apps/ticket/models.py:232
 #: apps/ticket/serializers.py:29 apps/ticket/serializers.py:98
 #: apps/vpn/templates/vpn.html:57
@@ -1553,7 +1553,7 @@ msgstr "Group - Members"
 #: apps/app_wallet/handlers/cash_coupon_handler.py:271
 #: apps/app_wallet/models.py:238 apps/app_wallet/trade_serializers.py:247
 #: apps/monitor/models.py:192 apps/report/models.py:22
-#: apps/report/models.py:128 apps/report/models.py:169
+#: apps/report/models.py:140 apps/report/models.py:181
 #: apps/servers/models.py:86 apps/service/models.py:254
 #: apps/storage/models.py:50 apps/ticket/models.py:188 apps/vo/models.py:56
 #: apps/vo/vo_serializers.py:37 utils/model.py:46
@@ -3426,7 +3426,7 @@ msgstr "Out of Service"
 #: apps/app_screenvis/serializers.py:36 apps/app_wallet/models.py:107
 #: apps/app_wallet/trade_serializers.py:48
 #: apps/metering/handlers/metering_handler.py:695 apps/order/models.py:87
-#: apps/order/serializers.py:16 apps/report/models.py:131
+#: apps/order/serializers.py:16 apps/report/models.py:143
 #: apps/servers/models.py:62 apps/storage/models.py:35
 #: apps/storage/serializers.py:44
 msgid "服务名称"
@@ -4335,8 +4335,8 @@ msgstr "The username used for authentication of this service"
 msgid "密码"
 msgstr "Password"
 
-#: apps/app_screenvis/models.py:186 apps/report/models.py:194
-#: apps/report/models.py:196 apps/report/serializers.py:41
+#: apps/app_screenvis/models.py:186 apps/report/models.py:206
+#: apps/report/models.py:208 apps/report/serializers.py:41
 msgid "云主机服务单元"
 msgstr "Cloud Host Service Unit"
 
@@ -4887,12 +4887,12 @@ msgstr "Resource coupon number"
 #: apps/app_wallet/handlers/cash_coupon_handler.py:270
 #: apps/app_wallet/models.py:234 apps/app_wallet/models.py:372
 #: apps/app_wallet/trade_serializers.py:242 apps/order/models.py:45
-#: apps/report/models.py:250 apps/report/serializers.py:74
+#: apps/report/models.py:262 apps/report/serializers.py:74
 msgid "余额"
 msgstr "balance"
 
 #: apps/app_wallet/handlers/cash_coupon_handler.py:270
-#: apps/metering/models.py:465 apps/order/models.py:392
+#: apps/metering/models.py:465 apps/order/models.py:393
 #: apps/report/serializers.py:7 apps/servers/disk_serializers.py:12
 #: apps/servers/disk_serializers.py:32 apps/servers/models.py:871
 #: apps/servers/models.py:922 apps/servers/models.py:1223
@@ -4920,8 +4920,8 @@ msgstr "Coupon Template"
 #: apps/metering/metering_serializers.py:127 apps/metering/models.py:81
 #: apps/metering/models.py:159 apps/metering/models.py:376
 #: apps/metering/models.py:473 apps/order/models.py:113
-#: apps/order/models.py:442 apps/order/serializers.py:32
-#: apps/report/models.py:211 apps/report/serializers.py:54
+#: apps/order/models.py:443 apps/order/serializers.py:32
+#: apps/report/models.py:223 apps/report/serializers.py:54
 msgid "所有者类型"
 msgstr "Owner type"
 
@@ -4933,8 +4933,8 @@ msgstr "Owner type"
 #: apps/metering/metering_serializers.py:126 apps/metering/models.py:98
 #: apps/metering/models.py:166 apps/metering/models.py:375
 #: apps/metering/models.py:472 apps/order/models.py:112
-#: apps/order/models.py:441 apps/order/serializers.py:31
-#: apps/report/models.py:210 apps/report/serializers.py:53
+#: apps/order/models.py:442 apps/order/serializers.py:31
+#: apps/report/models.py:222 apps/report/serializers.py:53
 msgid "VO组名"
 msgstr "VO name"
 
@@ -5357,30 +5357,30 @@ msgstr "The specified coupon '%(value)s' has no available balance"
 msgid "资源券的余额不足"
 msgstr "Insufficient balance of resource coupons"
 
-#: apps/app_wallet/managers/payment.py:384 apps/app_wallet/models.py:367
+#: apps/app_wallet/managers/payment.py:385 apps/app_wallet/models.py:367
 #: apps/app_wallet/models.py:576
 msgid "支付成功"
 msgstr "Payment successful"
 
-#: apps/app_wallet/managers/payment.py:432
+#: apps/app_wallet/managers/payment.py:433
 msgid "资源券余额不足抵扣支付金额"
 msgstr "Insufficient balance of resource coupon to offset payment amount"
 
-#: apps/app_wallet/managers/payment.py:469
+#: apps/app_wallet/managers/payment.py:470
 msgid "未能从资源券中扣除完指定金额"
 msgstr ""
 "The balance of the resource coupon is insufficient to deduct the specified "
 "amount."
 
-#: apps/app_wallet/managers/payment.py:582
+#: apps/app_wallet/managers/payment.py:583
 msgid "非支付成功状态的交易订单无法退款。"
 msgstr "Non payment successful transaction orders cannot be refunded."
 
-#: apps/app_wallet/managers/payment.py:686
+#: apps/app_wallet/managers/payment.py:687
 msgid "无法完成退款，用户的余额账户未开通。"
 msgstr "Unable to complete refund, user's balance account is not activated."
 
-#: apps/app_wallet/managers/payment.py:690
+#: apps/app_wallet/managers/payment.py:691
 msgid "无法完成退款，VO项目组的余额账户未开通。"
 msgstr ""
 "Unable to complete refund, VO project team's balance account is not "
@@ -5437,7 +5437,7 @@ msgstr ""
 
 #: apps/app_wallet/models.py:18 apps/app_wallet/models.py:65
 #: apps/app_wallet/models.py:92 apps/servers/admin.py:140
-#: apps/servers/admin.py:506 apps/servers/models.py:491
+#: apps/servers/admin.py:508 apps/servers/models.py:491
 #: apps/storage/bucket_handler.py:20 apps/storage/models.py:300
 msgid "正常"
 msgstr "Normal"
@@ -5933,7 +5933,7 @@ msgstr "Wait"
 msgid "退款成功"
 msgstr "Sucess"
 
-#: apps/app_wallet/models.py:511 apps/order/models.py:411
+#: apps/app_wallet/models.py:511 apps/order/models.py:412
 msgid "退款失败"
 msgstr "Failed"
 
@@ -6141,7 +6141,7 @@ msgstr "Wallet payment transaction number"
 msgid "订单编号"
 msgstr "Order ID"
 
-#: apps/app_wallet/trade_serializers.py:89 apps/order/models.py:429
+#: apps/app_wallet/trade_serializers.py:89 apps/order/models.py:430
 msgid "退款金额"
 msgstr "refund amount"
 
@@ -6692,8 +6692,8 @@ msgid "列对象存储计量计费明细"
 msgstr "List the metering and billing details of object storage services"
 
 #: apps/metering/handlers/metering_handler.py:1062
-#: apps/metering/metering_serializers.py:187 apps/report/models.py:159
-#: apps/report/models.py:232 apps/report/serializers.py:8
+#: apps/metering/metering_serializers.py:187 apps/report/models.py:171
+#: apps/report/models.py:244 apps/report/serializers.py:8
 #: apps/report/serializers.py:63 apps/storage/models.py:310
 #: apps/storage/serializers.py:11 apps/storage/serializers.py:43
 msgid "存储桶ID"
@@ -6760,7 +6760,7 @@ msgstr "You do not have access to metering and billing."
 #: apps/metering/managers.py:653 apps/metering/managers.py:717
 #: apps/metering/managers.py:826 apps/metering/managers.py:908
 #: apps/metering/managers.py:1125 apps/servers/managers.py:317
-#: apps/servers/managers.py:919 apps/servers/managers.py:1589
+#: apps/servers/managers.py:919 apps/servers/managers.py:1591
 msgid "您没有指定服务的访问权限"
 msgstr "You do not have access to the service unit"
 
@@ -6808,9 +6808,8 @@ msgstr "You do not have permission to access this daily settlement statement"
 #: apps/metering/metering_serializers.py:115
 #: apps/metering/metering_serializers.py:132
 #: apps/metering/metering_serializers.py:182 apps/metering/models.py:28
-#: apps/metering/models.py:325 apps/report/models.py:33
-#: apps/report/models.py:50 apps/report/models.py:139 apps/report/models.py:165
-#: apps/report/serializers.py:13
+#: apps/metering/models.py:325 apps/report/models.py:151
+#: apps/report/models.py:177 apps/report/serializers.py:13
 msgid "计费金额"
 msgstr "Billing amount"
 
@@ -6862,9 +6861,9 @@ msgstr "Date of resource usage"
 #: apps/metering/models.py:281 apps/metering/models.py:372
 #: apps/metering/models.py:426 apps/metering/models.py:469
 #: apps/metering/models.py:521 apps/monitor/models.py:245
-#: apps/order/models.py:109 apps/order/models.py:438
-#: apps/order/serializers.py:28 apps/report/models.py:206
-#: apps/report/models.py:248 apps/report/serializers.py:50
+#: apps/order/models.py:109 apps/order/models.py:439
+#: apps/order/serializers.py:28 apps/report/models.py:218
+#: apps/report/models.py:260 apps/report/serializers.py:50
 #: apps/report/serializers.py:72
 msgid "用户ID"
 msgstr "User ID"
@@ -6875,8 +6874,8 @@ msgstr "User ID"
 #: apps/metering/metering_serializers.py:125 apps/metering/models.py:80
 #: apps/metering/models.py:158 apps/metering/models.py:374
 #: apps/metering/models.py:471 apps/order/models.py:111
-#: apps/order/models.py:440 apps/order/serializers.py:30
-#: apps/report/models.py:209 apps/report/serializers.py:52
+#: apps/order/models.py:441 apps/order/serializers.py:30
+#: apps/report/models.py:221 apps/report/serializers.py:52
 msgid "VO组ID"
 msgstr "VO ID"
 
@@ -7108,17 +7107,17 @@ msgstr "Payment Type"
 msgid "云硬盘资源计量"
 msgstr "Disk metering"
 
-#: apps/metering/models.py:223 apps/report/models.py:133
+#: apps/metering/models.py:223 apps/report/models.py:145
 msgid "存储桶实例ID"
 msgstr "Bucket ID"
 
-#: apps/metering/models.py:223 apps/report/models.py:133
+#: apps/metering/models.py:223 apps/report/models.py:145
 msgid "对象存储中间件存储桶实例id"
 msgstr "Object storage bucket instance ID"
 
 #: apps/metering/models.py:224 apps/monitor/models.py:38
-#: apps/report/models.py:134 apps/report/models.py:160
-#: apps/report/models.py:233 apps/report/serializers.py:9
+#: apps/report/models.py:146 apps/report/models.py:172
+#: apps/report/models.py:245 apps/report/serializers.py:9
 #: apps/report/serializers.py:64 apps/storage/models.py:311
 #: apps/storage/serializers.py:7 apps/storage/serializers.py:12
 msgid "存储桶名称"
@@ -8149,11 +8148,11 @@ msgstr "Content"
 msgid "请求用户"
 msgstr "Request user"
 
-#: apps/monitor/models.py:589
+#: apps/monitor/models.py:590
 msgid "错误日志"
 msgstr "Error log"
 
-#: apps/monitor/models.py:594
+#: apps/monitor/models.py:595
 msgid "状态码必须在0-600之间"
 msgstr "The status code must be between 0-600"
 
@@ -8237,7 +8236,7 @@ msgid "询价"
 msgstr "Inquire about prices"
 
 #: apps/order/apiviews/order_views.py:35 apps/order/apiviews/order_views.py:139
-#: apps/order/models.py:89 apps/order/models.py:240 apps/order/models.py:425
+#: apps/order/models.py:89 apps/order/models.py:241 apps/order/models.py:426
 #: apps/order/serializers.py:17 apps/servers/models.py:1152
 msgid "资源类型"
 msgstr "Resource type"
@@ -8347,7 +8346,7 @@ msgstr "Submit a refund request for the order"
 msgid "退订订单编号"
 msgstr "Order Number"
 
-#: apps/order/apiviews/refund_views.py:36 apps/order/models.py:427
+#: apps/order/apiviews/refund_views.py:36 apps/order/models.py:428
 msgid "退订原因"
 msgstr "Reason for refund"
 
@@ -8449,7 +8448,7 @@ msgstr ""
 
 #: apps/order/deliver_resource.py:533 apps/order/deliver_resource.py:551
 #: apps/order/deliver_resource.py:776 apps/order/deliver_resource.py:828
-#: apps/order/deliver_resource.py:1271 apps/order/deliver_resource.py:1319
+#: apps/order/deliver_resource.py:1277 apps/order/deliver_resource.py:1325
 #: apps/order/handlers/order_handler.py:215
 msgid "续费订单续费时长或时段无效。"
 msgstr "The renewal period or duration of the renewal order is invalid."
@@ -8541,7 +8540,7 @@ msgstr ""
 "The number of order resource records is 1, which is inconsistent with the "
 "number ordered in the order"
 
-#: apps/order/deliver_resource.py:1148 apps/order/deliver_resource.py:1267
+#: apps/order/deliver_resource.py:1148 apps/order/deliver_resource.py:1273
 msgid "订单的资源类型不是云主机快照"
 msgstr "The resource type of the order is not a cloud host snapshot"
 
@@ -8551,29 +8550,29 @@ msgstr ""
 "The system disk size when ordering the snapshot of the cloud host is "
 "inconsistent with the system disk size of the current cloud host instance"
 
-#: apps/order/deliver_resource.py:1279 apps/servers/managers.py:1609
+#: apps/order/deliver_resource.py:1285 apps/servers/managers.py:1611
 msgid "云主机快照不存在"
 msgstr "Cloud host snapshot does not exist"
 
-#: apps/order/deliver_resource.py:1303
+#: apps/order/deliver_resource.py:1309
 msgid "云主机快照不是包年包月预付费模式，无法完成续费。"
 msgstr ""
 "The cloud host snapshot is not of the annual or monthly prepaid type, so "
 "renewal cannot be completed."
 
-#: apps/order/deliver_resource.py:1305
+#: apps/order/deliver_resource.py:1311
 msgid "云主机快照没有过期时间，无法完成续费。"
 msgstr ""
 "The cloud host snapshot does not have an expiration date, so the renewal "
 "cannot be completed."
 
-#: apps/order/deliver_resource.py:1309
+#: apps/order/deliver_resource.py:1315
 msgid "续费订单中云主机快照配置信息有误。"
 msgstr ""
 "The configuration information of the cloud host snapshot in the renewal "
 "order is incorrect."
 
-#: apps/order/deliver_resource.py:1312
+#: apps/order/deliver_resource.py:1318
 msgid "续费订单中云主机快照容量大小与快照大小不一致。"
 msgstr ""
 "The capacity of the cloud host snapshot in the renewal order does not match "
@@ -8930,7 +8929,7 @@ msgstr "Orders with closed or completed transaction status cannot be modified"
 
 #: apps/order/managers/order.py:615 apps/order/managers/order.py:664
 #: apps/order/managers/order.py:715 apps/order/managers/order.py:868
-#: apps/order/models.py:227
+#: apps/order/models.py:228
 msgid "更新订单交易状态失败"
 msgstr "Failed to update order transaction status"
 
@@ -9218,7 +9217,7 @@ msgstr "Coupon amount"
 msgid "资源的规格和配置"
 msgstr "Specification and configuration of resources"
 
-#: apps/order/models.py:91 apps/order/models.py:397
+#: apps/order/models.py:91 apps/order/models.py:398
 #: apps/order/serializers.py:19 apps/servers/templates/create.html:78
 msgid "订购时长"
 msgstr "Period"
@@ -9267,7 +9266,7 @@ msgstr "Cancel Time"
 msgid "app服务id"
 msgstr "Wallet app settlement unit service ID"
 
-#: apps/order/models.py:121 apps/order/models.py:418
+#: apps/order/models.py:121 apps/order/models.py:419
 msgid "支付记录id"
 msgstr "Payment record ID"
 
@@ -9311,297 +9310,297 @@ msgstr "The optional values are 1-3"
 msgid "无效的订单动作标记"
 msgstr "Invalid order action tag"
 
-#: apps/order/models.py:233
+#: apps/order/models.py:234
 msgid "待交付"
 msgstr "Wait"
 
-#: apps/order/models.py:234
+#: apps/order/models.py:235
 msgid "交付成功"
 msgstr "Successful"
 
-#: apps/order/models.py:235
+#: apps/order/models.py:236
 msgid "交付失败"
 msgstr "Failed"
 
-#: apps/order/models.py:241 apps/order/serializers.py:43
+#: apps/order/models.py:242 apps/order/serializers.py:43
 msgid "资源实例id"
 msgstr "Resource instance ID"
 
-#: apps/order/models.py:243
+#: apps/order/models.py:244
 msgid "资源交付结果"
 msgstr "Delivery status"
 
-#: apps/order/models.py:245
+#: apps/order/models.py:246
 msgid "资源实例备注"
 msgstr "Resource remarks"
 
-#: apps/order/models.py:246 apps/order/serializers.py:46
+#: apps/order/models.py:247 apps/order/serializers.py:46
 msgid "资源交付结果描述"
 msgstr "Delivery status description"
 
-#: apps/order/models.py:248
+#: apps/order/models.py:249
 msgid "上次交付创建资源时间"
 msgstr "Last delivery time"
 
-#: apps/order/models.py:249
+#: apps/order/models.py:250
 msgid "用于记录上次交付资源的时间，防止并发重复交付"
 msgstr ""
 "Used to record the time of the last resource delivery to prevent concurrent "
 "and duplicate deliveries"
 
-#: apps/order/models.py:251 apps/order/serializers.py:45
+#: apps/order/models.py:252 apps/order/serializers.py:45
 msgid "资源交付时间"
 msgstr "Resource delivery time"
 
-#: apps/order/models.py:253 apps/order/serializers.py:47
+#: apps/order/models.py:254 apps/order/serializers.py:47
 msgid "资源删除时间"
 msgstr "Resource deletion time"
 
-#: apps/order/models.py:254
+#: apps/order/models.py:255
 msgid "不为空时，表示对应的资源删除的时间"
 msgstr ""
 "When not empty, it indicates the time when the corresponding resource was "
 "deleted"
 
-#: apps/order/models.py:258
+#: apps/order/models.py:259
 msgid "订单资源"
 msgstr "Order Resources"
 
-#: apps/order/models.py:309
+#: apps/order/models.py:310
 msgid "每小时云主机基础维护费"
 msgstr "Server basic fee per hour"
 
-#: apps/order/models.py:310
+#: apps/order/models.py:311
 msgid "每小时云主机基础维护费价格"
 msgstr "Hourly cloud host basic maintenance fee price"
 
-#: apps/order/models.py:312
+#: apps/order/models.py:313
 msgid "内存GiB每小时"
 msgstr "Memory GiB per hour"
 
-#: apps/order/models.py:313
+#: apps/order/models.py:314
 msgid "内存每GiB每小时的价格"
 msgstr "Price per GiB per hour for memory"
 
-#: apps/order/models.py:315
+#: apps/order/models.py:316
 msgid "每CPU每小时"
 msgstr "Per CPU per hour"
 
-#: apps/order/models.py:316
+#: apps/order/models.py:317
 msgid "每个CPU每小时的价格"
 msgstr "Price per CPU per hour"
 
-#: apps/order/models.py:318
+#: apps/order/models.py:319
 msgid "每公网IP每小时保有费"
 msgstr "Public IP per hour"
 
-#: apps/order/models.py:319
+#: apps/order/models.py:320
 msgid "每个公网IP每小时的保有费价格"
 msgstr "Hourly retention fee price for each public IP address"
 
-#: apps/order/models.py:321
+#: apps/order/models.py:322
 msgid "系统盘GiB每小时"
 msgstr "System disk GiB per hour"
 
-#: apps/order/models.py:322
+#: apps/order/models.py:323
 msgid "系统盘每GiB每小时的价格"
 msgstr "Price per GiB per hour for system disk"
 
-#: apps/order/models.py:324
+#: apps/order/models.py:325
 msgid "系统盘快照GiB每小时"
 msgstr "System disk snapshot GiB per hour"
 
-#: apps/order/models.py:325
+#: apps/order/models.py:326
 msgid "系统盘快照每GiB每小时的价格"
 msgstr "Price per GiB per hour for system disk snapshot"
 
-#: apps/order/models.py:327
+#: apps/order/models.py:328
 msgid "云主机上行流量每GiB"
 msgstr "Server upstream netflow per GiB"
 
-#: apps/order/models.py:328
+#: apps/order/models.py:329
 msgid "云主机上行流量每GiB的价格"
 msgstr "Server in netflow per GiB"
 
-#: apps/order/models.py:330
+#: apps/order/models.py:331
 msgid "云主机下行流量每GiB"
 msgstr "Server out netflow per GiB"
 
-#: apps/order/models.py:331
+#: apps/order/models.py:332
 msgid "云主机下行流量每GiB的价格"
 msgstr "The price per GiB of downstream traffic for server"
 
-#: apps/order/models.py:334
+#: apps/order/models.py:335
 msgid "云盘GiB每天"
 msgstr "Cloud disk GiB per day"
 
-#: apps/order/models.py:335
+#: apps/order/models.py:336
 msgid "云盘每GiB每天的价格"
 msgstr "The price per GiB per day for cloud disk."
 
-#: apps/order/models.py:337
+#: apps/order/models.py:338
 msgid "云盘快照GiB每天"
 msgstr "Disk snapshot GiB per day"
 
-#: apps/order/models.py:338
+#: apps/order/models.py:339
 msgid "云盘快照每GiB每天的价格"
 msgstr "Cloud disk snapshot price per GiB per day"
 
-#: apps/order/models.py:341
+#: apps/order/models.py:342
 msgid "对象存储GiB每天"
 msgstr "Object storage GiB per day"
 
-#: apps/order/models.py:342
+#: apps/order/models.py:343
 msgid "对象存储每GiB每天的价格"
 msgstr "Object storage price per GiB per day"
 
-#: apps/order/models.py:344
+#: apps/order/models.py:345
 msgid "对象存储上行流量每GiB"
 msgstr "Object storage in netflow per GiB"
 
-#: apps/order/models.py:345
+#: apps/order/models.py:346
 msgid "对象存储上行流量每GiB的价格"
 msgstr "Price per GiB for object storage upstream traffic"
 
-#: apps/order/models.py:347
+#: apps/order/models.py:348
 msgid "对象存储下行流量每GiB"
 msgstr "Object storage out netflow per GiB"
 
-#: apps/order/models.py:348
+#: apps/order/models.py:349
 msgid "对象存储下行流量每GiB的价格"
 msgstr "The price per GiB of downstream traffic for object storage"
 
-#: apps/order/models.py:350
+#: apps/order/models.py:351
 msgid "对象存储同步流量每GiB"
 msgstr "Object storage sync netflow per GiB"
 
-#: apps/order/models.py:351
+#: apps/order/models.py:352
 msgid "对象存储同步流量每GiB的价格"
 msgstr "The price per GiB for synchronous data traffic in object storage"
 
-#: apps/order/models.py:353 apps/order/models.py:354
+#: apps/order/models.py:354 apps/order/models.py:355
 msgid "对象存储每万次get请求"
 msgstr "Object storage 10000 gets"
 
-#: apps/order/models.py:356 apps/order/models.py:357
+#: apps/order/models.py:357 apps/order/models.py:358
 msgid "对象存储每万次put请求"
 msgstr "Object storage per 10000 put requests"
 
-#: apps/order/models.py:359
+#: apps/order/models.py:360
 msgid "预付费折扣**%"
 msgstr "Prepaid discount **%"
 
-#: apps/order/models.py:360
+#: apps/order/models.py:361
 msgid "0-100, 包年包月预付费价格在按量计价的基础上按此折扣计价"
 msgstr ""
 "From 0 to 100, the prepaid price for annual and monthly packages is "
 "calculated based on the quantity and discounted accordingly"
 
-#: apps/order/models.py:363
+#: apps/order/models.py:364
 msgid "站点监控每天基础费用"
 msgstr "Site monitor basic"
 
-#: apps/order/models.py:364
+#: apps/order/models.py:365
 msgid "站点监控每天基础监控费用"
 msgstr "Daily basic monitoring fee for site monitoring"
 
-#: apps/order/models.py:366
+#: apps/order/models.py:367
 msgid "站点监控每天防篡改费用"
 msgstr "Site anti tampering per day"
 
-#: apps/order/models.py:367
+#: apps/order/models.py:368
 msgid "站点监控每天防篡改监控费用"
 msgstr "Site anti tampering per day"
 
-#: apps/order/models.py:369 apps/order/models.py:370
+#: apps/order/models.py:370 apps/order/models.py:371
 msgid "站点监控每天安全监控费用"
 msgstr "Site security monitor per day"
 
-#: apps/order/models.py:372
+#: apps/order/models.py:373
 msgid "站点安全扫描每次费用"
 msgstr "Web security scan each time"
 
-#: apps/order/models.py:373
+#: apps/order/models.py:374
 msgid "安全扫描WEB每次费用"
 msgstr "The cost of each web security scan"
 
-#: apps/order/models.py:375
+#: apps/order/models.py:376
 msgid "主机安全扫描每次费用"
 msgstr "Host security scan each time"
 
-#: apps/order/models.py:376
+#: apps/order/models.py:377
 msgid "安全扫描host主机每次费用"
 msgstr "The cost of one host security scan"
 
-#: apps/order/models.py:379
+#: apps/order/models.py:380
 msgid "资源计价定价"
 msgstr "Resource price"
 
-#: apps/order/models.py:387 apps/servers/serializers.py:8
+#: apps/order/models.py:388 apps/servers/serializers.py:8
 msgid "月数"
 msgstr "Number of months"
 
-#: apps/order/models.py:388 apps/servers/models.py:868
+#: apps/order/models.py:389 apps/servers/models.py:868
 msgid "可用状态"
 msgstr "Status"
 
-#: apps/order/models.py:409
+#: apps/order/models.py:410
 msgid "待退款"
 msgstr "Wait"
 
-#: apps/order/models.py:410
+#: apps/order/models.py:411
 msgid "已退款"
 msgstr "Refunded "
 
-#: apps/order/models.py:414
+#: apps/order/models.py:415
 msgid "退订编号"
 msgstr "ID"
 
-#: apps/order/models.py:415
+#: apps/order/models.py:416
 msgid "退订订单"
 msgstr "Unsubscribe order"
 
-#: apps/order/models.py:417
+#: apps/order/models.py:418
 msgid "订单总金额"
 msgstr "Total order amount"
 
-#: apps/order/models.py:420
+#: apps/order/models.py:421
 msgid "退订状态"
 msgstr "Status"
 
-#: apps/order/models.py:421
+#: apps/order/models.py:422
 msgid "退订状态描述"
 msgstr "Status Desc"
 
-#: apps/order/models.py:422
+#: apps/order/models.py:423
 msgid "退订时间"
 msgstr "Unsubscribe Time"
 
-#: apps/order/models.py:426
+#: apps/order/models.py:427
 msgid "退订资源数量"
 msgstr "Resources Number"
 
-#: apps/order/models.py:430
+#: apps/order/models.py:431
 msgid "需要退款的金额"
 msgstr "Refund amount"
 
-#: apps/order/models.py:433
+#: apps/order/models.py:434
 msgid "余额退款金额"
 msgstr "Balance amount"
 
-#: apps/order/models.py:435
+#: apps/order/models.py:436
 msgid "券退款金额"
 msgstr "Coupon amount"
 
-#: apps/order/models.py:436
+#: apps/order/models.py:437
 msgid "退款记录id"
 msgstr "Refund record ID"
 
-#: apps/order/models.py:437
+#: apps/order/models.py:438
 msgid "退款完成时间"
 msgstr "Completion time"
 
-#: apps/order/models.py:446
+#: apps/order/models.py:447
 msgid "退订退款"
 msgstr "Unsubscribe and refund"
 
@@ -9609,8 +9608,8 @@ msgstr "Unsubscribe and refund"
 msgid "总金额"
 msgstr "Total amount"
 
-#: apps/order/serializers.py:20 apps/servers/serializers.py:421
-#: apps/servers/serializers.py:428
+#: apps/order/serializers.py:20 apps/servers/serializers.py:423
+#: apps/servers/serializers.py:430
 msgid "时长单位"
 msgstr "period unit"
 
@@ -9621,6 +9620,11 @@ msgstr "Order end time"
 #: apps/order/serializers.py:44
 msgid "资源创建结果"
 msgstr "Resource creation results"
+
+#: apps/report/admin.py:37 apps/report/admin.py:43 apps/users/admin.py:76
+#: apps/users/admin.py:79
+msgid "预览"
+msgstr "Preview"
 
 #: apps/report/api_viewsets/arrear_views.py:25
 msgid "查询欠费的云主机"
@@ -9720,15 +9724,15 @@ msgstr "Ascending by balance"
 msgid "按余额降序"
 msgstr "Descending by balance"
 
-#: apps/report/models.py:15 apps/report/models.py:125
+#: apps/report/models.py:15 apps/report/models.py:137
 msgid "生成时间"
 msgstr "Creation time"
 
-#: apps/report/models.py:16 apps/report/models.py:126
+#: apps/report/models.py:16 apps/report/models.py:138
 msgid "报表年月"
 msgstr "Report month"
 
-#: apps/report/models.py:16 apps/report/models.py:126
+#: apps/report/models.py:16 apps/report/models.py:138
 msgid "报表月度，用日期存储年和月，日统一为1"
 msgstr ""
 "Monthly report, storing year and month using dates, with days uniformly set "
@@ -9762,16 +9766,20 @@ msgstr "VO name"
 msgid "本月度云主机数"
 msgstr "Server Count"
 
-#: apps/report/models.py:34 apps/report/models.py:51 apps/report/models.py:140
-msgid "按量应付金额"
+#: apps/report/models.py:33
+msgid "云主机计费金额"
+msgstr "Server bill amount"
+
+#: apps/report/models.py:34
+msgid "云主机按量应付金额"
 msgstr "Server metering payable"
 
-#: apps/report/models.py:35 apps/report/models.py:52
-msgid "按量后付费金额"
+#: apps/report/models.py:35
+msgid "云主机按量后付费金额"
 msgstr "Server postpaid"
 
 #: apps/report/models.py:36
-msgid "订购预付费金额"
+msgid "云主机订购预付费金额"
 msgstr "Server order prepaid"
 
 #: apps/report/models.py:38
@@ -9810,13 +9818,25 @@ msgstr "Number of public IP days for cloud servers"
 msgid "本月度存储桶数"
 msgstr "bucket count"
 
-#: apps/report/models.py:48 apps/report/models.py:137
+#: apps/report/models.py:48 apps/report/models.py:149
 msgid "存储容量GiB*Day"
 msgstr "Storage GiB * Day"
 
 #: apps/report/models.py:48
 msgid "存储桶的存储容量GiB Day数"
 msgstr "Storage capacity of bucket in GiB days"
+
+#: apps/report/models.py:50
+msgid "存储桶计费金额"
+msgstr "Bucket bill amount"
+
+#: apps/report/models.py:51
+msgid "存储桶按量应付金额"
+msgstr "Bucket metering payable"
+
+#: apps/report/models.py:52
+msgid "存储桶按量后付费金额"
+msgstr "Bucket postpaid"
 
 #: apps/report/models.py:53
 msgid "本月度云硬盘数"
@@ -9878,161 +9898,186 @@ msgstr "site monitor payable"
 msgid "站点监控付费金额"
 msgstr "site monitor paid"
 
-#: apps/report/models.py:130
+#: apps/report/models.py:76
+msgid "云主机快照数"
+msgstr "Server snapshot"
+
+#: apps/report/models.py:78
+
+msgid "云主机快照预付费金额"
+msgstr "Server snapshot prepaid"
+
+#: apps/report/models.py:79
+msgid "Web安全扫描数"
+msgstr "Web scan"
+
+#: apps/report/models.py:80
+msgid "Host安全扫描数"
+msgstr "Host scan"
+
+#: apps/report/models.py:82
+msgid "安全扫描预付费金额"
+msgstr "Scan prepaid"
+
+#: apps/report/models.py:142
 msgid "所属服务单元"
 msgstr "Service unit"
 
-#: apps/report/models.py:137
+#: apps/report/models.py:149
 msgid "存储桶的存储容量GiB天数"
 msgstr "Storage capacity of the bucket in GiB days"
 
-#: apps/report/models.py:143
+#: apps/report/models.py:152
+msgid "按量应付金额"
+msgstr "Server metering payable"
+
+#: apps/report/models.py:155
 msgid "存储桶月度计量报表"
 msgstr "Monthly Report of Storage Bucket"
 
-#: apps/report/models.py:157 apps/report/models.py:235
-#: apps/report/models.py:237 apps/report/serializers.py:65
+#: apps/report/models.py:169 apps/report/models.py:247
+#: apps/report/models.py:249 apps/report/serializers.py:65
 #: apps/report/serializers.py:66
 msgid "存储服务单元"
 msgstr "Service unit"
 
-#: apps/report/models.py:161 apps/report/models.py:238
+#: apps/report/models.py:173 apps/report/models.py:250
 #: apps/report/serializers.py:10 apps/report/serializers.py:67
 msgid "存储容量(Byte)"
 msgstr "Storage size (Byte)"
 
-#: apps/report/models.py:162 apps/report/serializers.py:11
+#: apps/report/models.py:174 apps/report/serializers.py:11
 msgid "存储容量增量(Byte)"
 msgstr "Storage increment (Byte)"
 
-#: apps/report/models.py:163 apps/report/models.py:239
+#: apps/report/models.py:175 apps/report/models.py:251
 #: apps/report/serializers.py:12 apps/report/serializers.py:68
 #: apps/storage/models.py:322 apps/storage/serializers.py:18
 msgid "桶对象数量"
 msgstr "Bucket objects count"
 
-#: apps/report/models.py:167 apps/report/serializers.py:14
+#: apps/report/models.py:179 apps/report/serializers.py:14
 msgid "计费金额增量"
 msgstr "Incremental amount"
 
-#: apps/report/models.py:172 apps/report/serializers.py:17
+#: apps/report/models.py:184 apps/report/serializers.py:17
 msgid "数据日期(月份)"
 msgstr "Date (month)"
 
-#: apps/report/models.py:172
+#: apps/report/models.py:184
 msgid "根据数据采样周期，数据是哪个月的"
 msgstr "According to the data sampling period, which month is the data from"
 
-#: apps/report/models.py:178
+#: apps/report/models.py:190
 msgid "存储桶月度容量增量统计数据"
 msgstr "Monthly capacity increment of storage buckets"
 
-#: apps/report/models.py:192 apps/report/serializers.py:39
-#: apps/servers/models.py:779 apps/servers/serializers.py:419
+#: apps/report/models.py:204 apps/report/serializers.py:39
+#: apps/servers/models.py:779 apps/servers/serializers.py:421
 msgid "云主机ID"
 msgstr "server id"
 
-#: apps/report/models.py:198 apps/report/serializers.py:43
+#: apps/report/models.py:210 apps/report/serializers.py:43
 #: apps/servers/models.py:524 apps/servers/models.py:864
 #: apps/servers/serializers.py:17
 msgid "虚拟CPU数"
 msgstr "Virtual CPUs"
 
-#: apps/report/models.py:199 apps/report/serializers.py:44
+#: apps/report/models.py:211 apps/report/serializers.py:44
 #: apps/servers/models.py:525 apps/servers/models.py:865
 #: apps/servers/serializers.py:18 apps/servers/serializers.py:22
 #: apps/servers/serializers.py:32
 msgid "内存GiB"
 msgstr "Memory GiB"
 
-#: apps/report/models.py:200 apps/report/serializers.py:45
+#: apps/report/models.py:212 apps/report/serializers.py:45
 #: apps/servers/models.py:528
 msgid "镜像系统名称"
 msgstr "Image system name"
 
-#: apps/report/models.py:202 apps/report/serializers.py:46
+#: apps/report/models.py:214 apps/report/serializers.py:46
 #: apps/servers/disk_serializers.py:39 apps/servers/disk_serializers.py:92
 #: apps/servers/models.py:547 apps/servers/models.py:937
 #: apps/servers/models.py:1205 apps/servers/serializers.py:373
 msgid "计费方式"
 msgstr "Pay type"
 
-#: apps/report/models.py:203 apps/report/serializers.py:47
+#: apps/report/models.py:215 apps/report/serializers.py:47
 msgid "云主机创建时间"
 msgstr "Creation time"
 
-#: apps/report/models.py:204 apps/report/serializers.py:48
+#: apps/report/models.py:216 apps/report/serializers.py:48
 msgid "云主机过期时间"
 msgstr "Expiration date"
 
-#: apps/report/models.py:205 apps/report/serializers.py:49
+#: apps/report/models.py:217 apps/report/serializers.py:49
 msgid "云主机备注"
 msgstr "Remarks"
 
-#: apps/report/models.py:208 apps/report/serializers.py:51
+#: apps/report/models.py:220 apps/report/serializers.py:51
 msgid "个人云主机的拥有者，或者vo组云主机的创建者"
 msgstr ""
 "The owner of a personal cloud host, or the creator of a cloud host for a VO "
 "group."
 
-#: apps/report/models.py:213 apps/report/serializers.py:56
+#: apps/report/models.py:225 apps/report/serializers.py:56
 msgid "所有者的余额"
 msgstr "Owner's balance"
 
-#: apps/report/models.py:213 apps/report/serializers.py:56
+#: apps/report/models.py:225 apps/report/serializers.py:56
 msgid "用户个人余额，或者VO组余额"
 msgstr "User's personal balance or VO group balance"
 
-#: apps/report/models.py:214 apps/report/models.py:251
+#: apps/report/models.py:226 apps/report/models.py:263
 #: apps/report/serializers.py:57 apps/report/serializers.py:75
 msgid "数据日期"
 msgstr "Date"
 
-#: apps/report/models.py:214 apps/report/serializers.py:57
+#: apps/report/models.py:226 apps/report/serializers.py:57
 msgid "查询欠费云主机数据采样日期"
 msgstr "Query the overdue cloud host data sampling date"
 
-#: apps/report/models.py:215 apps/report/models.py:252
+#: apps/report/models.py:227 apps/report/models.py:264
 #: apps/report/serializers.py:58 apps/report/serializers.py:76
 msgid "判定为欠费的时间"
 msgstr "Time judged as overdue"
 
-#: apps/report/models.py:220
+#: apps/report/models.py:232
 msgid "欠费的云主机"
 msgstr "Server in arrears"
 
-#: apps/report/models.py:240 apps/report/serializers.py:69
+#: apps/report/models.py:252 apps/report/serializers.py:69
 msgid "存储桶创建时间"
 msgstr "Creation time"
 
-#: apps/report/models.py:242 apps/report/serializers.py:70
+#: apps/report/models.py:254 apps/report/serializers.py:70
 #: apps/servers/models.py:553 apps/storage/models.py:316
 msgid "过期欠费管控情况"
 msgstr "Expired arrears control status"
 
-#: apps/report/models.py:244 apps/storage/models.py:317
+#: apps/report/models.py:256 apps/storage/models.py:317
 msgid "欠费状态下存储桶读写锁定管控情况"
 msgstr "Storage bucket read/write lockout control in delinquent state"
 
-#: apps/report/models.py:247 apps/report/serializers.py:71
+#: apps/report/models.py:259 apps/report/serializers.py:71
 #: apps/servers/models.py:557 apps/storage/models.py:320
 msgid "管控情况时间"
 msgstr "Control status time"
 
-#: apps/report/models.py:247 apps/report/serializers.py:71
+#: apps/report/models.py:259 apps/report/serializers.py:71
 #: apps/storage/models.py:320
 msgid "欠费管控开始时间"
 msgstr "Start of arrears control"
 
-#: apps/report/models.py:251 apps/report/serializers.py:75
+#: apps/report/models.py:263 apps/report/serializers.py:75
 msgid "查询欠费存储桶数据采样日期"
 msgstr "Date of data sampling for the underfunded storage bucket"
 
-#: apps/report/models.py:253 apps/report/serializers.py:77
+#: apps/report/models.py:265 apps/report/serializers.py:77
 msgid "存储桶备注"
 msgstr "remarks"
 
-#: apps/report/models.py:258
+#: apps/report/models.py:270
 msgid "欠费的存储桶"
 msgstr "Storage buckets in arrears"
 
@@ -10122,13 +10167,13 @@ msgstr "Mount"
 msgid "锁、删除状态"
 msgstr "Lock, Delete Status"
 
-#: apps/servers/admin.py:134 apps/servers/admin.py:501
+#: apps/servers/admin.py:134 apps/servers/admin.py:503
 #: apps/servers/disk_serializers.py:44 apps/servers/models.py:972
 #: apps/servers/models.py:1226
 msgid "删除状态"
 msgstr "Delete Status"
 
-#: apps/servers/admin.py:138 apps/servers/admin.py:504
+#: apps/servers/admin.py:138 apps/servers/admin.py:506
 msgid "已删除"
 msgstr "deleted"
 
@@ -10622,32 +10667,32 @@ msgstr ""
 "VO group is required and cannot be submitted together with the parameter "
 "'vo_name'"
 
-#: apps/servers/apiviews/snapshot_views.py:135
+#: apps/servers/apiviews/snapshot_views.py:137
 msgid "创建云主机快照"
 msgstr "Create a snapshot of a cloud server"
 
-#: apps/servers/apiviews/snapshot_views.py:154
+#: apps/servers/apiviews/snapshot_views.py:156
 msgid ""
 "查询一个用户个人或vo组云主机快照信息，或者以管理员身份查询云主机快照信息"
 msgstr ""
 "Query a user's personal or VO group cloud host snapshot information, or "
 "query cloud host snapshot information as an administrator"
 
-#: apps/servers/apiviews/snapshot_views.py:201
+#: apps/servers/apiviews/snapshot_views.py:205
 msgid "修改云主机快照名称和描述信息"
 msgstr "Modify the name and description information of the cloud host snapshot"
 
-#: apps/servers/apiviews/snapshot_views.py:215
+#: apps/servers/apiviews/snapshot_views.py:219
 msgid "删除一个用户个人或vo组的云主机快照，或者以管理员身份删除云主机快照"
 msgstr ""
 "Delete a user's personal or VO group cloud server snapshot, or delete a "
 "cloud server snapshot as an administrator"
 
-#: apps/servers/apiviews/snapshot_views.py:227
+#: apps/servers/apiviews/snapshot_views.py:231
 msgid "用户个人或vo组的云主机回滚到快照"
 msgstr "Rollback of personal or VO group cloud hosts to snapshot"
 
-#: apps/servers/apiviews/snapshot_views.py:239
+#: apps/servers/apiviews/snapshot_views.py:247
 msgid "续费云主机快照"
 msgstr "Renewal of cloud server snapshot"
 
@@ -11700,15 +11745,15 @@ msgstr "Private resource quota for service unit"
 msgid "服务的共享资源配额"
 msgstr "Shared resource quota for service unit"
 
-#: apps/servers/managers.py:1631
+#: apps/servers/managers.py:1633
 msgid "你没有快照所属项目组的访问权限"
 msgstr "You do not have access to the VO to which the snapshot belongs"
 
-#: apps/servers/managers.py:1633
+#: apps/servers/managers.py:1635
 msgid "你没有快照的访问权限"
 msgstr "You do not have access to the snapshot"
 
-#: apps/servers/managers.py:1650
+#: apps/servers/managers.py:1652
 msgid "你没有快照的管理权限。"
 msgstr "You do not have snapshot management permissions."
 
@@ -12235,7 +12280,7 @@ msgid "删除 “%(object)s”"
 msgstr "Delete '%(object)s'"
 
 #: apps/servers/models.py:1197 apps/servers/serializers.py:368
-#: apps/servers/serializers.py:418 apps/servers/serializers.py:433
+#: apps/servers/serializers.py:420 apps/servers/serializers.py:435
 msgid "快照名称"
 msgstr "Name"
 
@@ -12271,7 +12316,15 @@ msgstr ""
 msgid "归属云主机"
 msgstr "Cloud server"
 
-#: apps/servers/models.py:1233 utils/model.py:77
+#: apps/servers/models.py:1229
+msgid "操作系统名称"
+msgstr "System name"
+
+#: apps/servers/models.py:1230
+msgid "操作系统发行版"
+msgstr "System release"
+
+#: apps/servers/models.py:1235 utils/model.py:77
 msgid "云主机快照"
 msgstr "Server snapshot"
 
@@ -12329,8 +12382,8 @@ msgstr ""
 "The system disk size of the cloud server, measured in GiB, only allows "
 "values that are multiples of 50, such as 50, 100, 150, etc"
 
-#: apps/servers/serializers.py:176 apps/servers/serializers.py:420
-#: apps/servers/serializers.py:427
+#: apps/servers/serializers.py:176 apps/servers/serializers.py:422
+#: apps/servers/serializers.py:429
 msgid "订购时长，单位由period_unit指定"
 msgstr "Order period, unit specified by 'period_unit'"
 
@@ -12364,11 +12417,11 @@ msgstr "Used disk size (GB)"
 msgid "服务单元管理员"
 msgstr "Service Unit Administrator"
 
-#: apps/servers/serializers.py:422 apps/servers/serializers.py:435
+#: apps/servers/serializers.py:424 apps/servers/serializers.py:437
 msgid "快照描述"
 msgstr "Snapshot description"
 
-#: apps/servers/serializers.py:426
+#: apps/servers/serializers.py:428
 msgid "快照ID"
 msgstr "Snapshot ID"
 
@@ -13578,10 +13631,6 @@ msgstr "Date joined"
 #: apps/users/admin.py:50 apps/users/models.py:34
 msgid "最后活跃日期"
 msgstr "Last active"
-
-#: apps/users/admin.py:76 apps/users/admin.py:79
-msgid "预览"
-msgstr "Preview"
 
 #: apps/users/admin.py:82
 msgid "重试发送失败邮件"
