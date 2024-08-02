@@ -27,7 +27,7 @@ class ServerSnapshotTests(MyAPITransactionTestCase):
         self.vo.save(force_insert=True)
         self.price = create_price()
 
-    def test_list_disk(self):
+    def test_list_snapshot(self):
         service2 = ServiceConfig(
             name='test2', name_en='test2_en', org_data_center=self.service.org_data_center
         )
@@ -43,14 +43,15 @@ class ServerSnapshotTests(MyAPITransactionTestCase):
             creation_time=dj_timezone.now(), expiration_time=dj_timezone.now()-timedelta(days=1),
             start_time=None, pay_type=PayType.PREPAID.value,
             classification=ServerSnapshot.Classification.PERSONAL.value, user=self.user, vo=None,
-            server=server1, service=server1.service
+            server=server1, service=server1.service,
+            system_name='centos stream 9', system_release='CentOS 9'
         )
         snapshot2 = ServerSnapshotManager.create_snapshot_metadata(
             name='name2', size_dib=88, remarks='snapshot2 test', instance_id='22',
             creation_time=dj_timezone.now(), expiration_time=dj_timezone.now() + timedelta(days=1),
             start_time=None, pay_type=PayType.PREPAID.value,
             classification=ServerSnapshot.Classification.PERSONAL.value, user=self.user, vo=None,
-            server=None, service=service2
+            server=None, service=service2, system_name='centos stream 9', system_release='CentOS 9'
         )
         snapshot3_vo = ServerSnapshotManager.create_snapshot_metadata(
             name='name3', size_dib=886, remarks='vo snapshot3 test', instance_id='33',
@@ -64,7 +65,7 @@ class ServerSnapshotTests(MyAPITransactionTestCase):
             creation_time=dj_timezone.now(), expiration_time=dj_timezone.now() + timedelta(days=10),
             start_time=None, pay_type=PayType.PREPAID.value,
             classification=ServerSnapshot.Classification.VO.value, user=self.user, vo=self.vo,
-            server=None, service=service2
+            server=None, service=service2, system_name='centos stream 9', system_release='CentOS 9'
         )
         snapshot4_vo.server_id = 'missing'
         snapshot4_vo.save(update_fields=['server_id'])
@@ -106,7 +107,8 @@ class ServerSnapshotTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['page_size'], 100)
         self.assertEqual(len(response.data['results']), 2)
         self.assertKeysIn(['id', 'name', 'size', 'remarks', 'creation_time', 'expiration_time', 'pay_type',
-                           'classification', 'user', 'vo', 'server', 'service'], response.data['results'][0])
+                           'classification', 'user', 'vo', 'server', 'service', 'system_name', 'system_release'
+                           ], response.data['results'][0])
         self.assertKeysIn(['id', 'name', 'name_en'], response.data['results'][0]['service'])
         self.assertKeysIn(['id', 'username'], response.data['results'][0]['user'])
         self.assertIsNone(response.data['results'][0]['vo'])
@@ -231,7 +233,8 @@ class ServerSnapshotTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['page_size'], 100)
         self.assertEqual(len(response.data['results']), 2)
         self.assertKeysIn(['id', 'name', 'size', 'remarks', 'creation_time', 'expiration_time', 'pay_type',
-                           'classification', 'user', 'vo', 'server', 'service'], response.data['results'][0])
+                           'classification', 'user', 'vo', 'server', 'service', 'system_name', 'system_release'
+                           ], response.data['results'][0])
         self.assertKeysIn(['id', 'name', 'name_en'], response.data['results'][0]['service'])
         self.assertKeysIn(['id', 'username'], response.data['results'][0]['user'])
         self.assertEqual(response.data['results'][0]['id'], snapshot3_vo.id)
@@ -453,14 +456,15 @@ class ServerSnapshotTests(MyAPITransactionTestCase):
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['id', 'name', 'size', 'remarks', 'creation_time', 'expiration_time', 'pay_type',
-                           'classification', 'user', 'vo', 'server', 'service'], response.data)
+                           'classification', 'user', 'vo', 'server', 'service', 'system_name', 'system_release'
+                           ], response.data)
         self.assertKeysIn(['id', 'name', 'name_en'], response.data['service'])
         self.assertKeysIn(['id', 'username'], response.data['user'])
         self.assertEqual(response.data['id'], snapshot1.id)
         self.assertKeysIn(['id', 'vcpus', 'ram_gib', 'ipv4', 'image', 'creation_time', 'expiration_time',
                            'remarks'], response.data['server'])
 
-        # detail vo disk
+        # detail vo
         base_url = reverse('servers-api:server-snapshot-detail', kwargs={'id': snapshot3_vo.id})
         response = self.client.get(base_url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)

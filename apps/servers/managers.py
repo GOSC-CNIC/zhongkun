@@ -1451,7 +1451,8 @@ class ServerSnapshotManager:
             instance_id: str, name: str, size_dib: int, remarks: str,
             creation_time: datetime, expiration_time: datetime, start_time: Union[datetime, None],
             pay_type: str, classification: str, user, vo, server, service,
-            deleted: bool = False, deleted_time: datetime = None, deleted_user: str = ''
+            deleted: bool = False, deleted_time: datetime = None, deleted_user: str = '',
+            system_name: str = '', system_release: str = ''
     ):
         if not start_time:
             start_time = dj_timezone.now()
@@ -1460,7 +1461,8 @@ class ServerSnapshotManager:
             name=name, instance_id=instance_id, size=size_dib, remarks=remarks,
             creation_time=creation_time, expiration_time=expiration_time, start_time=start_time,
             pay_type=pay_type, classification=classification, user=user, vo=vo, server=server, service=service,
-            deleted=deleted, deleted_time=deleted_time, deleted_user=deleted_user
+            deleted=deleted, deleted_time=deleted_time, deleted_user=deleted_user,
+            system_name=system_name, system_release=system_release
         )
         snap.save(force_insert=True)
         return snap

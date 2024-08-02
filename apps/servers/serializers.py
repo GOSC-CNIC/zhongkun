@@ -376,6 +376,8 @@ class ServerSnapshotSerializer(serializers.Serializer):
     vo = serializers.SerializerMethodField(label=_('项目组'), method_name='get_vo')
     server = serializers.SerializerMethodField(label=_('归属云主机'), method_name='get_server')
     service = serializers.SerializerMethodField(label=_('服务单元'), method_name='get_service')
+    system_name = serializers.CharField(max_length=255)
+    system_release = serializers.CharField(max_length=64)
 
     @staticmethod
     def get_user(obj):

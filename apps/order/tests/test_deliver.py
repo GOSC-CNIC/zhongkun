@@ -541,7 +541,7 @@ class DeliverTests(MyAPITransactionTestCase):
             service=self.service1, user=self.user, vo_id=self.vo.id, ram=2,
             classification=Server.Classification.VO, default_user='root',
             default_password='password', ipv4='127.0.0.12', remarks='test',
-            disk_size=100
+            disk_size=100, img_release='CentOS', img_release_version='stream 9'
         )
 
         instance_config = ServerSnapshotConfig(

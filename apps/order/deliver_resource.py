@@ -1191,6 +1191,10 @@ class OrderResourceDeliverer:
         else:
             due_time = None
 
+        system_release = ''
+        if server.img_release:
+            system_release = f'{server.img_release} {server.img_release_version}'
+
         snap = ServerSnapshot(
             id=resource.instance_id,
             name=snapshot_name,
@@ -1205,6 +1209,8 @@ class OrderResourceDeliverer:
             server=server,
             service=service,
             deleted=False,
+            system_name=server.image,
+            system_release=system_release,
             **kwargs
         )
         try:

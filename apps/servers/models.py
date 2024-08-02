@@ -1226,6 +1226,8 @@ class ServerSnapshot(UuidModel):
     deleted = models.BooleanField(verbose_name=_('删除状态'), default=False, help_text=_('选中表示已删除'))
     deleted_time = models.DateTimeField(verbose_name=_('删除时间'), null=True, blank=True, default=None)
     deleted_user = models.CharField(verbose_name=_('删除人'), max_length=128, blank=True, default='')
+    system_name = models.CharField(max_length=255, verbose_name=_('操作系统名称'), default='')
+    system_release = models.CharField(max_length=64, verbose_name=_('操作系统发行版'), default='')
 
     class Meta:
         db_table = 'servers_serversnapshot'

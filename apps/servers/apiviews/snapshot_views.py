@@ -98,6 +98,8 @@ class ServerSnapshotViewSet(CustomGenericViewSet):
                         "name": "name1",
                         "size": 66,     # GiB
                         "remarks": "snapshot1 test",
+                        "system_name": "centos stream 9",
+                        "system_release": "CentOS 9",
                         "creation_time": "2024-05-11T06:15:35.707263Z",
                         "expiration_time": "2024-05-10T06:15:35.707268Z",
                         "pay_type": "prepaid",
@@ -165,6 +167,8 @@ class ServerSnapshotViewSet(CustomGenericViewSet):
                 "id": "r7o6ab5guv3uc6qs9uckfu89w-s",
                 "name": "name1",
                 "size": 66,     # GiB
+                "system_name": "centos stream 9",
+                "system_release": "CentOS 9",
                 "remarks": "snapshot1 test",
                 "creation_time": "2024-05-11T06:15:35.707263Z",
                 "expiration_time": "2024-05-10T06:15:35.707268Z",
