@@ -340,7 +340,8 @@ class PaymentManager:
             if amounts > total_coupon_balance:
                 raise errors.BalanceNotEnough(message=_('资源券的余额不足'), code='CouponBalanceNotEnough')
         elif required_enough_balance:
-            if amounts > (total_coupon_balance + account.balance):
+            # 券金额不足够支付，并且券金额+余额也不足够支付
+            if amounts > total_coupon_balance and amounts > (total_coupon_balance + account.balance):
                 raise errors.BalanceNotEnough()
 
         if (
