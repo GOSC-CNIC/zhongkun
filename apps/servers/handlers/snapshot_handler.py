@@ -183,7 +183,7 @@ class SnapshotHandler:
             request_service(
                 service=snapshot.service, method='server_rollback_snapshot',
                 params=inputs.ServerRollbackSnapshotInput(
-                    instance_id=server.id, snap_id=snapshot.instance_id, _who_action=request.user.username)
+                    instance_id=server.instance_id, snap_id=snapshot.instance_id, _who_action=request.user.username)
             )
         except Exception as exc:
             return view.exception_response(exc)
