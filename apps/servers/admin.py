@@ -239,7 +239,7 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
         (_('联系人信息'), {
             'fields': ('contact_person', 'contact_email', 'contact_telephone', 'contact_fixed_phone', 'contact_address')
         }),
-        (_('监控任务'), {'fields': ('monitor_task_id', 'delete_monitor_task')}),
+        (_('监控任务'), {'fields': ('monitor_task_id', 'create_monitor_task')}),
     )
 
     actions = ['encrypt_password', 'encrypt_vpn_password', 'update_service_version']
@@ -333,8 +333,8 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
                 obj.check_or_register_pay_app_service()
 
         try:
-            delete_monitor_task = form.cleaned_data.get('delete_monitor_task', False)
-            act = obj.create_or_change_monitor_task(only_delete=delete_monitor_task)
+            create_monitor_task = form.cleaned_data.get('create_monitor_task', True)
+            act = obj.create_or_change_monitor_task(only_delete=not create_monitor_task)
             if act == 'create':
                 self.message_user(request, _("为服务单元创建了对应的站点监控任务"), level=messages.SUCCESS)
             elif act == 'change':
