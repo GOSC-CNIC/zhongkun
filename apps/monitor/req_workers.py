@@ -1,6 +1,6 @@
 import asyncio
 from urllib.parse import urlencode
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List
 
 import requests
@@ -179,6 +179,11 @@ class LogSiteReqCounter:
             ret['update_count'] = update_count
             ret['update_ok_count'] = update_ok_count
 
+        # 删除以前的记录
+        ago_days = 200
+        dlt_count = self.delete_ago_days_records(ago_days=ago_days)
+        ret['deleted_count'] = dlt_count
+        print(f'deleted {ago_days} days ago records: {dlt_count}')
         return ret
 
     @staticmethod
@@ -562,3 +567,10 @@ class LogSiteReqCounter:
                 down_site_ids.append(site_id)
 
         return down_site_ids
+
+    @staticmethod
+    def delete_ago_days_records(ago_days: int = 200):
+        dt_ago_days = datetime.utcnow() - timedelta(days=ago_days)
+        ts_ago_days = int(dt_ago_days.timestamp())
+        dlt_count, d = LogSiteTimeReqNum.objects.filter(timestamp__lt=ts_ago_days).delete()
+        return dlt_count
