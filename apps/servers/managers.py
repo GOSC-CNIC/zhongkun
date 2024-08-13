@@ -1650,3 +1650,7 @@ class ServerSnapshotManager:
                 return snapshot
 
         raise errors.AccessDenied(message=_('你没有快照的管理权限。'))
+
+    def get_server_snapshot_qs(self, server_id: str):
+        qs = self.get_snapshot_queryset()
+        return qs.filter(server_id=server_id)

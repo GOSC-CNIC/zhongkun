@@ -6,9 +6,9 @@ from django.urls import reverse
 from django.utils import timezone as dj_timezone
 from django.conf import settings
 
-from apps.servers.managers import ServicePrivateQuotaManager
+from apps.servers.managers import ServicePrivateQuotaManager, ServerSnapshotManager
 from apps.servers.models import ServiceConfig
-from apps.servers.models import Flavor, Server, ServerArchive, Disk, ResourceActionLog
+from apps.servers.models import Flavor, Server, ServerArchive, Disk, ResourceActionLog, ServerSnapshot
 from utils.test import (
     get_or_create_user, get_or_create_service, get_or_create_organization,
     MyAPITransactionTestCase, MyAPITestCase
@@ -2427,6 +2427,8 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_server_rebuild(self):
+        from apps.servers.tests.test_disk import create_disk_metadata
+
         miss_server = self.miss_server
         url = reverse('servers-api:servers-rebuild', kwargs={'id': miss_server.id})
 
@@ -2466,6 +2468,31 @@ class ServersTests(MyAPITestCase):
 
         user_server.expiration_time = dj_timezone.now() + timedelta(days=1)
         user_server.save(update_fields=['expiration_time'])
+
+        # 硬盘
+        disk1 = create_disk_metadata(
+            service_id=self.service.id, azone_id='1', disk_size=6, pay_type=PayType.PREPAID.value,
+            classification=Disk.Classification.PERSONAL.value, user_id=self.user.id, vo_id=None,
+            creation_time=dj_timezone.now(), server_id=user_server.id
+        )
+        url = reverse('servers-api:servers-rebuild', kwargs={'id': user_server.id})
+        response = self.client.post(url, data={'image_id': 'test'})
+        self.assertErrorResponse(status_code=409, code='DiskAttached', response=response)
+        disk1.set_detach()
+
+        # 快照
+        snapshot1 = ServerSnapshotManager.create_snapshot_metadata(
+            name='name1', size_dib=66, remarks='snapshot1 test', instance_id='11',
+            creation_time=dj_timezone.now(), expiration_time=dj_timezone.now() - timedelta(days=1),
+            start_time=None, pay_type=PayType.PREPAID.value,
+            classification=ServerSnapshot.Classification.PERSONAL.value, user=self.user, vo=None,
+            server=user_server, service=user_server.service
+        )
+        url = reverse('servers-api:servers-rebuild', kwargs={'id': user_server.id})
+        response = self.client.post(url, data={'image_id': 'test'})
+        self.assertErrorResponse(status_code=409, code='SnapshotExists', response=response)
+        snapshot1.do_soft_delete(deleted_user='')
+
         response = self.client.post(url, data={'image_id': 'test'})
         self.assertErrorResponse(status_code=500, code='InternalError', response=response)
         user_server.refresh_from_db()

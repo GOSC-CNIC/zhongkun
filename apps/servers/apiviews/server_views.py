@@ -467,6 +467,8 @@ class ServersViewSet(CustomGenericViewSet):
         """
         重建服务器实例, 更换系统
 
+            * 需要卸载云硬盘，删除已创建的云主机快照
+
             http code 202：已接受重建请求，正在重建中；
             {
                 "id": "xxx",     # 服务器id;

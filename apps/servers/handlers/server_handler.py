@@ -13,7 +13,9 @@ from core import request as core_request
 from core import site_configs_manager
 from apps.servers.managers import ServiceManager
 from apps.servers.models import Server, Flavor
-from apps.servers.managers import ServerManager, ServerArchiveManager, DiskManager, ResourceActionLogManager
+from apps.servers.managers import (
+    ServerManager, ServerArchiveManager, DiskManager, ResourceActionLogManager, ServerSnapshotManager
+)
 from apps.servers import serializers, format_who_action_str
 from apps.api import paginations
 from apps.api.viewsets import CustomGenericViewSet, serializer_error_msg
@@ -284,6 +286,15 @@ class ServerHandler:
         if d_count > 0:
             return view.exception_response(exceptions.DiskAttached(
                 message=_('云主机挂载了%(count)s块云硬盘，请先卸载云硬盘后重试。') % {'count': d_count}
+            ))
+
+        # 快照
+        snapshot_qs = ServerSnapshotManager().get_server_snapshot_qs(server_id=server_id)
+        spt_count = snapshot_qs.count()
+        if spt_count > 0:
+            return view.exception_response(exceptions.ConflictError(
+                message=_('云主机已创建了%(count)s个快照，请先删除云主机快照后重试。') % {'count': spt_count},
+                code='SnapshotExists'
             ))
 
         server.task_status = server.TASK_IN_CREATING
