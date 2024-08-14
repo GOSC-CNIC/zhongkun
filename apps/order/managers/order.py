@@ -602,13 +602,15 @@ class OrderManager:
             if order.trading_status in [order.TradingStatus.CLOSED, order.TradingStatus.COMPLETED]:
                 raise errors.Error(message=_('交易关闭和交易完成状态的订单不允许修改'))
 
-            update_fields = ['trading_status']
+            now_tm = dj_timezone.now()
+            update_fields = ['trading_status', 'completion_time']
             if order.pay_type != PayType.POSTPAID.value:
                 order.start_time = start_time
                 order.end_time = due_time
                 update_fields += ['start_time', 'end_time']
 
             order.trading_status = order.TradingStatus.COMPLETED.value
+            order.completion_time = now_tm
             try:
                 order.save(update_fields=update_fields)
             except Exception as e:
@@ -616,7 +618,7 @@ class OrderManager:
 
             resource.instance_status = resource.InstanceStatus.SUCCESS.value
             resource.desc = 'success'
-            resource.delivered_time = dj_timezone.now()
+            resource.delivered_time = now_tm
             update_fields = ['instance_status', 'desc', 'delivered_time']
             if instance_id:
                 resource.instance_id = instance_id
