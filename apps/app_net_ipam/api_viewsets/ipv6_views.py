@@ -331,6 +331,70 @@ class IPv6RangeViewSet(NormalGenericViewSet):
         """
         return IPv6RangeHandler().reserve_ipv6_range(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('分配一个子网IPv6地址段'),
+        request_body=no_body,
+        manual_parameters=[
+            openapi.Parameter(
+                name='org_virt_obj_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description=gettext_lazy('分配机构二级对象id')
+            )
+        ],
+        responses={
+            200: ''''''
+        }
+    )
+    @action(methods=['POST'], detail=True, url_path='assign', url_name='assign')
+    def assign_ip_range(self, request, *args, **kwargs):
+        """
+        从“未分配”和“预留”状态 分配一个子网IPv6地址段，需要有科技网管理员权限
+
+            http Code 200 Ok:
+                {
+                  "id": "bz05x5wxa3y0viz1dn6k88hww",
+                  "name": "2400:dd01:1010:30::/64",
+                  "status": "assigned",
+                  "creation_time": "2023-10-26T08:33:56.047279Z",
+                  "update_time": "2023-10-26T08:33:56.047279Z",
+                  "assigned_time": "2024-08-14T08:25:11.201187Z",
+                  "admin_remark": "test",
+                  "remark": "",
+                  "start_address": 2400:dd01:1010:30::,
+                  "end_address": 2400:dd01:1010:30:ffff:ffff:ffff:ffff,
+                  "prefixlen": 64,
+                  "asn": {
+                    "id": 5,
+                    "number": 65535
+                  },
+                  "org_virt_obj": {
+                    "id": "8guwq0ks9424oevn8wh624m9s",
+                    "name": "山东大学",
+                    "creation_time": "2023-10-24T06:12:18.137183Z",
+                    "remark": "",
+                    "organization": {
+                      "id": "8gud3z7setw5703dtzhtgz4d7",
+                      "name": "山东大学",
+                      "name_en": "山东大学"
+                    }
+                  }
+                }
+                }
+
+            Http Code 401, 403, 409, 500:
+                {
+                    "code": "BadRequest",
+                    "message": "xxxx"
+                }
+
+                可能的错误码：
+                403:
+                AccessDenied: 你没有科技网IP管理功能的管理员权限
+        """
+        return IPv6RangeHandler.assign_ipv6_range(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return ipam_serializers.IPv6RangeSerializer

@@ -1,4 +1,5 @@
 import ipaddress
+from datetime import datetime
 from urllib import parse
 
 from django.urls import reverse
@@ -841,3 +842,128 @@ class IPv6RangeTests(MyAPITransactionTestCase):
         self.assertEqual(IPv6Range.objects.count(), 2)
         self.assertEqual(IPv6RangeRecord.objects.filter(
             record_type=IPv6RangeRecord.RecordType.RESERVE.value).count(), 2)
+
+    def test_assign_ipv6_range(self):
+        org1 = get_or_create_organization(name='org1')
+        virt_obj1 = OrgVirtualObject(name='org virt obj1', organization=org1, creation_time=dj_timezone.now())
+        virt_obj1.save(force_insert=True)
+        virt_obj2 = OrgVirtualObject(name='org virt obj2', organization=org1, creation_time=dj_timezone.now())
+        virt_obj2.save(force_insert=True)
+
+        nt = dj_timezone.now()
+        ip_range1 = IPv6RangeManager.create_ipv6_range(
+            name='已分配1', start_ip='2400:dd01:1010:30::', end_ip='2400:dd01:1010:30:ffff:ffff:ffff:ffff', prefixlen=64,
+            asn=66, create_time=nt, update_time=nt, status_code=IPv6Range.Status.ASSIGNED.value,
+            org_virt_obj=virt_obj1, assigned_time=nt, admin_remark='admin1', remark='remark1'
+        )
+        nt = dj_timezone.now()
+        ip_range2 = IPv6RangeManager.create_ipv6_range(
+            name='预留2', start_ip='8400:dd01:1010:30::', end_ip='8400:dd01:1010:30:ffff:ffff:ffff:ffff', prefixlen=64,
+            asn=88, create_time=nt, update_time=nt, status_code=IPv6Range.Status.RESERVED.value,
+            org_virt_obj=virt_obj1, assigned_time=nt, admin_remark='admin remark2', remark='remark2'
+        )
+
+        base_url = reverse('net_ipam-api:ipam-ipv6range-assign', kwargs={'id': 'test'})
+        response = self.client.post(base_url)
+        self.assertEqual(response.status_code, 401)
+
+        self.client.force_login(self.user1)
+        response = self.client.post(base_url)
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        query = parse.urlencode(query={'org_virt_obj_id': 'notfound'})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        uirw = NetIPamUserRoleWrapper(self.user1)
+        uirw.user_role = uirw.get_or_create_user_role()
+        uirw.set_ipam_readonly(True)
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        uirw.set_ipam_admin(True)
+
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+
+        query = parse.urlencode(query={'org_virt_obj_id': virt_obj1.id})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+
+        # 只能分配给预留机构二级对象
+        base_url = reverse('net_ipam-api:ipam-ipv6range-assign', kwargs={'id': ip_range2.id})
+        query = parse.urlencode(query={'org_virt_obj_id': virt_obj2.id})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+
+        # ok
+        self.assertEqual(IPv6Range.objects.count(), 2)
+        self.assertEqual(IPv6RangeRecord.objects.count(), 0)
+        base_url = reverse('net_ipam-api:ipam-ipv6range-assign', kwargs={'id': ip_range2.id})
+        query = parse.urlencode(query={'org_virt_obj_id': virt_obj1.id})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn([
+            'id', 'name', 'status', 'creation_time', 'update_time', 'assigned_time', 'admin_remark',
+            'remark', 'start_address', 'end_address', 'prefixlen', 'asn', 'org_virt_obj'
+        ], response.data)
+
+        ip_range2.refresh_from_db()
+        self.assertEqual(ip_range2.start_address, ipaddress.IPv6Address('8400:dd01:1010:30::').packed)
+        self.assertEqual(ip_range2.end_address, ipaddress.IPv6Address('8400:dd01:1010:30:ffff:ffff:ffff:ffff').packed)
+        self.assertEqual(ip_range2.prefixlen, 64)
+        self.assertEqual(ip_range2.org_virt_obj_id, virt_obj1.id)
+        self.assertIsNotNone(ip_range2.assigned_time)
+        self.assertEqual(ip_range2.remark, '')
+        self.assertEqual(ip_range2.status, IPv6Range.Status.ASSIGNED.value)
+
+        self.assertEqual(IPv6Range.objects.count(), 2)
+        self.assertEqual(IPv6RangeRecord.objects.count(), 1)
+
+        record: IPv6RangeRecord = IPv6RangeRecord.objects.first()
+        self.assertEqual(record.record_type, IPv6RangeRecord.RecordType.ASSIGN.value)
+        self.assertEqual(record.start_address, ip_range2.start_address)
+        self.assertEqual(record.end_address, ip_range2.end_address)
+        self.assertEqual(record.prefixlen, 64)
+        self.assertEqual(record.ip_ranges, [])
+        self.assertEqual(record.org_virt_obj_id, virt_obj1.id)
+
+        # ip_range1
+        # status
+        base_url = reverse('net_ipam-api:ipam-ipv6range-assign', kwargs={'id': ip_range1.id})
+        query = parse.urlencode(query={'org_virt_obj_id': virt_obj2.id})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+
+        ip_range1.status = IPv6Range.Status.WAIT.value
+        ip_range1.org_virt_obj = None
+        ip_range1.save(update_fields=['status', 'org_virt_obj'])
+        ip_range1.refresh_from_db()
+        self.assertEqual(ip_range1.status, IPv6Range.Status.WAIT.value)
+        self.assertIsNone(ip_range1.org_virt_obj)
+        self.assertEqual(IPv6Range.objects.count(), 2)
+        self.assertEqual(IPv6RangeRecord.objects.count(), 1)
+
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn([
+            'id', 'name', 'status', 'creation_time', 'update_time', 'assigned_time', 'admin_remark',
+            'remark', 'start_address', 'end_address', 'prefixlen', 'asn', 'org_virt_obj'
+        ], response.data)
+        self.assertKeysIn([
+            'id', 'name', 'remark', 'creation_time', 'organization'
+        ], response.data['org_virt_obj'])
+        self.assertKeysIn(['id', 'name', 'name_en'], response.data['org_virt_obj']['organization'])
+
+        ip_range1.refresh_from_db()
+        self.assertEqual(ip_range1.start_address, ipaddress.IPv6Address('2400:dd01:1010:30::').packed)
+        self.assertEqual(ip_range1.end_address, ipaddress.IPv6Address('2400:dd01:1010:30:ffff:ffff:ffff:ffff').packed)
+        self.assertEqual(ip_range1.prefixlen, 64)
+        self.assertEqual(ip_range1.org_virt_obj_id, virt_obj2.id)
+        self.assertIsInstance(ip_range1.assigned_time, datetime)
+        self.assertEqual(ip_range1.remark, '')
+        self.assertEqual(ip_range1.status, IPv6Range.Status.ASSIGNED.value)
+
+        self.assertEqual(IPv6Range.objects.count(), 2)
+        self.assertEqual(IPv6RangeRecord.objects.filter(
+            record_type=IPv6RangeRecord.RecordType.ASSIGN.value).count(), 2)

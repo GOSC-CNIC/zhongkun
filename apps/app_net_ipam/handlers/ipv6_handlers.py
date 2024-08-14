@@ -249,3 +249,42 @@ class IPv6RangeHandler:
             return view.exception_response(exc)
 
         return Response(data=ipam_serializers.IPv6RangeSerializer(instance=ip_range).data)
+
+    @staticmethod
+    def assign_ipv6_range(view: NormalGenericViewSet, request, kwargs):
+        org_virt_obj_id = request.query_params.get('org_virt_obj_id')
+        if not org_virt_obj_id:
+            return view.exception_response(
+                errors.InvalidArgument(message=_('必须指定分配给哪个机构二级对象')))
+
+        ur_wrapper = NetIPamUserRoleWrapper(user=request.user)
+        if not ur_wrapper.has_ipam_admin_writable():
+            return view.exception_response(
+                errors.AccessDenied(message=_('你没有IP管理功能的管理员权限')))
+
+        try:
+            org_virt_obj = OrgVirtualObject.objects.filter(id=org_virt_obj_id).first()
+            if org_virt_obj is None:
+                raise errors.TargetNotExist(message=_('指定的机构二级对象不存在'))
+
+            ipv6_range = IPv6RangeManager.get_ip_range(_id=kwargs[view.lookup_field])
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        if ipv6_range.status not in [IPv6Range.Status.WAIT.value, IPv6Range.Status.RESERVED.value]:
+            return view.exception_response(
+                errors.ConflictError(message=_('只允许“未分配”和“预留”状态的IP地址段做分配操作')))
+
+        if ipv6_range.status == IPv6Range.Status.RESERVED.value:
+            if ipv6_range.org_virt_obj_id != org_virt_obj.id:
+                return view.exception_response(
+                    errors.ConflictError(message=_('“预留”状态的IP地址段只允许分配给预留的机构二级对象')))
+
+        try:
+            IPv6RangeManager.do_assign_ipv6_range(
+                ip_range=ipv6_range, user=request.user, org_virt_obj=org_virt_obj)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        return Response(data=ipam_serializers.IPv6RangeSerializer(instance=ipv6_range).data)
+
