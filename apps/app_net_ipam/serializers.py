@@ -162,3 +162,37 @@ class IPv6RangeCreateSerializer(serializers.Serializer):
     prefixlen = serializers.IntegerField(label=_('子网前缀'), required=True, min_value=0, max_value=128)
     asn = serializers.IntegerField(label=_('AS编号'), required=True, min_value=0, max_value=4294967295)
     admin_remark = serializers.CharField(label=_('科技网管理员备注信息'), max_length=255, allow_blank=True, default='')
+
+
+class IPv6RangeRecordSerializer(serializers.Serializer):
+    id = serializers.CharField(label='ID', read_only=True)
+    creation_time = serializers.DateTimeField(label='创建时间')
+    record_type = serializers.CharField(label='记录类型', max_length=16)
+    start_address = serializers.SerializerMethodField(label=_('起始地址'), method_name='get_start_address')
+    end_address = serializers.SerializerMethodField(label=_('截止地址'), method_name='get_end_address')
+    prefixlen = serializers.IntegerField(label=_('前缀长度'))
+    ip_ranges = serializers.JSONField(label='拆分或合并的IP段')
+    remark = serializers.CharField(label='备注信息', max_length=255)
+    user = serializers.SerializerMethodField(label='操作用户', method_name='get_user')
+    org_virt_obj = OrgVirtualObjectSimpleSerializer(label='机构二级对象')
+
+    @staticmethod
+    def get_user(obj):
+        if obj.user is None:
+            return None
+
+        return {'id': obj.user.id, 'username': obj.user.username}
+
+    @staticmethod
+    def get_start_address(obj):
+        try:
+            return str(obj.start_address_obj)
+        except Exception as exc:
+            return ''
+
+    @staticmethod
+    def get_end_address(obj):
+        try:
+            return str(obj.end_address_obj)
+        except Exception as exc:
+            return ''
