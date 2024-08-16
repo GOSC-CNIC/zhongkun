@@ -56,13 +56,18 @@ class ImageSysRelease(ImageSysBase):
     DEBIAN = 'Debian'
     RED_HAT = 'RedHat'
     OPEN_EULER = 'OpenEuler'
+    KALI = 'Kali'
+    OPEN_SUSE = 'openSUSE'
+    MANJARO = 'Manjaro'
+    LINUX_MINT = 'Linux Mint'
 
     choices = {
         'windows': WINDOWS_DESKTOP, 'windows desktop': WINDOWS_DESKTOP,
         'windows server': WINDOWS_SERVER,
         'ubuntu': UBUNTU, 'fedora': FEDORA, 'centos': CENTOS, 'deepin': DEEPIN, 'debian': DEBIAN,
         'red hat': RED_HAT, 'red hat enterprise linux': RED_HAT, 'rhel': RED_HAT, 'redhat': RED_HAT,
-        'openeuler': OPEN_EULER, 'open euler': OPEN_EULER,
+        'openeuler': OPEN_EULER, 'open euler': OPEN_EULER, 'kali': KALI, 'kali linux': KALI,
+        'opensuse': OPEN_SUSE, 'manjaro': MANJARO, 'linux mint': LINUX_MINT, 'linuxmint': LINUX_MINT,
         'unknown': ImageSysBase.UNKNOWN
     }
 
@@ -78,6 +83,7 @@ class ImageSysType(ImageSysBase):
         'windows': WINDOWS, 'unix': UNIX, 'macos': MACOS,
         'linux': LINUX, 'ubuntu': LINUX, 'fedora': LINUX, 'centos': LINUX,
         'deepin': LINUX, 'debian': LINUX, 'redhat': LINUX, 'rhel': LINUX,
+        'openeuler': LINUX, 'kali': LINUX, 'opensuse': LINUX, 'manjaro': LINUX, 'linux mint': LINUX,
         'unknown': ImageSysBase.UNKNOWN
     }
 
