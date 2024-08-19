@@ -65,6 +65,18 @@ python3 manage.py migrate link --prune
         ipam和link新增各自的用户角色权限API接口；其他接口只是url路径做了更改。
         app_net_manage有自己的用户角色权限，来限制机构二级的管理权限。
 
+* 注意：当数据库为mysql时（MariaDB和TiDB除外），在升级到 v2.6.0（含）- v2.7.1（含）之间版本时（此问题在v2.7.1之后的版本中修复了），
+  apps/users下的0003迁移文件中函数“update_user_fed_admin”中的sql无法在mysql数据库上执行通过，修改临时手动修改为下面SQL格式:
+    ```sql
+    UPDATE `users_userprofile` SET `is_fed_admin` = 1 WHERE `users_userprofile`.`username` IN (
+        SELECT T.`username` FROM (
+            SELECT U0.`username` FROM `users_userprofile` U0 WHERE
+            LOWER(JSON_UNQUOTE(U0.`role`)) LIKE LOWER('%federal-admin%')
+        )T
+    );
+    ```
+
+
 * 升级前先备份数据库数据；
 * 必须先正常升级到v2.4.1，执行数据库迁移，创建app_net_manage、app_net_link和app_net_ipam 3个app模型的数据库表，
   并从app_netbox的数据库表复制数据，然后删除app_netbox的数据库表；

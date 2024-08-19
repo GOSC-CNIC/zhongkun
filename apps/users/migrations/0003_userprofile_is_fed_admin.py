@@ -10,10 +10,20 @@ def do_nothing(apps, schema_editor):
 def update_user_fed_admin(apps, schema_editor):
     with transaction.atomic(savepoint=False):
         with connection.cursor() as cursor:
-            r = cursor.execute(
-                "UPDATE `users_userprofile` SET `is_fed_admin` = 1 WHERE `users_userprofile`.`username` "
-                "IN (SELECT U0.`username` FROM `users_userprofile` U0 WHERE LOWER(JSON_UNQUOTE(U0.`role`)) "
-                "LIKE LOWER('%federal-admin%'));")
+            r = cursor.execute("""
+                UPDATE `users_userprofile` SET `is_fed_admin` = 1 WHERE `users_userprofile`.`username` IN (
+                    SELECT T.`username` FROM (
+                        SELECT U0.`username` FROM `users_userprofile` U0 WHERE
+                        LOWER(JSON_UNQUOTE(U0.`role`)) LIKE LOWER('%federal-admin%')
+                    )T
+                );
+                """)
+            # """
+            # UPDATE `users_userprofile` SET `is_fed_admin` = 1 WHERE `users_userprofile`.`username`  IN (
+            #     SELECT U0.`username` FROM `users_userprofile` U0 WHERE
+            #     LOWER(JSON_UNQUOTE(U0.`role`)) LIKE LOWER('%federal-admin%')
+            # );
+            # """
 
             print(f'[Ok] {r} user update is_fed_admin')
 
