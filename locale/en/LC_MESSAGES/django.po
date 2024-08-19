@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-08-02 07:08+0000\n"
+"POT-Creation-Date: 2024-08-19 02:11+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1794,14 +1794,17 @@ msgid "列举ipv4地址段变更记录"
 msgstr "List IPv4 address segment change records"
 
 #: apps/app_net_ipam/api_viewsets/ip_record_views.py:111
+#: apps/app_net_ipam/api_viewsets/ip_record_views.py:241
 msgid "记录类型无效"
 msgstr "Invalid record type"
 
 #: apps/app_net_ipam/api_viewsets/ip_record_views.py:118
+#: apps/app_net_ipam/api_viewsets/ip_record_views.py:248
 msgid "ip地址无效"
 msgstr "Invalid IP address"
 
 #: apps/app_net_ipam/api_viewsets/ip_record_views.py:125
+#: apps/app_net_ipam/api_viewsets/ip_record_views.py:255
 #: apps/app_net_ipam/handlers/ipv4_handlers.py:335
 #: apps/app_net_ipam/handlers/ipv4_handlers.py:360
 #: apps/app_net_ipam/handlers/ipv4_handlers.py:393
@@ -1814,8 +1817,18 @@ msgstr "Invalid IP address"
 #: apps/app_net_ipam/handlers/ipv6_handlers.py:182
 #: apps/app_net_ipam/handlers/ipv6_handlers.py:205
 #: apps/app_net_ipam/handlers/ipv6_handlers.py:230
+#: apps/app_net_ipam/handlers/ipv6_handlers.py:263
+#: apps/app_net_ipam/handlers/ipv6_handlers.py:315
 msgid "你没有IP管理功能的管理员权限"
 msgstr "You do not have administrator privileges for IP management"
+
+#: apps/app_net_ipam/api_viewsets/ip_record_views.py:153
+msgid "列举ipv6地址段变更记录"
+msgstr "List IPv6 address segment change records"
+
+#: apps/app_net_ipam/api_viewsets/ip_record_views.py:168
+msgid "查询包含ip的地址段的记录"
+msgstr "Query records of the address network segment containing this IP address"
 
 #: apps/app_net_ipam/api_viewsets/ipv4_views.py:22
 msgid "列举IP地址段"
@@ -1889,6 +1902,7 @@ msgid "分配一个子网IPv4地址段"
 msgstr "Assign a subnet IPv4 address range"
 
 #: apps/app_net_ipam/api_viewsets/ipv4_views.py:497
+#: apps/app_net_ipam/api_viewsets/ipv6_views.py:343
 msgid "分配机构二级对象id"
 msgstr "organization secondary ID"
 
@@ -1898,6 +1912,7 @@ msgstr "Modify the remarks information of a subnet IPv4 address range"
 
 #: apps/app_net_ipam/api_viewsets/ipv4_views.py:550
 #: apps/app_net_ipam/api_viewsets/ipv4_views.py:604
+#: apps/app_net_ipam/api_viewsets/ipv6_views.py:407
 msgid "普通备注"
 msgstr "Ordinary remarks"
 
@@ -1957,6 +1972,18 @@ msgstr "Recover an IPv6 address range"
 #: apps/app_net_ipam/api_viewsets/ipv6_views.py:282
 msgid "预留一个子网IPv6地址段"
 msgstr "Reserve an IPv6 address range"
+
+#: apps/app_net_ipam/api_viewsets/ipv6_views.py:335
+msgid "分配一个子网IPv6地址段"
+msgstr "Assign a subnet IPv6 address range"
+
+#: apps/app_net_ipam/api_viewsets/ipv6_views.py:399
+msgid "修改一个子网IPv6地址段备注信息"
+msgstr "Modify the remarks information of a subnet IPv6 address range"
+
+#: apps/app_net_ipam/api_viewsets/ipv6_views.py:414
+msgid "管理员备注，需要有IP地址管理员权限"
+msgstr "Administrator's remarks, requires administrator privileges"
 
 #: apps/app_net_ipam/apps.py:8
 msgid "IP管理"
@@ -2075,6 +2102,7 @@ msgstr "It is necessary to specify which secondary institution to reserve for."
 #: apps/app_net_ipam/handlers/ipv4_handlers.py:365
 #: apps/app_net_ipam/handlers/ipv4_handlers.py:398
 #: apps/app_net_ipam/handlers/ipv6_handlers.py:235
+#: apps/app_net_ipam/handlers/ipv6_handlers.py:268
 msgid "指定的机构二级对象不存在"
 msgstr "The secondary institution does not exist."
 
@@ -2085,17 +2113,20 @@ msgstr ""
 "Only IP address segments in the 'Wait' status are allowed to be reserved."
 
 #: apps/app_net_ipam/handlers/ipv4_handlers.py:388
+#: apps/app_net_ipam/handlers/ipv6_handlers.py:258
 msgid "必须指定分配给哪个机构二级对象"
 msgstr ""
 "It is necessary to specify which secondary institution object to assigned to."
 
 #: apps/app_net_ipam/handlers/ipv4_handlers.py:406
+#: apps/app_net_ipam/handlers/ipv6_handlers.py:276
 msgid "只允许“未分配”和“预留”状态的IP地址段做分配操作"
 msgstr ""
 "Only IP address segments with statuses of 'Wait' and 'Reserved' are allowed "
 "to be assigned."
 
 #: apps/app_net_ipam/handlers/ipv4_handlers.py:411
+#: apps/app_net_ipam/handlers/ipv6_handlers.py:281
 msgid "“预留”状态的IP地址段只允许分配给预留的机构二级对象"
 msgstr ""
 "The IP address segment in the 'reserved' state is only allowed to be "
@@ -2103,29 +2134,34 @@ msgstr ""
 
 #: apps/app_net_ipam/handlers/ipv4_handlers.py:429
 #: apps/app_net_ipam/handlers/ipv4_handlers.py:495
+#: apps/app_net_ipam/handlers/ipv6_handlers.py:299
 msgid "必须指定要修改的备注信息"
 msgstr "New remarks must be specified."
 
 #: apps/app_net_ipam/handlers/ipv4_handlers.py:432
 #: apps/app_net_ipam/handlers/ipv4_handlers.py:498
+#: apps/app_net_ipam/handlers/ipv6_handlers.py:302
 msgid "管理员备注参数“admin_remark”只能以管理员身份请求时使用"
 msgstr ""
 "The administrator parameter 'admin_demark' can only be used when requested "
 "as an administrator"
 
 #: apps/app_net_ipam/handlers/ipv4_handlers.py:466
+#: apps/app_net_ipam/handlers/ipv6_handlers.py:342
 msgid "IP地址段未分配，你没IP地址段的管理权限"
 msgstr ""
 "The IP address range has not been assigned, and you do not have management "
 "permissions for the IP address range"
 
 #: apps/app_net_ipam/handlers/ipv4_handlers.py:474
+#: apps/app_net_ipam/handlers/ipv6_handlers.py:350
 msgid "IP地址段无分配机构信息，你没IP地址段的管理权限"
 msgstr ""
 "There is no allocation institution information for the IP address range, and "
 "you do not have management permissions for the IP address range."
 
 #: apps/app_net_ipam/handlers/ipv4_handlers.py:477
+#: apps/app_net_ipam/handlers/ipv6_handlers.py:353
 msgid "你没IP地址段的管理权限"
 msgstr "You do not have management permissions for the IP address range"
 
@@ -2145,6 +2181,11 @@ msgstr "An IP address range ID must be specified"
 #: apps/app_net_ipam/handlers/ipv6_handlers.py:120
 msgid "子网前缀长度无效。"
 msgstr "The subnet prefix length is invalid."
+
+#: apps/app_net_ipam/handlers/ipv6_handlers.py:305
+#: apps/app_net_ipam/handlers/ipv6_handlers.py:308
+msgid "备注信息长度不能超过255字符"
+msgstr "The length of the remark information cannot exceed 255 characters"
 
 #: apps/app_net_ipam/managers/ipv4_mgrs.py:49
 #: apps/app_net_ipam/managers/ipv4_mgrs.py:58
@@ -2415,6 +2456,7 @@ msgstr "Secondary organization"
 #: apps/app_net_ipam/serializers.py:35 apps/app_net_ipam/serializers.py:52
 #: apps/app_net_ipam/serializers.py:67 apps/app_net_ipam/serializers.py:90
 #: apps/app_net_ipam/serializers.py:127 apps/app_net_ipam/serializers.py:159
+#: apps/app_net_ipam/serializers.py:171
 msgid "起始地址"
 msgstr "Start address"
 
@@ -2423,6 +2465,7 @@ msgstr "Start address"
 #: apps/app_net_ipam/serializers.py:36 apps/app_net_ipam/serializers.py:53
 #: apps/app_net_ipam/serializers.py:68 apps/app_net_ipam/serializers.py:91
 #: apps/app_net_ipam/serializers.py:128 apps/app_net_ipam/serializers.py:161
+#: apps/app_net_ipam/serializers.py:172
 msgid "截止地址"
 msgstr "End address"
 
@@ -2533,7 +2576,7 @@ msgid "IPv4段操作记录"
 msgstr "IPv4 range operation record"
 
 #: apps/app_net_ipam/models.py:383 apps/app_net_ipam/models.py:518
-#: apps/app_net_ipam/serializers.py:129
+#: apps/app_net_ipam/serializers.py:129 apps/app_net_ipam/serializers.py:173
 msgid "前缀长度"
 msgstr "Prefix"
 
@@ -9903,7 +9946,6 @@ msgid "云主机快照数"
 msgstr "Server snapshot"
 
 #: apps/report/models.py:78
-
 msgid "云主机快照预付费金额"
 msgstr "Server snapshot prepaid"
 
@@ -10842,18 +10884,17 @@ msgstr ""
 "If you want to change the service VPN authentication user password, please "
 "enter the new password here. If you do not change it, please leave it blank"
 
-#: apps/servers/forms.py:20 apps/storage/forms.py:9
-msgid "移除对应监控任务"
-msgstr "Remove monitoring task"
-
 #: apps/servers/forms.py:21 apps/storage/forms.py:10
+msgid "创建服务单元站点监控任务"
+msgstr "Create site monitoring task for service unit"
+
+#: apps/servers/forms.py:22 apps/storage/forms.py:11
 msgid ""
-"当服务单元不可用，或者停用后，自动创建的对应监控任务不再需要了，可以选择删除"
-"对应监控任务"
+"选中后会自动为服务单元创建或更新站点监控任务，当取消选中时会尝试删除对应监控"
+"任务"
 msgstr ""
-"When the service unit is unavailable or disabled, the automatically created "
-"corresponding monitoring task is no longer needed, and you can choose to "
-"delete the corresponding monitoring task"
+"After selection, site monitoring tasks will be automatically created or updated for the service unit."
+"When unselected, an attempt will be made to delete the created monitoring task"
 
 #: apps/servers/handlers/disk_handler.py:33
 #: apps/servers/handlers/server_handler.py:49
@@ -11322,7 +11363,13 @@ msgstr ""
 "The cloud host has attached %(count)s cloud disks. Please uninstall the "
 "cloud disks first and try again."
 
-#: apps/servers/handlers/server_handler.py:369
+#: apps/servers/handlers/server_handler.py:296
+msgid "云主机已创建了%(count)s个快照，请先删除云主机快照后重试。"
+msgstr ""
+"The cloud host has creates %(count)s snapshots. Please delete the "
+"cloud server snapshots first and try again."
+
+#: apps/servers/handlers/server_handler.py:380
 msgid "订购资源数量可选范围1-3"
 msgstr "The optional range for ordering resources is 1-3"
 
@@ -13618,7 +13665,7 @@ msgstr "Dates"
 
 #: apps/users/admin.py:43
 msgid "导出选中的用户"
-msgstr ""
+msgstr "Export selected users"
 
 #: apps/users/admin.py:49
 msgid "邮箱"
