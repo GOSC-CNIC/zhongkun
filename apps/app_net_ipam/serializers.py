@@ -196,3 +196,24 @@ class IPv6RangeRecordSerializer(serializers.Serializer):
             return str(obj.end_address_obj)
         except Exception as exc:
             return ''
+
+
+class SubIPv6Range(serializers.Serializer):
+    start_address = serializers.CharField(label=_('起始地址'), max_length=40, required=True)
+    end_address = serializers.CharField(label=_('截止地址'), max_length=40, required=True)
+    prefix = serializers.IntegerField(label=_('前缀（子网掩码）长度'), required=True, min_value=0, max_value=128)
+
+
+class IPv6RangePlanSplitSerializer(serializers.Serializer):
+    sub_ranges = serializers.ListField(child=SubIPv6Range(), label=_('拆分计划子网段'), required=True, max_length=256)
+
+
+class SubIPv6RangeSerializer(serializers.Serializer):
+    start = serializers.CharField(label=_('起始地址'), max_length=40, required=True)
+    end = serializers.CharField(label=_('截止地址'), max_length=40, required=True)
+    prefix = serializers.IntegerField(label=_('前缀（子网掩码）长度'), required=True, min_value=0, max_value=128)
+
+
+class IPv6RangeSpiltPlanPost(SubIPv6RangeSerializer):
+    new_prefix = serializers.IntegerField(
+        label=_('拆分前缀长度'), required=True, min_value=0, max_value=128, write_only=True)

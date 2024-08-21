@@ -429,10 +429,97 @@ class IPv6RangeViewSet(NormalGenericViewSet):
         """
         return IPv6RangeHandler.change_ipv6_range_remark(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('按指定拆分方案拆分IPv6地址段'),
+        responses={
+            200: ''''''
+        }
+    )
+    @action(methods=['POST'], detail=True, url_path='plan-split', url_name='plan-split')
+    def split_ip_range_to_plan(self, request, *args, **kwargs):
+        """
+        按指定拆分方案拆分IPv6地址段，需要有ip管理员权限
+
+            * 拆分子网数量最多不得超过256个，提交的子网必须按起始地址正序排列，相邻子网ip地址必须是连续的
+
+            http Code 200 Ok:
+                {
+                    "ip_ranges": [
+                      "name": "cb00:6fff::/32",
+                      "status": "wait",
+                      "creation_time": "2023-10-26T08:33:56.047279Z",
+                      "update_time": "2023-10-26T08:33:56.047279Z",
+                      "assigned_time": null,
+                      "admin_remark": "test",
+                      "remark": "",
+                      "start_address": "cb00:6fff::",
+                      "end_address": "cb00:6fff:ffff:ffff:ffff:ffff:ffff:ffff",
+                      "preficlen": 32,
+                      "asn": {
+                        "id": 5,
+                        "number": 65535
+                      },
+                      "org_virt_obj": null
+                    ]
+                }
+
+            Http Code 400, 403, 409, 500:
+                {
+                    "code": "BadRequest",
+                    "message": "xxxx"
+                }
+
+                可能的错误码：
+                400:
+                InvalidArgument: 参数无效
+
+                403:
+                AccessDenied: 你没有科技网IP管理功能的管理员权限
+        """
+        return IPv6RangeHandler().split_ip_range_to_plan(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询IPv6地址段拆分方案'),
+        responses={
+            200: ''''''
+        }
+    )
+    @action(methods=['POST'], detail=False, url_path='plan', url_name='plan')
+    def seek_ip_range_split_plan(self, request, *args, **kwargs):
+        """
+        查询IPv6地址段拆分方案
+
+            code 200:
+            {
+              "ip_ranges": [
+                {
+                  "start": "cb00:6000::",
+                  "end": "cb00:6fff:ffff:ffff:ffff:ffff:ffff:ffff",
+                  "prefix": 20
+                },
+                {
+                  "start": "cb00:7000::",
+                  "end": "cb00:7fff:ffff:ffff:ffff:ffff:ffff:ffff",
+                  "prefix": 20
+                },
+                {
+                  "start": "cb00:8000::",
+                  "end": "cb00:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+                  "prefix": 17
+                }
+              ]
+            }
+        """
+        return IPv6RangeHandler().seek_ip_range_split_plan(view=self, request=request)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return ipam_serializers.IPv6RangeSerializer
         elif self.action in ['create', 'update']:
             return ipam_serializers.IPv6RangeCreateSerializer
+        elif self.action == 'split_ip_range_to_plan':
+            return ipam_serializers.IPv6RangePlanSplitSerializer
+        elif self.action == 'seek_ip_range_split_plan':
+            return ipam_serializers.IPv6RangeSpiltPlanPost
 
         return Serializer

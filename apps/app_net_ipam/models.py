@@ -41,10 +41,44 @@ class IPRangeIntItem(_IPRangeItem):
         return f'{self.start}-{self.end} /{self.mask}'
 
 
-IPv6RangeStrItem = namedtuple('IPv6RangeItem', ['start', 'end', 'prefix'])
+_IPv6RangeItem = namedtuple('IPv6RangeItem', ['start', 'end', 'prefix'])
 
 
-class IPv6RangeBytesItem(IPv6RangeStrItem):
+class IPv6RangeStrItem(_IPv6RangeItem):
+    """
+    start: str
+    end: str
+    prefix: int
+    """
+    def __str__(self):
+        return f'{self.start}-{self.end} /{self.prefix}'
+
+    @cached_property
+    def start_address_obj(self):
+        return ipaddress.IPv6Address(self.start)
+
+    @cached_property
+    def end_address_obj(self):
+        return ipaddress.IPv6Address(self.end)
+
+    @property
+    def start_bytes(self):
+        return self.start_address_obj.packed
+
+    @property
+    def end_bytes(self):
+        return self.end_address_obj.packed
+
+    @property
+    def start_int(self):
+        return int(self.start_address_obj)
+
+    @property
+    def end_int(self):
+        return int(self.end_address_obj)
+
+
+class IPv6RangeBytesItem(_IPv6RangeItem):
     """
     start: bytes
     end: bytes

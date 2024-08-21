@@ -1063,3 +1063,395 @@ class IPv6RangeTests(MyAPITransactionTestCase):
         ], response.data)
         self.assertEqual(response.data['admin_remark'], 'admin remark66')
         self.assertEqual(response.data['remark'], 'test66')
+
+    def test_plan(self):
+        base_url = reverse('net_ipam-api:ipam-ipv6range-plan')
+        response = self.client.post(base_url)
+        self.assertEqual(response.status_code, 401)
+
+        self.client.force_login(self.user1)
+        response = self.client.post(base_url)
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
+
+        # 前缀长度跨度小于3，会平拆
+        response = self.client.post(base_url, data={
+            'start': 'cb00::', 'end': 'cb00:ffff:ffff:ffff:ffff:ffff:ffff:ffff', 'prefix': 16,
+            'new_prefix': 18
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['ip_ranges']), 4)
+        ip_ranges1 = response.data['ip_ranges']
+        self.assertEqual(ipaddress.IPv6Address(ip_ranges1[0]['start']), ipaddress.IPv6Address('cb00::'))
+        self.assertEqual(ipaddress.IPv6Address(ip_ranges1[0]['end']),
+                         ipaddress.IPv6Address('cb00:3fff:ffff:ffff:ffff:ffff:ffff:ffff'))
+        self.assertEqual(ip_ranges1[0]['prefix'], 18)
+
+        self.assertEqual(ipaddress.IPv6Address(ip_ranges1[1]['start']), ipaddress.IPv6Address('cb00:4000::'))
+        self.assertEqual(ipaddress.IPv6Address(ip_ranges1[1]['end']),
+                         ipaddress.IPv6Address('cb00:7fff:ffff:ffff:ffff:ffff:ffff:ffff'))
+        self.assertEqual(ip_ranges1[1]['prefix'], 18)
+
+        self.assertEqual(ipaddress.IPv6Address(ip_ranges1[2]['start']), ipaddress.IPv6Address('cb00:8000::'))
+        self.assertEqual(ipaddress.IPv6Address(ip_ranges1[2]['end']),
+                         ipaddress.IPv6Address('cb00:bfff:ffff:ffff:ffff:ffff:ffff:ffff'))
+        self.assertEqual(ip_ranges1[2]['prefix'], 18)
+
+        self.assertEqual(ipaddress.IPv6Address(ip_ranges1[3]['start']), ipaddress.IPv6Address('cb00:c000::'))
+        self.assertEqual(ipaddress.IPv6Address(ip_ranges1[3]['end']),
+                         ipaddress.IPv6Address('cb00:ffff:ffff:ffff:ffff:ffff:ffff:ffff'))
+        self.assertEqual(ip_ranges1[3]['prefix'], 18)
+
+        # 会平拆一个124为8个127，其他拆分为前缀长度为17-124的108个子网段
+        response = self.client.post(base_url, data={
+            'start': 'cb00::', 'end': 'cb00:ffff:ffff:ffff:ffff:ffff:ffff:ffff', 'prefix': 16,
+            'new_prefix': 127
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['ip_ranges']), 116)
+        ip_ranges1 = response.data['ip_ranges']
+        self.assertEqual(ipaddress.IPv6Address(ip_ranges1[0]['start']), ipaddress.IPv6Address('cb00::'))
+        self.assertEqual(ipaddress.IPv6Address(ip_ranges1[0]['end']),
+                         ipaddress.IPv6Address('cb00::1'))
+        self.assertEqual(ip_ranges1[0]['prefix'], 127)
+
+        self.assertEqual(ipaddress.IPv6Address(ip_ranges1[1]['start']), ipaddress.IPv6Address('cb00::2'))
+        self.assertEqual(ipaddress.IPv6Address(ip_ranges1[1]['end']),
+                         ipaddress.IPv6Address('cb00::3'))
+        self.assertEqual(ip_ranges1[1]['prefix'], 127)
+
+        self.assertEqual(ipaddress.IPv6Address(ip_ranges1[8]['start']), ipaddress.IPv6Address('cb00::10'))
+        self.assertEqual(ipaddress.IPv6Address(ip_ranges1[8]['end']),
+                         ipaddress.IPv6Address('cb00::1f'))
+        self.assertEqual(ip_ranges1[8]['prefix'], 124)
+
+        self.assertEqual(ipaddress.IPv6Address(ip_ranges1[-2]['start']), ipaddress.IPv6Address('cb00:4000::'))
+        self.assertEqual(ipaddress.IPv6Address(ip_ranges1[-2]['end']),
+                         ipaddress.IPv6Address('cb00:7fff:ffff:ffff:ffff:ffff:ffff:ffff'))
+        self.assertEqual(ip_ranges1[-2]['prefix'], 18)
+
+        self.assertEqual(ipaddress.IPv6Address(ip_ranges1[-1]['start']), ipaddress.IPv6Address('cb00:8000::'))
+        self.assertEqual(ipaddress.IPv6Address(ip_ranges1[-1]['end']),
+                         ipaddress.IPv6Address('cb00:ffff:ffff:ffff:ffff:ffff:ffff:ffff'))
+        self.assertEqual(ip_ranges1[-1]['prefix'], 17)
+
+    def test_split_to_plan(self):
+        org1 = get_or_create_organization(name='org1')
+        virt_obj1 = OrgVirtualObject(name='org virt obj1', organization=org1, creation_time=dj_timezone.now())
+        virt_obj1.save(force_insert=True)
+
+        nt = dj_timezone.now()
+        ip_range1 = IPv6RangeManager.create_ipv6_range(
+            name='已分配1', start_ip='bc00:1000::', end_ip='bc00:1000:ffff:ffff:ffff:ffff:ffff:ffff', prefixlen=32, asn=66,
+            create_time=nt, update_time=nt, status_code=IPv6Range.Status.ASSIGNED.value,
+            org_virt_obj=None, assigned_time=nt, admin_remark='admin1', remark='remark1'
+        )
+        nt = dj_timezone.now()
+        ip_range2 = IPv6RangeManager.create_ipv6_range(
+            name='预留2', start_ip='d000:0:1fff::', end_ip='d000:0:1fff:ffff:ffff:ffff:ffff:ffff', prefixlen=48, asn=88,
+            create_time=nt, update_time=nt, status_code=IPv6Range.Status.RESERVED.value,
+            org_virt_obj=virt_obj1, assigned_time=nt, admin_remark='admin remark2', remark='remark2'
+        )
+
+        base_url = reverse('net_ipam-api:ipam-ipv6range-plan-split', kwargs={'id': 'test'})
+        response = self.client.post(base_url)
+        self.assertEqual(response.status_code, 401)
+
+        self.client.force_login(self.user1)
+        response = self.client.post(base_url, data={})
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        response = self.client.post(base_url, data={
+            'sub_ranges': []
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # AccessDenied
+        response = self.client.post(base_url, data={
+            'sub_ranges': [
+                {'start_address': 'bc00:1000::',
+                 'end_address': 'bc00:1000:7fff:ffff:ffff:ffff:ffff:ffff', 'prefix': 33},
+                {'start_address': 'bc00:1000:8000::',
+                 'end_address': 'bc00:1000:ffff:ffff:ffff:ffff:ffff:ffff', 'prefix': 33}
+            ]
+        })
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        uirw = NetIPamUserRoleWrapper(self.user1)
+        uirw.user_role = uirw.get_or_create_user_role()
+        uirw.set_ipam_readonly(True)
+        response = self.client.post(base_url, data={
+            'sub_ranges': [
+                {'start_address': 'bc00:1000::',
+                 'end_address': 'bc00:1000:7fff:ffff:ffff:ffff:ffff:ffff', 'prefix': 33},
+                {'start_address': 'bc00:1000:8000::',
+                 'end_address': 'bc00:1000:ffff:ffff:ffff:ffff:ffff:ffff', 'prefix': 33}
+            ]
+        })
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        uirw.set_ipam_admin(True)
+
+        # sub_ranges
+        # response = self.client.post(base_url, data={
+        #     'sub_ranges': [
+        #         {'start_address': 32, 'end_address': 'bc00:1000:7fff:ffff:ffff:ffff:ffff:ffff', 'prefix': 33},
+        #         {'start_address': 'bc00:1000:8000::',
+        #          'end_address': 'bc00:1000:ffff:ffff:ffff:ffff:ffff:ffff', 'prefix': 33}
+        #     ]
+        # })
+        # self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        response = self.client.post(base_url, data={
+            'sub_ranges': [
+                {'start_address': 'bc00:1000::',
+                 'end_address': 'bc00:1000:7fff:ffff:ffff:ffff:ffff:ffff', 'prefix': 129},
+                {'start_address': 'bc00:1000:8000::',
+                 'end_address': 'bc00:1000:ffff:ffff:ffff:ffff:ffff:ffff', 'prefix': 33}
+            ]
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        response = self.client.post(base_url, data={
+            'sub_ranges': [
+                {'start_address': 'bc00:1000::',
+                 'end_address': 'bc00:1000:7fff:ffff:ffff:ffff:ffff:ffff', 'prefix': 33},
+                {'start_address': 'bc00:1000:8000::',
+                 'end_address': 'bc00:1000:ffff:ffff:ffff:ffff:ffff:ffff', 'prefix': 33}
+            ]
+        })
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+
+        base_url = reverse('net_ipam-api:ipam-ipv6range-plan-split', kwargs={'id': ip_range1.id})
+        # assigned
+        response = self.client.post(base_url, data={
+            'sub_ranges': [
+                {'start_address': 'bc00:1000::',
+                 'end_address': 'bc00:1000:7fff:ffff:ffff:ffff:ffff:ffff', 'prefix': 33},
+                {'start_address': 'bc00:1000:8000::',
+                 'end_address': 'bc00:1000:ffff:ffff:ffff:ffff:ffff:ffff', 'prefix': 33}
+            ]
+        })
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+
+        ip_range1.status = IPv6Range.Status.WAIT.value
+        ip_range1.save(update_fields=['status'])
+
+        # 子网和超网ip范围不一致
+        response = self.client.post(base_url, data={
+            'sub_ranges': [
+                {'start_address': 'bc00:1000:1::',
+                 'end_address': 'bc00:1000:3fff:ffff:ffff:ffff:ffff:ffff', 'prefix': 34},
+                {'start_address': 'bc00:1000:4000::',
+                 'end_address': 'bc00:1000:7fff:ffff:ffff:ffff:ffff:ffff', 'prefix': 34},
+                {'start_address': 'bc00:1000:8000::',
+                 'end_address': 'bc00:1000:bfff:ffff:ffff:ffff:ffff:ffff', 'prefix': 34},
+                {'start_address': 'bc00:1000:c000::',
+                 'end_address': 'bc00:1000:ffff:ffff:ffff:ffff:ffff:ffff', 'prefix': 34}
+            ]
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+        # 不连续
+        response = self.client.post(base_url, data={
+            'sub_ranges': [
+                {'start_address': 'bc00:1000::',
+                 'end_address': 'bc00:1000:3fff:ffff:ffff:ffff:ffff:ffff', 'prefix': 34},
+                {'start_address': 'bc00:1000:4000::1',
+                 'end_address': 'bc00:1000:7fff:ffff:ffff:ffff:ffff:ffff', 'prefix': 34},
+                {'start_address': 'bc00:1000:8000::',
+                 'end_address': 'bc00:1000:bfff:ffff:ffff:ffff:ffff:ffff', 'prefix': 34},
+                {'start_address': 'bc00:1000:c000::',
+                 'end_address': 'bc00:1000:ffff:ffff:ffff:ffff:ffff:ffff', 'prefix': 34}
+            ]
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # 掩码长度
+        response = self.client.post(base_url, data={
+            'sub_ranges': [
+                {'start_address': 'bc00:1000::',
+                 'end_address': 'bc00:1000:3fff:ffff:ffff:ffff:ffff:ffff', 'prefix': 34},
+                {'start_address': 'bc00:1000:4000::',
+                 'end_address': 'bc00:1000:7fff:ffff:ffff:ffff:ffff:ffff', 'prefix': 31},
+                {'start_address': 'bc00:1000:8000::',
+                 'end_address': 'bc00:1000:bfff:ffff:ffff:ffff:ffff:ffff', 'prefix': 34},
+                {'start_address': 'bc00:1000:c000::',
+                 'end_address': 'bc00:1000:ffff:ffff:ffff:ffff:ffff:ffff', 'prefix': 34}
+            ]
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # ok, bc00:1000:: - bc00:1000:ffff:ffff:ffff:ffff:ffff:ffff
+        self.assertEqual(IPv6RangeRecord.objects.count(), 0)
+        self.assertEqual(IPv6Range.objects.count(), 2)
+
+        base_url = reverse('net_ipam-api:ipam-ipv6range-plan-split', kwargs={'id': ip_range1.id})
+        response = self.client.post(base_url, data={
+            'sub_ranges': [
+                {'start_address': 'bc00:1000::',
+                 'end_address': 'bc00:1000:3fff:ffff:ffff:ffff:ffff:ffff', 'prefix': 34},
+                {'start_address': 'bc00:1000:4000::',
+                 'end_address': 'bc00:1000:7fff:ffff:ffff:ffff:ffff:ffff', 'prefix': 34},
+                {'start_address': 'bc00:1000:8000::',
+                 'end_address': 'bc00:1000:bfff:ffff:ffff:ffff:ffff:ffff', 'prefix': 34},
+                {'start_address': 'bc00:1000:c000::',
+                 'end_address': 'bc00:1000:ffff:ffff:ffff:ffff:ffff:ffff', 'prefix': 34}
+            ]
+        })
+        self.assertEqual(response.status_code, 200)
+        split_ranges = response.data['ip_ranges']
+        self.assertEqual(len(split_ranges), 4)
+        self.assertKeysIn([
+            'id', 'name', 'creation_time', 'status', 'update_time', 'assigned_time', 'admin_remark',
+            'remark', 'start_address', 'end_address', 'prefixlen', 'asn', 'org_virt_obj'], split_ranges[0])
+        self.assertEqual(IPv6RangeRecord.objects.count(), 1)
+        self.assertEqual(IPv6Range.objects.count(), 5)
+
+        ir1, ir2, ir3, ir4 = IPv6Range.objects.order_by('start_address')[0:4]
+        self.assertEqual(ir1.start_address, ipaddress.IPv6Address('bc00:1000::').packed)
+        self.assertEqual(ir1.end_address, ipaddress.IPv6Address('bc00:1000:3fff:ffff:ffff:ffff:ffff:ffff').packed)
+        self.assertEqual(ir1.prefixlen, 34)
+        self.assertEqual(ir2.start_address, ipaddress.IPv6Address('bc00:1000:4000::').packed)
+        self.assertEqual(ir2.end_address, ipaddress.IPv6Address('bc00:1000:7fff:ffff:ffff:ffff:ffff:ffff').packed)
+        self.assertEqual(ir2.prefixlen, 34)
+        self.assertEqual(ir3.start_address, ipaddress.IPv6Address('bc00:1000:8000::').packed)
+        self.assertEqual(ir3.end_address, ipaddress.IPv6Address('bc00:1000:bfff:ffff:ffff:ffff:ffff:ffff').packed)
+        self.assertEqual(ir3.prefixlen, 34)
+        self.assertEqual(ir4.start_address, ipaddress.IPv6Address('bc00:1000:c000::').packed)
+        self.assertEqual(ir4.end_address, ipaddress.IPv6Address('bc00:1000:ffff:ffff:ffff:ffff:ffff:ffff').packed)
+        self.assertEqual(ir4.prefixlen, 34)
+
+        # 拆分记录
+        record = IPv6RangeRecord.objects.first()
+        self.assertEqual(record.record_type, IPv6RangeRecord.RecordType.SPLIT.value)
+        self.assertEqual(record.start_address, ipaddress.IPv6Address('bc00:1000::').packed)
+        self.assertEqual(record.end_address, ipaddress.IPv6Address('bc00:1000:ffff:ffff:ffff:ffff:ffff:ffff').packed)
+        self.assertEqual(record.prefixlen, 32)
+        ir1, ir2, ir3, ir4 = record.ip_ranges
+        self.assertEqual(ipaddress.IPv6Address(ir1['start']), ipaddress.IPv6Address('bc00:1000::'))
+        self.assertEqual(ipaddress.IPv6Address(ir1['end']),
+                         ipaddress.IPv6Address('bc00:1000:3fff:ffff:ffff:ffff:ffff:ffff'))
+        self.assertEqual(ir1['prefix'], 34)
+        self.assertEqual(ipaddress.IPv6Address(ir2['start']), ipaddress.IPv6Address('bc00:1000:4000::'))
+        self.assertEqual(ipaddress.IPv6Address(ir2['end']),
+                         ipaddress.IPv6Address('bc00:1000:7fff:ffff:ffff:ffff:ffff:ffff'))
+        self.assertEqual(ir2['prefix'], 34)
+        self.assertEqual(ipaddress.IPv6Address(ir3['start']), ipaddress.IPv6Address('bc00:1000:8000::'))
+        self.assertEqual(ipaddress.IPv6Address(ir3['end']),
+                         ipaddress.IPv6Address('bc00:1000:bfff:ffff:ffff:ffff:ffff:ffff'))
+        self.assertEqual(ir3['prefix'], 34)
+        self.assertEqual(ipaddress.IPv6Address(ir4['start']), ipaddress.IPv6Address('bc00:1000:c000::'))
+        self.assertEqual(ipaddress.IPv6Address(ir4['end']),
+                         ipaddress.IPv6Address('bc00:1000:ffff:ffff:ffff:ffff:ffff:ffff'))
+        self.assertEqual(ir4['prefix'], 34)
+
+        # ok, range2
+        self.assertEqual(IPv6RangeRecord.objects.count(), 1)
+        self.assertEqual(IPv6Range.objects.count(), 5)
+        base_url = reverse('net_ipam-api:ipam-ipv6range-plan-split', kwargs={'id': ip_range2.id})
+        response = self.client.post(base_url, data={
+            'sub_ranges': [
+                {'start_address': 'd000:0:1fff::',
+                 'end_address': 'd000:0:1fff:1fff:ffff:ffff:ffff:ffff', 'prefix': 51},
+                {'start_address': 'd000:0:1fff:2000::',
+                 'end_address': 'd000:0:1fff:3fff:ffff:ffff:ffff:ffff', 'prefix': 51},
+                {'start_address': 'd000:0:1fff:4000::',
+                 'end_address': 'd000:0:1fff:7fff:ffff:ffff:ffff:ffff', 'prefix': 50},
+                {'start_address': 'd000:0:1fff:8000::',
+                 'end_address': 'd000:0:1fff:ffff:ffff:ffff:ffff:ffff', 'prefix': 49}
+            ]
+        })
+        self.assertEqual(response.status_code, 200)
+        split_ranges = response.data['ip_ranges']
+        self.assertEqual(len(split_ranges), 4)
+        self.assertKeysIn([
+            'id', 'name', 'creation_time', 'status', 'update_time', 'assigned_time', 'admin_remark',
+            'remark', 'start_address', 'end_address', 'prefixlen', 'asn', 'org_virt_obj'], split_ranges[0])
+        self.assertEqual(IPv6RangeRecord.objects.count(), 2)
+        self.assertEqual(IPv6Range.objects.count(), 8)
+
+        ir1, ir2, ir3, ir4 = IPv6Range.objects.order_by('start_address')[4:8]
+        self.assertEqual(ir1.start_address, ipaddress.IPv6Address('d000:0:1fff::').packed)
+        self.assertEqual(ir1.end_address, ipaddress.IPv6Address('d000:0:1fff:1fff:ffff:ffff:ffff:ffff').packed)
+        self.assertEqual(ir1.prefixlen, 51)
+        self.assertEqual(ir2.start_address, ipaddress.IPv6Address('d000:0:1fff:2000::').packed)
+        self.assertEqual(ir2.end_address, ipaddress.IPv6Address('d000:0:1fff:3fff:ffff:ffff:ffff:ffff').packed)
+        self.assertEqual(ir2.prefixlen, 51)
+        self.assertEqual(ir3.start_address, ipaddress.IPv6Address('d000:0:1fff:4000::').packed)
+        self.assertEqual(ir3.end_address, ipaddress.IPv6Address('d000:0:1fff:7fff:ffff:ffff:ffff:ffff').packed)
+        self.assertEqual(ir3.prefixlen, 50)
+        self.assertEqual(ir4.start_address, ipaddress.IPv6Address('d000:0:1fff:8000::').packed)
+        self.assertEqual(ir4.end_address, ipaddress.IPv6Address('d000:0:1fff:ffff:ffff:ffff:ffff:ffff').packed)
+        self.assertEqual(ir4.prefixlen, 49)
+
+        # prefixlen 127 test
+        nt = dj_timezone.now()
+        ip_range3 = IPv6RangeManager.create_ipv6_range(
+            name='预留2', start_ip='dd66::1:0', end_ip='dd66::1:3', prefixlen=126, asn=88,
+            create_time=nt, update_time=nt, status_code=IPv6Range.Status.RESERVED.value,
+            org_virt_obj=virt_obj1, assigned_time=nt, admin_remark='admin remark2', remark='remark2'
+        )
+        self.assertEqual(IPv6RangeRecord.objects.count(), 2)
+        self.assertEqual(IPv6Range.objects.count(), 9)
+
+        base_url = reverse('net_ipam-api:ipam-ipv6range-plan-split', kwargs={'id': ip_range3.id})
+        response = self.client.post(base_url, data={
+            'sub_ranges': [
+                {'start_address': 'dd66::1:0', 'end_address': 'dd66::1:0', 'prefix': 128},
+                {'start_address': 'dd66::1:1', 'end_address': 'dd66::1:1', 'prefix': 128},
+                {'start_address': 'dd66::1:2', 'end_address': 'dd66::1:3', 'prefix': 127},
+            ]
+        })
+        self.assertEqual(response.status_code, 200)
+        split_ranges = response.data['ip_ranges']
+        self.assertEqual(len(split_ranges), 3)
+        self.assertKeysIn([
+            'id', 'name', 'creation_time', 'status', 'update_time', 'assigned_time', 'admin_remark',
+            'remark', 'start_address', 'end_address', 'prefixlen', 'asn', 'org_virt_obj'], split_ranges[0])
+        self.assertEqual(IPv6RangeRecord.objects.count(), 3)
+        self.assertEqual(IPv6Range.objects.count(), 11)
+        ir1, ir2, ir3 = IPv6Range.objects.order_by('start_address')[8:11]
+        self.assertEqual(ir1.start_address, ipaddress.IPv6Address('dd66::1:0').packed)
+        self.assertEqual(ir1.end_address, ipaddress.IPv6Address('dd66::1:0').packed)
+        self.assertEqual(ir1.prefixlen, 128)
+        self.assertEqual(ir2.start_address, ipaddress.IPv6Address('dd66::1:1').packed)
+        self.assertEqual(ir2.end_address, ipaddress.IPv6Address('dd66::1:1').packed)
+        self.assertEqual(ir2.prefixlen, 128)
+        self.assertEqual(ir3.start_address, ipaddress.IPv6Address('dd66::1:2').packed)
+        self.assertEqual(ir3.end_address, ipaddress.IPv6Address('dd66::1:3').packed)
+        self.assertEqual(ir3.prefixlen, 127)
+
+        # 不完成网段
+        nt = dj_timezone.now()
+        ip_range4 = IPv6RangeManager.create_ipv6_range(
+            name='预留4', start_ip='dd66::23:03', end_ip='dd66::23:0d', prefixlen=124, asn=88,
+            create_time=nt, update_time=nt, status_code=IPv6Range.Status.RESERVED.value,
+            org_virt_obj=virt_obj1, assigned_time=nt, admin_remark='admin remark4', remark='remark4'
+        )
+        base_url = reverse('net_ipam-api:ipam-ipv6range-plan-split', kwargs={'id': ip_range4.id})
+        self.assertEqual(IPv6RangeRecord.objects.count(), 3)
+        self.assertEqual(IPv6Range.objects.count(), 12)
+        response = self.client.post(base_url, data={
+            'sub_ranges': [
+                {'start_address': 'dd66::23:3', 'end_address': 'dd66::23:7', 'prefix': 125},
+                {'start_address': 'dd66::23:8', 'end_address': 'dd66::23:b', 'prefix': 126},
+                {'start_address': 'dd66::23:c', 'end_address': 'dd66::23:d', 'prefix': 126}
+            ]
+        })
+        self.assertEqual(response.status_code, 200)
+        split_ranges = response.data['ip_ranges']
+        self.assertEqual(len(split_ranges), 3)
+        self.assertKeysIn([
+            'id', 'name', 'creation_time', 'status', 'update_time', 'assigned_time', 'admin_remark',
+            'remark', 'start_address', 'end_address', 'prefixlen', 'asn', 'org_virt_obj'], split_ranges[0])
+        self.assertEqual(IPv6RangeRecord.objects.count(), 4)
+        self.assertEqual(IPv6Range.objects.count(), 14)
+        ir1, ir2, ir3 = IPv6Range.objects.order_by('start_address')[11:14]
+        self.assertEqual(ir1.start_address, ipaddress.IPv6Address('dd66::23:3').packed)
+        self.assertEqual(ir1.end_address, ipaddress.IPv6Address('dd66::23:7').packed)
+        self.assertEqual(ir1.prefixlen, 125)
+        self.assertEqual(ir2.start_address, ipaddress.IPv6Address('dd66::23:8').packed)
+        self.assertEqual(ir2.end_address, ipaddress.IPv6Address('dd66::23:b').packed)
+        self.assertEqual(ir2.prefixlen, 126)
+        self.assertEqual(ir3.start_address, ipaddress.IPv6Address('dd66::23:c').packed)
+        self.assertEqual(ir3.end_address, ipaddress.IPv6Address('dd66::23:d').packed)
+        self.assertEqual(ir3.prefixlen, 126)
