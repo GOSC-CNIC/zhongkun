@@ -445,6 +445,7 @@ class IPv6RangeViewSet(NormalGenericViewSet):
             http Code 200 Ok:
                 {
                     "ip_ranges": [
+                    {
                       "name": "cb00:6fff::/32",
                       "status": "wait",
                       "creation_time": "2023-10-26T08:33:56.047279Z",
@@ -454,12 +455,13 @@ class IPv6RangeViewSet(NormalGenericViewSet):
                       "remark": "",
                       "start_address": "cb00:6fff::",
                       "end_address": "cb00:6fff:ffff:ffff:ffff:ffff:ffff:ffff",
-                      "preficlen": 32,
+                      "prefixlen": 32,
                       "asn": {
                         "id": 5,
                         "number": 65535
                       },
                       "org_virt_obj": null
+                    },...
                     ]
                 }
 
@@ -512,6 +514,60 @@ class IPv6RangeViewSet(NormalGenericViewSet):
         """
         return IPv6RangeHandler().seek_ip_range_split_plan(view=self, request=request)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('子网IPv6地址段合并为一个指定前缀长度的超网地址段'),
+        responses={
+            200: ''''''
+        }
+    )
+    @action(methods=['POST'], detail=False, url_path='merge', url_name='merge')
+    def merge_ip_ranges(self, request, *args, **kwargs):
+        """
+        子网IPv6地址段合并为一个指定前缀长度的超网地址段，需要有IP地址管理员权限
+
+            * 合并的所有子网地址段的状态必须同为"未分配"，或者同为“预留”
+            * 所有子网地址段的状态为“预留”状态时，关联机构二级对象要一致
+            * 要合并的超网地址段前缀长度要小于等于所有子网地址段的掩码长度
+            * 合并的所有子网地址段的AS编码必须一致
+            * 合并的所有子网地址段IP地址必须是连续的
+            * 所有子网地址段必须都属于要合并的目标超网
+            * 一个子网地址段也可以合并超网地址段
+
+            http Code 200 Ok:
+                {
+                  "id": "bz05x5wxa3y0viz1dn6k88hww",    # fake时为空字符串
+                  "name": "cb00:6fff::/32",
+                  "status": "wait",
+                  "creation_time": "2023-10-26T08:33:56.047279Z",
+                  "update_time": "2023-10-26T08:33:56.047279Z",
+                  "assigned_time": null,
+                  "admin_remark": "test",
+                  "remark": "",
+                  "start_address": "cb00:6fff::",
+                  "end_address": "cb00:6fff:ffff:ffff:ffff:ffff:ffff:ffff",
+                  "prefixlen": 32,
+                  "asn": {
+                    "id": 5,
+                    "number": 65535
+                  },
+                  "org_virt_obj": null
+                }
+
+            Http Code 400, 403, 409, 500:
+                {
+                    "code": "BadRequest",
+                    "message": "xxxx"
+                }
+
+                可能的错误码：
+                400:
+                InvalidArgument: 参数无效
+
+                403:
+                AccessDenied: 你没有IP管理功能的管理员权限
+        """
+        return IPv6RangeHandler().merge_ipv6_ranges(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return ipam_serializers.IPv6RangeSerializer
@@ -521,5 +577,7 @@ class IPv6RangeViewSet(NormalGenericViewSet):
             return ipam_serializers.IPv6RangePlanSplitSerializer
         elif self.action == 'seek_ip_range_split_plan':
             return ipam_serializers.IPv6RangeSpiltPlanPost
+        elif self.action == 'merge_ip_ranges':
+            return ipam_serializers.IPv6RangeMergeSerializer
 
         return Serializer

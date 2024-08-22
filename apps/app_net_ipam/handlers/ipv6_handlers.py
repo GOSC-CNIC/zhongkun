@@ -436,3 +436,41 @@ class IPv6RangeHandler:
         return Response(data={
             'ip_ranges': ipam_serializers.SubIPv6RangeSerializer(instance=sub_ranges, many=True).data
         })
+
+    @staticmethod
+    def merge_ipv6_ranges(view: NormalGenericViewSet, request, kwargs):
+        serializer = view.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=False):
+            s_errors = serializer.errors
+            if 'new_prefix' in s_errors:
+                exc = errors.InvalidArgument(
+                    message=_('掩码长度可选的有效值为1-127，并且必须大于要拆分的IP地址段的掩码长度。') + s_errors['new_prefix'][0])
+            elif 'ip_range_ids' in s_errors:
+                exc = errors.InvalidArgument(
+                    message=_('IP地址段id列表无效。') + serializer_error_msg(s_errors['ip_range_ids']))
+            else:
+                msg = serializer_error_msg(s_errors)
+                exc = errors.BadRequest(message=msg)
+
+            return view.exception_response(exc)
+
+        data = serializer.validated_data
+        new_prefix = data['new_prefix']
+        ip_range_ids = data['ip_range_ids']
+        fake = data['fake']
+
+        ur_wrapper = NetIPamUserRoleWrapper(user=request.user)
+        if not ur_wrapper.has_ipam_admin_writable():
+            return view.exception_response(
+                errors.AccessDenied(message=_('你没有网络IP管理功能的管理员权限')))
+
+        try:
+            supernet = IPv6RangeManager.merge_ipv6_ranges_by_prefix(
+                user=request.user, range_ids=ip_range_ids, new_prefix=new_prefix, fake=fake
+            )
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        return Response(data={
+            'ip_range': ipam_serializers.IPv6RangeSerializer(instance=supernet).data
+        })

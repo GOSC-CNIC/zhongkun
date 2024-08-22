@@ -217,3 +217,13 @@ class SubIPv6RangeSerializer(serializers.Serializer):
 class IPv6RangeSpiltPlanPost(SubIPv6RangeSerializer):
     new_prefix = serializers.IntegerField(
         label=_('拆分前缀长度'), required=True, min_value=0, max_value=128, write_only=True)
+
+
+class IPv6RangeMergeSerializer(serializers.Serializer):
+    new_prefix = serializers.IntegerField(label=_('子网掩码长度'), required=True, min_value=1, max_value=127)
+    ip_range_ids = serializers.ListField(
+        label=_('ip地址段id列表'), child=serializers.CharField(label='ip地址段id', max_length=36),
+        min_length=1, max_length=256, required=True)
+    fake = serializers.BooleanField(
+        label=_('假合并'), allow_null=True, default=False,
+        help_text=_('true(假装合并，询问合并结果)；其他值或不提交此参数（正常真实合并地址段）'))

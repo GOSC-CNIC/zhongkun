@@ -301,6 +301,7 @@ class IPv4RangeViewSet(NormalGenericViewSet):
             http Code 200 Ok:
                 {
                     "ip_ranges": [
+                    {
                       "name": "127.0.0.0/24",
                       "status": "wait",
                       "creation_time": "2023-10-26T08:33:56.047279Z",
@@ -316,6 +317,7 @@ class IPv4RangeViewSet(NormalGenericViewSet):
                         "number": 65535
                       },
                       "org_virt_obj": null
+                    },
                     ]
                 }
 

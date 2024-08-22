@@ -856,7 +856,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         ir1_sub3.org_virt_obj = ir1_sub2.org_virt_obj
         ir1_sub3.save(update_fields=['org_virt_obj'])
 
-        # 预留 状态时，关联机构二级对象不一致
+        # 不属于同一个超网
         response = self.client.post(base_url, data={
             'new_prefix': 23, 'ip_range_ids': [ir1_sub2.id, ir1_sub3.id], 'fake': True})
         self.assertErrorResponse(status_code=409, code='Conflict', response=response)

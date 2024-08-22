@@ -1,5 +1,5 @@
 import ipaddress
-from typing import Union, List
+from typing import Union, List, Tuple
 from datetime import datetime
 
 from django.db.models import Q, QuerySet
@@ -399,6 +399,19 @@ class IPv6RangeManager:
         """
         return IPv6RangeSplitter(obj_or_id=range_id).split_to_plan(user=user, sub_ranges=sub_ranges)
 
+    @staticmethod
+    def merge_ipv6_ranges_by_prefix(user, range_ids: List[str], new_prefix: int, fake: bool = False) -> IPv6Range:
+        """
+        按掩码长度把子网地址段合并为一个超网
+        """
+        try:
+            supernet, ip_ranges = IPv6RangeMerger(
+                ipv6_range_ids=range_ids, new_prefix=new_prefix).do_merge(user=user, fake=fake)
+        except errors.ValidationError as exc:
+            raise errors.ConflictError(message=exc.message)
+
+        return supernet
+
 
 class IPv6RangeRecordManager:
     @staticmethod
@@ -474,6 +487,14 @@ class IPv6RangeRecordManager:
         return IPv6RangeRecordManager.create_record(
             user=user, record_type=IPv6RangeRecord.RecordType.SPLIT.value,
             start_address=ip_range.start_address, end_address=ip_range.end_address, prefixlen=ip_range.prefixlen,
+            ip_ranges=ip_ranges, remark=remark, org_virt_obj=None
+        )
+
+    @staticmethod
+    def create_merge_record(user, ipv6_range: IPv6Range, remark: str, ip_ranges: List[IPv6RangeStrItem]):
+        return IPv6RangeRecordManager.create_record(
+            user=user, record_type=IPv6RangeRecord.RecordType.MERGE.value,
+            start_address=ipv6_range.start_address, end_address=ipv6_range.end_address, prefixlen=ipv6_range.prefixlen,
             ip_ranges=ip_ranges, remark=remark, org_virt_obj=None
         )
 
@@ -782,3 +803,153 @@ class IPv6RangeSplitter:
         # subnets.sort(key=lambda x: x.start_int, reverse=False)
         return subnets
 
+
+class IPv6RangeMerger:
+    def __init__(self, ipv6_range_ids: List[str], new_prefix: int):
+        self.ipv6_range_ids = ipv6_range_ids
+        self.new_prefix = new_prefix
+        if not ipv6_range_ids:
+            raise errors.ValidationError(message=_('要合并的子网IP地址段id列表不能为空'))
+
+        if not (0 < new_prefix <= 128):
+            raise errors.ValidationError(message=_('要合并成的超网IP地址段的掩码长度必须为1-128'))
+
+    def get_ip_ranges(self, select_for_update: bool = False) -> List[IPv6Range]:
+        qs = IPv6Range.objects.filter(id__in=self.ipv6_range_ids).order_by('start_address')
+        if select_for_update:
+            qs = qs.select_for_update()
+
+        return list(qs)
+
+    def do_validate(self, ip_ranges: List[IPv6Range], ipv6_range_ids: List[str]):
+        """
+        :raises: Error
+        """
+        exists_id_set = {ir.id for ir in ip_ranges}
+        merge_id_set = set(ipv6_range_ids)
+        notfound_ids = merge_id_set.difference(exists_id_set)
+        if len(notfound_ids) > 0:
+            raise errors.ValidationError(message=_('以下IP地址段id不存在：') + ','.join(notfound_ids))
+
+        if not ip_ranges:
+            raise errors.ValidationError(message=_('至少要指定一个要合并的IP地址段'))
+
+        ip_ranges.sort(key=lambda x: x.start_address, reverse=False)
+        ip_ranges = self.merge_validate(ip_ranges=ip_ranges, new_prefix=self.new_prefix)
+        return ip_ranges
+
+    @staticmethod
+    def merge_validate(ip_ranges: List[IPv6Range], new_prefix: int):
+        pre_range = None
+        for ir in ip_ranges:
+            if ir.status not in [IPv6Range.Status.WAIT.value, IPv6Range.Status.RESERVED.value]:
+                raise errors.ValidationError(
+                    message=_('合并的地址段的状态必须为"未分配"和“预留”，以下IP地址段不能参与合并：') + str(ir))
+
+            if new_prefix > ir.prefixlen:
+                raise errors.ValidationError(
+                    message=_('地址段的掩码长度小于新的合并掩码长度。') + str(ir))
+
+            if pre_range is not None:
+                # asn一致检查
+                if ir.asn_id != pre_range.asn_id:
+                    raise errors.ValidationError(
+                        message=_('以下2个地址段AS编码不一致：') + f'{str(pre_range)}、{str(ir)}')
+
+                # 分配状态 一致检查
+                if ir.status != pre_range.status:
+                    raise errors.ValidationError(
+                        message=_(
+                            '所有要合并的子网的分配状态必须一致，以下2个地址段的分配状态不一致：'
+                        ) + f'{str(pre_range)}、{str(ir)}')
+
+                # 预留状态时关联机构二级对象一致检查
+                if ir.status == IPv6Range.Status.RESERVED.value:
+                    if ir.org_virt_obj_id != pre_range.org_virt_obj_id:
+                        raise errors.ValidationError(
+                            message=_(
+                                '所有要合并的子网IP地址段是“预留”状态时，关联的机构二级对象必须一致，以下2个地址段不一致：'
+                            ) + f'{str(pre_range)}、{str(ir)}')
+
+                # 相邻的地址段首尾IP地址必须是连续的
+                if (ir.start_address_int - pre_range.end_address_int) != 1:
+                    raise errors.ValidationError(
+                        message=_('相邻的地址段首尾IP地址必须是连续的，以下2个地址段不是连续的：'
+                                  ) + f'{str(pre_range)}、{str(ir)}')
+
+                # 2个地址段 合并掩码长度的超网 是否一致
+                pre_supersut = pre_range.start_address_network.supernet(new_prefix=new_prefix)
+                ir_supersut = ir.start_address_network.supernet(new_prefix=new_prefix)
+                if pre_supersut != ir_supersut:
+                    raise errors.ValidationError(
+                        message=_('以下2个地址段不属于同一个超网，无法合并为指定掩码长度的超网：'
+                                  ) + f'{pre_supersut}({str(pre_range)})、{ir_supersut}({str(ir)})')
+
+            pre_range = ir
+
+        return ip_ranges
+
+    def do_merge(self, user, fake: bool = False):
+        """
+        :raises: Error
+        """
+        if fake:
+            ip_ranges = self.get_ip_ranges(select_for_update=False)
+            return self._merge(ip_ranges=ip_ranges, fake=True)
+
+        with transaction.atomic():
+            ip_ranges = self.get_ip_ranges(select_for_update=True)
+            supernet, ip_ranges = self._merge(ip_ranges=ip_ranges, fake=False)
+
+        self.add_merge_record(ipv6_range=supernet, subnets=ip_ranges, user=user)
+        return supernet, ip_ranges
+
+    def _merge(self, ip_ranges: List[IPv6Range], fake: bool = False) -> Tuple[IPv6Range, List[IPv6Range]]:
+        """
+        * 需要在一个事务中执行
+        """
+        ip_ranges = self.do_validate(ip_ranges=ip_ranges, ipv6_range_ids=self.ipv6_range_ids)
+        # 就一个合并IP地址段，并且掩码长度没变化，不需要合并
+        if len(ip_ranges) == 1:
+            subnet1 = ip_ranges[0]
+            if subnet1.prefixlen == self.new_prefix:
+                return subnet1, [subnet1]
+
+        subnet1 = ip_ranges[0]
+        start_addr = subnet1.start_address
+        end_addr = ip_ranges[-1].end_address
+        if subnet1.status == IPv6Range.Status.WAIT.value:
+            org_virt_obj_id = None
+        else:
+            org_virt_obj_id = subnet1.org_virt_obj_id
+
+        nt = dj_timezone.now()
+        supernet = IPv6RangeManager.build_ipv6_range(
+            name='', start_ip=start_addr, end_ip=end_addr, prefixlen=self.new_prefix,
+            asn=subnet1.asn, status_code=subnet1.status, org_virt_obj=org_virt_obj_id,
+            admin_remark='', remark='', create_time=nt, update_time=nt, assigned_time=None
+        )
+        supernet.clean(exclude_ids=self.ipv6_range_ids)
+
+        if fake:
+            return supernet, ip_ranges
+
+        IPv6Range.objects.filter(id__in=self.ipv6_range_ids).delete()
+        supernet.clean()
+        supernet.save(force_insert=True)
+        return supernet, ip_ranges
+
+    @staticmethod
+    def add_merge_record(ipv6_range: IPv6Range, subnets: List[IPv6Range], user):
+        try:
+            range_items = [
+                IPv6RangeStrItem(
+                    start=str(sn.start_address_obj), end=str(sn.end_address_obj), prefix=sn.prefixlen
+                ) for sn in subnets
+            ]
+
+            IPv6RangeRecordManager.create_merge_record(
+                user=user, ipv6_range=ipv6_range, remark='', ip_ranges=range_items
+            )
+        except Exception as exc:
+            pass

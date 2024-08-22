@@ -518,6 +518,14 @@ class IPv6Range(IPRangeBase):
                         value=self, overlapping_range=overlapping_range
                     ))
 
+    @property
+    def start_address_int(self):
+        return int(self.start_address_obj)
+
+    @property
+    def end_address_int(self):
+        return int(self.end_address_obj)
+
 
 class IPv6Address(IPAddressBase):
     ip_address = ByteField(verbose_name=_('IP地址'), max_length=16)
