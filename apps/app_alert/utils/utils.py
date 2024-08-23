@@ -91,8 +91,10 @@ class DateUtils:
         return (datetime.datetime.now() + datetime.timedelta(hours=8)).timetuple()
 
 
-@retry(stop_max_attempt_number=20)
+@retry(stop_max_attempt_number=3)
 def download(*args, **kwargs):
+    if 'timeout' not in kwargs:
+        kwargs['timeout'] = (6, 60)
     try:
         resp = requests.request(*args, **kwargs)
         if resp.status_code != 200:
