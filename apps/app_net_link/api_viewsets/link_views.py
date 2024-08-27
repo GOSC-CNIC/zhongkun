@@ -51,11 +51,13 @@ class LinkViewSet(NormalGenericViewSet):
                             "endpoint_a": "空天院新技术园区B座A301机房，王萌13811835852",
                             "endpoint_z": "海淀区后厂村路55号北京气象卫星地面站，球形建筑，1层机房，林茂伟13810802009，光缆施工联系闫振宇 13811904589",
                             "bandwidth": null, # 带宽（Mbs）
-                            "task_description": "中国遥感卫星地面站至中国资源卫星应用中心高分项目专线（裸纤）", # 用途描述
+                            "description": "中国遥感卫星地面站至中国资源卫星应用中心高分项目专线（裸纤）", # 用途描述
                             "line_type": "科技云科技专线", # 线路类型
-                            "task_person": "周建虎", # 商务对接
+                            "business_person": "周建虎", # 商务对接
                             "build_person": "胡亮亮、王振伟", # 线路搭建
-                            "task_status": "normal" # 业务状态 normal(正常) deleted(删除)
+                            "link_status": "idle", # using(使用); backup(备用); idle(闲置')
+                            "remarks": "xx",
+                            "enable_date": "2023-12-12" # 开通日期
                         }
                     ]
                 }
@@ -140,7 +142,7 @@ class LinkViewSet(NormalGenericViewSet):
     )
     def create(self, request, *args, **kwargs):
         """
-        列举链路信息
+        创建链路
 
             http Code 200 Ok:
                 {
@@ -151,7 +153,9 @@ class LinkViewSet(NormalGenericViewSet):
         return LinkHandler.creat_link(view=self, request=request)
 
     def get_serializer_class(self):
-        if self.action in ['list', 'create']:
+        if self.action in 'list':
+            return link_serializers.LinkSerializer
+        elif self.action in 'create':
             return link_serializers.CreatLinkSerializer
 
         return Serializer

@@ -173,7 +173,9 @@ class LinkHandler:
             # 校验link_element的element_id不重复
             if len(id_list) != len(set(id_list)):
                 raise errors.InvalidArgument(message=_(f'link_element参数不允许存在重复的element_id'))
-        
+        else:
+            data['link_element'] = []
+
         return data
 
 

@@ -427,6 +427,7 @@ class LinkManager:
             link: Link,
             index: int,
             sub_index: int = 0,
+            save_db: bool = True
     ) -> ElementLink:
         elementlink = ElementLink(
             element=element,
@@ -434,7 +435,9 @@ class LinkManager:
             index=index,
             sub_index=sub_index
         )
-        elementlink.save(force_insert=True)
+        if save_db:
+            elementlink.save(force_insert=True)
+
         return elementlink
 
     @staticmethod
@@ -453,6 +456,17 @@ class LinkManager:
             enable_date: date,
             link_element: list,
     ) -> Link:
+        element_ids = [t['element_id'] for t in link_element]
+        if element_ids:
+            elements = ElementManager.get_queryset().filter(id__in=element_ids)
+            elements_map = {e.id: e for e in elements}
+            exists_element_ids = set(elements_map.keys())
+            notfound_element_ids = list(set(element_ids).difference(exists_element_ids))
+            if notfound_element_ids:
+                raise errors.TargetNotExist(message=_('网元不存在，网元id无效。') + f'{notfound_element_ids}')
+        else:
+            elements_map = {}
+
         with transaction.atomic():
             link = Link(
                 number=number,
@@ -469,11 +483,19 @@ class LinkManager:
                 enable_date=enable_date,
             )
             link.save(force_insert=True)
-            for t in link_element:
-                element = ElementManager.get_element_by_id(t['element_id'])
-                LinkManager.create_elementlink(
-                    element=element, link=link,
-                    index=t['index'], sub_index=t['sub_index'])
+
+            if link_element:
+                elementlink_objs = []
+                for t in link_element:
+                    element = elements_map[t['element_id']]
+                    obj = LinkManager.create_elementlink(
+                        element=element, link=link,
+                        index=t['index'], sub_index=t['sub_index'], save_db=False)
+                    obj.enforce_id()
+                    elementlink_objs.append(obj)
+
+                ElementLink.objects.bulk_create(elementlink_objs)
+
         return link
 
     @staticmethod
