@@ -94,13 +94,10 @@ class LinkViewSet(NormalGenericViewSet):
                             "sub_index": 1,
                             "element_data": {
                                 "type": "port",
-                                "lease": null,
                                 "port": {
                                     "is_linked": true,
                                     "element_id": "oethtqhyhfdmzsdj4yp0ev8ah",
-                                    "link_id": [
-                                        "t1hgf0ngc901dop1w6f8njo1w"
-                                    ],
+                                    "link_id": [],
                                     "id": "oeth9k0527bmyrobqx2rng9xx",
                                     "number": "B8机柜29至31U_96芯ODF(1,13)",
                                     "row": 1,
@@ -110,83 +107,24 @@ class LinkViewSet(NormalGenericViewSet):
                                         "number": "B8机柜29至31U_96芯ODF"
                                     }
                                 },
-                                "fiber": null,
-                                "box": null
-                            }
-                        },
-                        {
-                            "index": 1,
-                            "sub_index": 2,
-                            "element_data": {
-                                "type": "port",
-                                "lease": null,
-                                "port": {
-                                    "is_linked": true,
-                                    "element_id": "oetqqgftfnz5onyfqn9wtb54x",
-                                    "link_id": [
-                                        "t1hgf0ngc901dop1w6f8njo1w"
-                                    ],
-                                    "id": "oetqad25gdyqf8hk609wj36th",
-                                    "number": "B8机柜29至31U_96芯ODF(1,14)",
-                                    "row": 1,
-                                    "col": 14,
-                                    "distribution_frame": {
-                                        "id": "oepwz6rs6p102ihz06jvxa9on",
-                                        "number": "B8机柜29至31U_96芯ODF"
-                                    }
-                                },
-                                "fiber": null,
-                                "box": null
-                            }
-                        },
-                        {
-                            "index": 2,
-                            "sub_index": 1,
-                            "element_data": {
-                                "type": "port",
-                                "lease": null,
-                                "port": {
-                                    "is_linked": true,
-                                    "element_id": "of1c3g2r8zoaqrj6huuruza3x",
-                                    "link_id": [
-                                        "t1hgf0ngc901dop1w6f8njo1w"
-                                    ],
-                                    "id": "of1bu33xhwh02f5pyezko1kt7",
-                                    "number": "A3机柜31至33U_ODF7(1,13)",
-                                    "row": 1,
-                                    "col": 13,
-                                    "distribution_frame": {
-                                        "id": "oezopnz9w25dpx8wssox70h0c",
-                                        "number": "A3机柜31至33U_ODF7"
-                                    }
-                                },
-                                "fiber": null,
-                                "box": null
                             }
                         },
                         {
                             "index": 2,
                             "sub_index": 2,
                             "element_data": {
-                                "type": "port",
-                                "lease": null,
-                                "port": {
+                                "type": "fiber",
+                                "fiber": {
                                     "is_linked": true,
-                                    "element_id": "of1ghrkokycspup1fpx0khbcc",
-                                    "link_id": [
-                                        "t1hgf0ngc901dop1w6f8njo1w"
-                                    ],
-                                    "id": "of1g86brvubspbtxr6mdpac62",
-                                    "number": "A3机柜31至33U_ODF7(1,14)",
-                                    "row": 1,
-                                    "col": 14,
-                                    "distribution_frame": {
-                                        "id": "oezopnz9w25dpx8wssox70h0c",
-                                        "number": "A3机柜31至33U_ODF7"
+                                    "element_id": "86gnebw3kbdnk4haqgr6fu38y",
+                                    "link_id": [],
+                                    "id": "891jxdtcmf97myyi71qc360bu",
+                                    "sequence": 2,
+                                    "fiber_cable": {
+                                        "id": "rkxi2xn7otatg834z968ww83t",
+                                        "number": "光缆-天空院"
                                     }
-                                },
-                                "fiber": null,
-                                "box": null
+                                }
                             }
                         }
                     ]

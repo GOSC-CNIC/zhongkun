@@ -50,21 +50,24 @@ class ElementManager:
 
     @staticmethod
     def get_element_detail_data_by_id(
-        id: str,
+        id: str
     ) -> ElementDetailData:
         element = ElementManager.get_element_by_id(id=id)
-        object_type = element.object_type
+        return ElementManager.get_element_detail_data(object_type=element.object_type, object_id=element.object_id)
+
+    @staticmethod
+    def get_element_detail_data(object_type: str, object_id: str) -> ElementDetailData:
         if object_type == Element.Type.LEASE_LINE:
-            lease = LeaseLineManager.get_leaseline(id=element.object_id)
+            lease = LeaseLineManager.get_leaseline(id=object_id)
             return ElementDetailData(_type=object_type, lease=lease)
         elif object_type == Element.Type.OPTICAL_FIBER:
-            fiber = OpticalFiberManager.get_opticalfiber(id=element.object_id)
+            fiber = OpticalFiberManager.get_opticalfiber(id=object_id)
             return ElementDetailData(_type=object_type, fiber=fiber)
         elif object_type == Element.Type.DISTRIFRAME_PORT:
-            port = DistriFramePortManager.get_distriframeport(id=element.object_id)
+            port = DistriFramePortManager.get_distriframeport(id=object_id)
             return ElementDetailData(_type=object_type, port=port)
         elif object_type == Element.Type.CONNECTOR_BOX:
-            box = ConnectorBoxManager.get_connectorbox(id=element.object_id)
+            box = ConnectorBoxManager.get_connectorbox(id=object_id)
             return ElementDetailData(_type=object_type, box=box)
         else:
             raise errors.Error(message=_('无法识别的网元种类') + f',type: {object_type}')
@@ -80,7 +83,7 @@ class ConnectorBoxManager:
         """
         :raises: ConnectorBoxNotExist
         """
-        connectorbox = ConnectorBoxManager.get_queryset().filter(id=id).first()
+        connectorbox = ConnectorBoxManager.get_queryset().select_related('element').filter(id=id).first()
         if connectorbox is None:
             raise errors.TargetNotExist(message=_('光缆熔纤包不存在'), code='ConnectorBoxNotExist')
         return connectorbox
@@ -128,7 +131,7 @@ class DistriFramePortManager:
         """
         :raises: DistriFramePortNotExist
         """
-        distriframeport = DistriFramePortManager.get_queryset().filter(id=id).first()
+        distriframeport = DistriFramePortManager.get_queryset().select_related('distribution_frame', 'element').filter(id=id).first()
         if distriframeport is None:
             raise errors.TargetNotExist(message=_('配线架端口不存在'), code='DistriFramePortNotExist')
         return distriframeport
@@ -288,7 +291,7 @@ class LeaseLineManager:
         """
         :raises: LeaseLineNotExist
         """
-        leaseline = LeaseLineManager.get_queryset().filter(id=id).first()
+        leaseline = LeaseLineManager.get_queryset().select_related('element').filter(id=id).first()
         if leaseline is None:
             raise errors.TargetNotExist(message=_('租用线路不存在'), code='LeaseLineNotExist')
         return leaseline
@@ -508,7 +511,7 @@ class OpticalFiberManager:
         """
         :raises: OpticalFiberNotExist
         """
-        opticalfiber = OpticalFiberManager.get_queryset().filter(id=id).first()
+        opticalfiber = OpticalFiberManager.get_queryset().select_related('fiber_cable', 'element').filter(id=id).first()
         if opticalfiber is None:
             raise errors.TargetNotExist(message=_('光纤不存在'), code='OpticalFiberNotExist')
         return opticalfiber

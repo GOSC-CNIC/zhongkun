@@ -2,6 +2,9 @@ from django.utils.translation import gettext_lazy as _
 from django.core.validators import MinValueValidator
 from rest_framework import serializers
 
+from apps.app_net_link.models import Element
+from apps.app_net_link.managers.link import ElementManager
+
 
 class NetLinkUserRoleSerializer(serializers.Serializer):
     id = serializers.CharField(label='ID', read_only=True)
@@ -23,10 +26,23 @@ class NetLinkUserRoleSerializer(serializers.Serializer):
 
 
 class ElementBaseSerializer(serializers.Serializer):
-    is_linked = serializers.BooleanField(label=_('接入链路'), read_only=True)
+    is_linked = serializers.SerializerMethodField(label=_('接入链路'), read_only=True, method_name='get_is_linked')
     element_id = serializers.CharField(label=_('网元ID'), max_length=36, read_only=True)
-    link_id = serializers.ListField(
-        label=_('链路ID数组'), read_only=True, child=serializers.CharField(label=_('链路ID'), max_length=36))
+    link_id = serializers.SerializerMethodField(label=_('链路ID数组'), read_only=True, method_name='get_link_ids')
+
+    def get_is_linked(self, obj):
+        is_linked = self.context.get('is_linked', None)
+        if is_linked is not None:
+            return is_linked
+
+        return obj.is_linked
+
+    def get_link_ids(self, obj):
+        link_ids = self.context.get('link_ids', None)
+        if link_ids is not None:
+            return link_ids
+
+        return obj.link_id
 
 
 class ConnectorBoxSerializer(ElementBaseSerializer):
@@ -165,7 +181,49 @@ class LinkElementSerializer(serializers.Serializer):
     """链路网元关系列化器"""
     index = serializers.IntegerField(label=_('链路位置'), validators=(MinValueValidator(1),))
     sub_index = serializers.IntegerField(label=_('同位编号'), validators=(MinValueValidator(1),))
-    element_data = ElementDetailDataSerializer()
+    element_data = serializers.SerializerMethodField(label='网元信息', method_name='get_element_data')
+
+    def get_element_data(self, obj):
+        object_type = obj.element.object_type
+        object_id = obj.element.object_id
+
+        leases_map = self.context.get('leases', None)
+        ports_map = self.context.get('ports', None)
+        opt_fibers_map = self.context.get('opt_fibers', None)
+        conn_boxs_map = self.context.get('conn_boxs', None)
+
+        data = {'type': object_type}
+        context = {'is_linked': True, 'link_ids': []}
+        if object_type == Element.Type.LEASE_LINE:
+            if leases_map is not None:
+                el = leases_map.get(object_id, None)
+            else:
+                el = ElementManager.get_element_detail_data(object_type=object_type, object_id=object_id).lease
+
+            data['lease'] = LeaseLineSerializer(el, context=context).data
+        elif object_type == Element.Type.OPTICAL_FIBER:
+            if opt_fibers_map is not None:
+                el = opt_fibers_map.get(object_id, None)
+            else:
+                el = ElementManager.get_element_detail_data(object_type=object_type, object_id=object_id).fiber
+
+            data['fiber'] = OpticalFiberSerializer(el, context=context).data
+        elif object_type == Element.Type.DISTRIFRAME_PORT:
+            if ports_map is not None:
+                el = ports_map.get(object_id, None)
+            else:
+                el = ElementManager.get_element_detail_data(object_type=object_type, object_id=object_id).port
+
+            data['port'] = DistriFramePortSerializer(el, context=context).data
+        elif object_type == Element.Type.CONNECTOR_BOX:
+            if conn_boxs_map is not None:
+                el = conn_boxs_map.get(object_id, None)
+            else:
+                el = ElementManager.get_element_detail_data(object_type=object_type, object_id=object_id).box
+
+            data['box'] = ConnectorBoxSerializer(el, context=context).data
+
+        return data
 
 
 class LinkDetailSerializer(LinkSerializer):

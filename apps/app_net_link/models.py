@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.utils.functional import cached_property
 
 from utils.model import UuidModel
 from apps.users.models import UserProfile
@@ -112,7 +113,11 @@ class Element(UuidModel):
 
     def is_linked(self):
         """该网元是否已经建立链路"""
-        return self.links.exists()
+        return bool(self.related_link_ids)
+
+    @cached_property
+    def related_link_ids(self):
+        return self.links.all().values_list('id', flat=True)
 
 
 class ElementBase(UuidModel):
@@ -129,7 +134,7 @@ class ElementBase(UuidModel):
     def is_linked(self):
         if self.element is None:
             return False
-        # return self.element.id in ElementLink.get_linked_element_id_list()
+
         return self.element.is_linked()
 
     @property
@@ -137,7 +142,7 @@ class ElementBase(UuidModel):
         if not self.is_linked:
             return []
 
-        return [link.id for link in self.element.links.all()]
+        return self.element.related_link_ids
 
 
 class LeaseLine(ElementBase):
@@ -278,7 +283,7 @@ class Link(UuidModel):
 
     @property
     def link_element(self):
-        return ElementLink.objects.filter(link=self)
+        return ElementLink.objects.select_related('element').filter(link=self)
 
 
 class ElementLink(UuidModel):
@@ -295,20 +300,9 @@ class ElementLink(UuidModel):
         verbose_name = _('链路网元对应表')
         verbose_name_plural = verbose_name
 
-    @property
-    def element_data(self):
-        from apps.app_net_link.managers.link import ElementManager
-
-        if self.element is None:
-            return None
-
-        return ElementManager.get_element_detail_data_by_id(self.element.id)
-
     @staticmethod
     def get_linked_object_id_list(object_type: str):
-        qs = ElementLink.objects.select_related('element').all()
-        id_list = [elk.element.object_id for elk in qs if elk.element.object_type == object_type]
-        return id_list
+        return ElementLink.objects.filter(element__object_type=object_type).values_list('element__object_id', flat=True)
 
 
 class ElementDetailData:

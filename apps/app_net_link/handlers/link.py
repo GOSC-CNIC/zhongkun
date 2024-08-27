@@ -11,7 +11,7 @@ from apps.app_net_link.managers.link import (
     FiberCableManager, LeaseLineManager, OpticalFiberManager, ConnectorBoxManager
 )
 from apps.app_net_link import serializers as link_serializers
-from apps.app_net_link.models import Link
+from apps.app_net_link.models import Link, Element
 from apps.app_net_link.verify_utils import VerifyUtils
 
 
@@ -59,7 +59,53 @@ class LinkHandler:
         except errors.Error as exc:
             return view.exception_response(exc)
 
-        return Response(data=link_serializers.LinkDetailSerializer(instance=link).data)
+        link_elements = link.link_element
+        port_ids = []
+        lease_ids = []
+        opt_fiber_ids = []
+        box_ids = []
+        for el in link_elements:
+            object_type = el.element.object_type
+            if object_type == Element.Type.LEASE_LINE:
+                lease_ids.append(el.element.object_id)
+            elif object_type == Element.Type.OPTICAL_FIBER:
+                opt_fiber_ids.append(el.element.object_id)
+            elif object_type == Element.Type.DISTRIFRAME_PORT:
+                port_ids.append(el.element.object_id)
+            elif object_type == Element.Type.CONNECTOR_BOX:
+                box_ids.append(el.element.object_id)
+            else:
+                raise errors.ConflictError(message=_('未知的网元类型'))
+
+        ports = {}
+        leases = {}
+        opt_fibers = {}
+        conn_boxs = {}
+        if port_ids:
+            port_qs = DistriFramePortManager.get_queryset().select_related(
+                'element', 'distribution_frame').filter(id__in=port_ids)
+            ports = {p.id: p for p in port_qs}
+
+        if lease_ids:
+            lease_qs = LeaseLineManager.get_queryset().select_related('element').filter(id__in=lease_ids)
+            leases = {le.id: le for le in lease_qs}
+
+        if opt_fiber_ids:
+            fiber_qs = OpticalFiberManager.get_queryset().select_related(
+                'element', 'fiber_cable').filter(id__in=opt_fiber_ids)
+            opt_fibers = {f.id: f for f in fiber_qs}
+
+        if box_ids:
+            box_qs = ConnectorBoxManager.get_queryset().select_related('element').filter(id__in=box_ids)
+            conn_boxs = {b.id: b for b in box_qs}
+
+        data = link_serializers.LinkSerializer(instance=link).data
+        data['link_element'] = link_serializers.LinkElementSerializer(
+            link_elements, many=True, context={
+                'ports': ports, 'leases': leases, 'opt_fibers': opt_fibers, 'conn_boxs': conn_boxs
+            }).data
+
+        return Response(data=data)
 
     @staticmethod
     def creat_link(view: NormalGenericViewSet, request):

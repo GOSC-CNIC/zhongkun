@@ -236,9 +236,8 @@ class LinkTests(MyAPITransactionTestCase):
         self.assertKeysIn([
             'index', 'sub_index', 'element_data'
         ], response.data['link_element'][0])
-        self.assertKeysIn([
-            'type', 'lease', 'port', 'fiber', 'box'
-        ], response.data['link_element'][0]['element_data'])
+        for el in response.data['link_element']:
+            self.assertKeysIn(['type', el['element_data']['type']], el['element_data'])
 
     def test_creat_link(self):
         opticalfibers = OpticalFiber.objects.all()
