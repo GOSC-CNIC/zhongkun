@@ -10,7 +10,6 @@ site_header_lazy = site_configs.get_website_brand_lazy(default='ZhongKun')
 ADMIN_SORTED_APP_LIST = settings.ADMIN_SORTED_APP_LIST
 
 
-@admin.register(LogEntry)
 class LogEntryAdmin(admin.ModelAdmin):
     list_display = ('action_time', 'user', 'content_type', 'object_repr', 'action_flag', 'get_change_message')
     search_fields = ('user__username', 'object_id')  # 搜索字段
@@ -20,7 +19,6 @@ class LogEntryAdmin(admin.ModelAdmin):
         return obj.get_change_message()
 
 
-@admin.register(ContentType)
 class ContentTypeAdmin(admin.ModelAdmin):
     pass
 
@@ -59,6 +57,9 @@ def config_site():
     admin.AdminSite.get_app_list = get_app_list  # 覆盖原有的get_app_list方法
     admin.site.site_header = admin.AdminSite.site_header
     admin.site.site_title = admin.AdminSite.site_title
+
+    admin.site.register(LogEntry, admin_class=LogEntryAdmin)
+    admin.site.register(ContentType, admin_class=ContentTypeAdmin)
 
 
 config_site()
