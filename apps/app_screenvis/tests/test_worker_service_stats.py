@@ -1,6 +1,8 @@
 import random
+from datetime import datetime, timedelta
 
 from django.test.testcases import TransactionTestCase
+
 from apps.app_screenvis.workers import ServerServiceStatsWorker, ObjectServiceStatsWorker
 from apps.app_screenvis.models import (
     ServerService, ServerServiceTimedStats, VPNTimedStats,
@@ -29,6 +31,7 @@ class ServerServiceStatsWorkerTests(TransactionTestCase):
         )
         site4.set_password(raw_password='test_passwd')
         site4.save(force_insert=True)
+        return site1, site2, site3, site4
 
     def test_create(self):
         async def async_request(api_url: str, username: str, password: str):
@@ -64,7 +67,7 @@ class ServerServiceStatsWorkerTests(TransactionTestCase):
         log_counter = ServerServiceStatsWorker(minutes=cycle_minutes)
         log_counter.async_request = async_request
 
-        self.init_data()
+        s1, s2, s3, s4 = self.init_data()
         self.assertEqual(ServerServiceTimedStats.objects.count(), 0)
         self.assertEqual(VPNTimedStats.objects.count(), 0)
         ret = log_counter.run()
@@ -74,6 +77,65 @@ class ServerServiceStatsWorkerTests(TransactionTestCase):
         self.assertEqual(ret['vpn_count'], 3)
         self.assertEqual(ServerServiceTimedStats.objects.count(), 3)
         self.assertEqual(VPNTimedStats.objects.count(), 3)
+
+        # 删除N天前的数据测试
+        ago_days = 200
+        nt = datetime.utcnow()
+        dt_ago_days = nt - timedelta(days=ago_days)
+        ts_ago_days = int(dt_ago_days.timestamp())
+        obj1 = ServerServiceTimedStats(
+            service_id=s1.id, timestamp=ts_ago_days - 20,
+            server_count=1, disk_count=111,
+            ip_count=11, ip_used_count=1,
+            pub_ip_count=1, pub_ip_used_count=1,
+            pri_ip_count=1, pri_ip_used_count=1,
+            mem_size=1111, mem_used_size=111,
+            cpu_count=1111, cpu_used_count=11
+        )
+        obj1.save(force_insert=True)
+        obj2 = ServerServiceTimedStats(
+            service_id=s2.id, timestamp=ts_ago_days - 10,
+            server_count=2, disk_count=222,
+            ip_count=22, ip_used_count=2,
+            pub_ip_count=2, pub_ip_used_count=2,
+            pri_ip_count=2, pri_ip_used_count=2,
+            mem_size=2222, mem_used_size=222,
+            cpu_count=2222, cpu_used_count=22
+        )
+        obj2.save(force_insert=True)
+        obj3 = ServerServiceTimedStats(
+            service_id=s3.id, timestamp=ts_ago_days + 10,
+            server_count=3, disk_count=333,
+            ip_count=33, ip_used_count=3,
+            pub_ip_count=3, pub_ip_used_count=3,
+            pri_ip_count=3, pri_ip_used_count=3,
+            mem_size=3333, mem_used_size=333,
+            cpu_count=3333, cpu_used_count=33
+        )
+        obj3.save(force_insert=True)
+
+        vpn1 = VPNTimedStats(
+            service_id=s4.id, timestamp=ts_ago_days - 8,
+            vpn_online_count=111, vpn_active_count=21, vpn_count=3131
+        )
+        vpn1.save(force_insert=True)
+        vpn2 = VPNTimedStats(
+            service_id=s4.id, timestamp=ts_ago_days + 5,
+            vpn_online_count=22, vpn_active_count=313, vpn_count=1133
+        )
+        vpn2.save(force_insert=True)
+
+        self.assertEqual(ServerServiceTimedStats.objects.count(), 3 + 3)
+        self.assertEqual(VPNTimedStats.objects.count(), 3 + 2)
+        ret = log_counter.run()
+        self.assertEqual(ret['unit_count'], 3)
+        self.assertEqual(ret['new_ok_count'], 3)
+        self.assertEqual(ret['compute_count'], 3)
+        self.assertEqual(ret['vpn_count'], 3)
+        self.assertEqual(ret['compute_deleted_count'], 2)
+        self.assertEqual(ret['vpn_deleted_count'], 1)
+        self.assertEqual(ServerServiceTimedStats.objects.count(), 6 + 3 - 2)
+        self.assertEqual(VPNTimedStats.objects.count(), 5 + 3 - 1)
 
 
 class ObjectServiceStatsWorkerTests(TransactionTestCase):
@@ -97,6 +159,7 @@ class ObjectServiceStatsWorkerTests(TransactionTestCase):
         )
         site4.set_password(raw_password='test_passwd')
         site4.save(force_insert=True)
+        return site1, site2, site3, site4
 
     def test_create(self):
         async def async_request(api_url: str, username: str, password: str):
@@ -116,9 +179,40 @@ class ObjectServiceStatsWorkerTests(TransactionTestCase):
         log_counter = ObjectServiceStatsWorker(minutes=cycle_minutes)
         log_counter.async_request = async_request
 
-        self.init_data()
+        s1, s2, s3, s4 = self.init_data()
         self.assertEqual(ObjectServiceTimedStats.objects.count(), 0)
         ret = log_counter.run()
         self.assertEqual(ret['unit_count'], 3)
         self.assertEqual(ret['new_ok_count'], 3)
         self.assertEqual(ObjectServiceTimedStats.objects.count(), 3)
+
+        # 删除N天前的数据测试
+        ago_days = 200
+        nt = datetime.utcnow()
+        dt_ago_days = nt - timedelta(days=ago_days)
+        ts_ago_days = int(dt_ago_days.timestamp())
+        obj1 = ObjectServiceTimedStats(
+            service_id=s1.id, timestamp=ts_ago_days - 20,
+            bucket_count=111, bucket_storage=11,
+            storage_used=12, storage_capacity=123, user_count=121
+        )
+        obj1.save(force_insert=True)
+        obj2 = ObjectServiceTimedStats(
+            service_id=s2.id, timestamp=ts_ago_days - 10,
+            bucket_count=232, bucket_storage=23,
+            storage_used=131, storage_capacity=123, user_count=121
+        )
+        obj2.save(force_insert=True)
+        obj3 = ObjectServiceTimedStats(
+            service_id=s3.id, timestamp=ts_ago_days + 10,
+            bucket_count=131, bucket_storage=11,
+            storage_used=31, storage_capacity=123, user_count=121
+        )
+        obj3.save(force_insert=True)
+
+        self.assertEqual(ObjectServiceTimedStats.objects.count(), 3 + 3)
+        ret = log_counter.run()
+        self.assertEqual(ret['unit_count'], 3)
+        self.assertEqual(ret['new_ok_count'], 3)
+        self.assertEqual(ret['deleted_count'], 2)
+        self.assertEqual(ObjectServiceTimedStats.objects.count(), 6 + 3 -2)

@@ -1,6 +1,6 @@
 import asyncio
 from typing import List, Tuple
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from django.utils import timezone as dj_timezone
 import aiohttp
@@ -78,11 +78,19 @@ class ServerServiceStatsWorker(BaseServiceStatsWorker):
         ok_count = len(ok_unit_ids)
         print(f'{dj_timezone.now().isoformat(sep=" ", timespec="seconds")} End，'
               f'Server service units:{units_count}, ok: {ok_count}, compute: {len(compute_objs)}, vpn: {len(vpn_objs)}')
+
+        # 删除以前的记录
+        ago_days = 200
+        compute_deleted_count, vpn_deleted_count = self.delete_ago_days_records(ago_days=ago_days)
+        print(f'deleted {ago_days} days ago records, compute:{compute_deleted_count}, vpn:{vpn_deleted_count}')
+
         return {
             'unit_count': units_count,
             'new_ok_count': ok_count,
             'compute_count': len(compute_objs),
-            'vpn_count': len(vpn_objs)
+            'vpn_count': len(vpn_objs),
+            'compute_deleted_count': compute_deleted_count,
+            'vpn_deleted_count': vpn_deleted_count
         }
 
     @staticmethod
@@ -193,6 +201,14 @@ class ServerServiceStatsWorker(BaseServiceStatsWorker):
 
         return result['quota']
 
+    @staticmethod
+    def delete_ago_days_records(ago_days: int = 200):
+        dt_ago_days = datetime.utcnow() - timedelta(days=ago_days)
+        ts_ago_days = int(dt_ago_days.timestamp())
+        compute_dlt_count, d1 = ServerServiceTimedStats.objects.filter(timestamp__lt=ts_ago_days).delete()
+        vpn_dlt_count, d2 = VPNTimedStats.objects.filter(timestamp__lt=ts_ago_days).delete()
+        return compute_dlt_count, vpn_dlt_count
+
 
 class ObjectServiceStatsWorker(BaseServiceStatsWorker):
     def run(self, now_timestamp: int = None):
@@ -203,9 +219,16 @@ class ObjectServiceStatsWorker(BaseServiceStatsWorker):
         ok_count = len(ok_unit_ids)
         print(f'{dj_timezone.now().isoformat(sep=" ", timespec="seconds")} End，'
               f'Object service units: {units_count}, ok: {ok_count}')
+
+        # 删除以前的记录
+        ago_days = 200
+        deleted_count = self.delete_ago_days_records(ago_days=ago_days)
+        print(f'deleted {ago_days} days ago records: {deleted_count}')
+
         return {
             'unit_count': units_count,
-            'new_ok_count': ok_count
+            'new_ok_count': ok_count,
+            'deleted_count': deleted_count
         }
 
     @staticmethod
@@ -277,3 +300,10 @@ class ObjectServiceStatsWorker(BaseServiceStatsWorker):
             result = await self.async_request(api_url=api_url, username=unit.username, password=unit.raw_password())
 
         return result['stats']
+
+    @staticmethod
+    def delete_ago_days_records(ago_days: int = 200):
+        dt_ago_days = datetime.utcnow() - timedelta(days=ago_days)
+        ts_ago_days = int(dt_ago_days.timestamp())
+        dlt_count, d1 = ObjectServiceTimedStats.objects.filter(timestamp__lt=ts_ago_days).delete()
+        return dlt_count

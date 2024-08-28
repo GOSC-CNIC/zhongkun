@@ -1,3 +1,7 @@
+from datetime import timedelta
+
+from django.utils import timezone as dj_timezone
+
 from apps.app_screenvis.models import HostNetflow
 from apps.app_screenvis.workers import HostNetflowWorker
 from apps.app_screenvis.workers.netflow import NetFlowValue
@@ -23,6 +27,23 @@ class HostNetflowTests(MyAPITestCase):
         # 产生当前时间戳数据
         HostNetflowWorker(minutes=6).run()
         self.assertEqual(HostNetflow.objects.count(), 242)   # 生产新数据
+
+        # 删除N天前的数据测试
+        ago_days = 200
+        nt = dj_timezone.now()
+        dt_ago_days = nt - timedelta(days=ago_days)
+        ts_ago_days = int(dt_ago_days.timestamp())
+        obj1 = HostNetflow(timestamp=ts_ago_days - 20, unit_id=host_unit.id, flow_in=1, flow_out=11)
+        obj1.save(force_insert=True)
+        obj2 = HostNetflow(timestamp=ts_ago_days - 10, unit_id=host_unit.id, flow_in=2, flow_out=22)
+        obj2.save(force_insert=True)
+        obj3 = HostNetflow(timestamp=ts_ago_days + 10, unit_id=host_unit.id, flow_in=3, flow_out=33)
+        obj3.save(force_insert=True)
+
+        self.assertEqual(HostNetflow.objects.count(), 242 + 3)
+        # 产生当前时间戳数据
+        HostNetflowWorker(minutes=6).run()
+        self.assertEqual(HostNetflow.objects.count(), 245 + 1 - 2)
 
     def test_piece_values(self):
         in_values = [

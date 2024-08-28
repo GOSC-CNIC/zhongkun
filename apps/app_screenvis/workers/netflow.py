@@ -1,6 +1,6 @@
 import asyncio
 from typing import List, Tuple, Union
-from datetime import datetime
+from datetime import datetime, timedelta
 from collections import namedtuple
 
 from django.utils import timezone as dj_timezone
@@ -38,6 +38,12 @@ class HostNetflowWorker:
         print(f'{dj_timezone.now().isoformat(sep=" ", timespec="seconds")}, End try fill miss data')
         for s in fill_ret:
             print(s)
+
+        # 删除以前的记录
+        ago_days = 200
+        dlt_count = self.delete_ago_days_records(ago_days=ago_days)
+        print(f'deleted {ago_days} days ago records: {dlt_count}')
+        ret['deleted_count'] = dlt_count
 
         return ret
 
@@ -315,3 +321,10 @@ class HostNetflowWorker:
     def get_unit_last_objs(unit_id, limit: int) -> List:
         qs = HostNetflow.objects.filter(unit_id=unit_id).order_by('-timestamp')[0:limit]
         return list(qs)
+
+    @staticmethod
+    def delete_ago_days_records(ago_days: int = 200):
+        dt_ago_days = datetime.utcnow() - timedelta(days=ago_days)
+        ts_ago_days = int(dt_ago_days.timestamp())
+        dlt_count, d = HostNetflow.objects.filter(timestamp__lt=ts_ago_days).delete()
+        return dlt_count

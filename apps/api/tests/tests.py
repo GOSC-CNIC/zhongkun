@@ -1,5 +1,5 @@
 import hashlib
-import collections
+from collections.abc import Iterable
 import io
 import random
 from string import printable
@@ -31,7 +31,7 @@ def calculate_md5(file):
         file.seek(0)
 
     md5obj = hashlib.md5()
-    if isinstance(file, collections.Iterable):
+    if isinstance(file, Iterable):
         for data in file:
             md5obj.update(data)
     else:
