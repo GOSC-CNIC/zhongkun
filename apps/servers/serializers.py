@@ -171,7 +171,7 @@ class ServerCreateSerializer(serializers.Serializer):
     azone_id = serializers.CharField(label=_('可用区'), required=False, allow_null=True, max_length=36, default=None)
     vo_id = serializers.CharField(
         label=_('vo组id'), required=False, allow_null=True, max_length=36, default=None,
-        help_text=_('通过vo_id指定为vo组创建云服务器'))
+        help_text=_('通过vo_id指定为vo组创建云服务器，不能和“username”一起提交'))
     period = serializers.IntegerField(
         label=_('订购时长，单位由period_unit指定'), required=False, allow_null=True, default=None,
         help_text=_('付费模式为预付费时，必须指定订购时长'))
@@ -179,6 +179,9 @@ class ServerCreateSerializer(serializers.Serializer):
         label=_('时长单位，默认（月）'), required=False, allow_null=True, default=None,
         help_text=_('和时长'))
     number = serializers.IntegerField(label=_('订购资源数量'), required=False, allow_null=True, default=1)
+    username = serializers.CharField(
+        label=_('用户名'), required=False, allow_null=True, max_length=36, default=None,
+        help_text=_('通过“username”指定为用户创建订购云主机，不能和“vo_id”一起提交，管理员参数'))
 
     def validate(self, attrs):
         return attrs

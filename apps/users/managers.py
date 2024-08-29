@@ -2,7 +2,7 @@ from core import errors
 from .models import UserProfile
 
 
-def get_user_by_name(username: str):
+def get_user_by_name(username: str) -> UserProfile:
     user = UserProfile.objects.filter(username=username).first()
     if user is None:
         raise errors.UserNotExist()

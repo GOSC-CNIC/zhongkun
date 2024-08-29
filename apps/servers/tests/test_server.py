@@ -39,7 +39,6 @@ PAY_APP_ID = site_configs_manager.get_pay_app_id(settings)
 class ServerOrderTests(MyAPITransactionTestCase):
     def setUp(self):
         self.user = get_or_create_user()
-        self.client.force_login(self.user)
         self.user2 = get_or_create_user(username='user2')
         self.service = get_or_create_service()
         self.default_user = 'root'
@@ -54,6 +53,9 @@ class ServerOrderTests(MyAPITransactionTestCase):
 
     def test_server_create_bad_request(self):
         url = reverse('servers-api:servers-list')
+        response = self.client.post(url, data={})
+        self.assertEqual(response.status_code, 401)
+        self.client.force_login(self.user)
         response = self.client.post(url, data={})
         self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
         response = self.client.post(url, data={
@@ -112,16 +114,6 @@ class ServerOrderTests(MyAPITransactionTestCase):
             'image_id': 'ss', 'period': 12, 'flavor_id': self.flavor.id, 'vo_id': 'test'
         })
         self.assertErrorResponse(status_code=400, code='InvalidVoId', response=response)
-        response = self.client.post(url, data={
-            'pay_type': PayType.PREPAID.value, 'service_id': self.service.id, 'network_id': 'test',
-            'image_id': 'ss', 'period': 12, 'flavor_id': self.flavor.id, 'vo_id': self.vo.id
-        })
-        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
-
-        # set vo permission
-        member = VoMember(user_id=self.user.id, vo_id=self.vo.id, role=VoMember.Role.LEADER,
-                          inviter=self.user2.username, inviter_id=self.user2.id)
-        member.save(force_insert=True)
 
         # service not set pay_app_service_id
         response = self.client.post(url, data={
@@ -148,6 +140,18 @@ class ServerOrderTests(MyAPITransactionTestCase):
             'vo_id': self.vo.id, 'network_id': 'test'
         })
         self.assertErrorResponse(status_code=400, code='FlavorServiceMismatch', response=response)
+
+        # vo
+        response = self.client.post(url, data={
+            'pay_type': PayType.PREPAID.value, 'service_id': self.service.id, 'network_id': 'test',
+            'image_id': 'ss', 'period': 12, 'flavor_id': self.flavor.id, 'vo_id': self.vo.id
+        })
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # set vo permission
+        member = VoMember(user_id=self.user.id, vo_id=self.vo.id, role=VoMember.Role.LEADER,
+                          inviter=self.user2.username, inviter_id=self.user2.id)
+        member.save(force_insert=True)
 
         # param "network_id"
         response = self.client.post(url, data={
@@ -188,7 +192,84 @@ class ServerOrderTests(MyAPITransactionTestCase):
         })
         self.assertErrorResponse(status_code=400, code='InvalidAzoneId', response=response)
 
+        # --- as-admin test ---
+        # "username" only when as-admin
+        base_url = reverse('servers-api:servers-list')
+        response = self.client.post(base_url, data={
+            'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
+            'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id,
+            'network_id': network_id, 'azone_id': 'test',
+            'username': 'user11'
+        })
+        self.assertErrorResponse(status_code=400, code='ArgumentConflict', response=response)
+
+        # username not exists
+        query = parse.urlencode(query={'as-admin': ''})
+        response = self.client.post(f'{url}?{query}', data={
+            'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
+            'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id,
+            'network_id': network_id, 'azone_id': 'test',
+            'username': 'user11'
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidUsername', response=response)
+
+        # username and vo_id
+        query = parse.urlencode(query={'as-admin': ''})
+        response = self.client.post(f'{url}?{query}', data={
+            'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
+            'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id,
+            'vo_id': self.vo.id, 'network_id': network_id, 'azone_id': 'test',
+            'username': self.user2.username
+        })
+        self.assertErrorResponse(status_code=400, code='ArgumentConflict', response=response)
+
+        query = parse.urlencode(query={'as-admin': ''})
+        response = self.client.post(f'{url}?{query}', data={
+            'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
+            'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id,
+            'network_id': network_id, 'azone_id': 'test'
+        })
+        self.assertErrorResponse(status_code=400, code='MissingArgument', response=response)
+
+        # admin permission test
+        query = parse.urlencode(query={'as-admin': ''})
+        response = self.client.post(f'{url}?{query}', data={
+            'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
+            'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id,
+            'network_id': network_id, 'azone_id': 'test',
+            'username': self.user2.username
+        })
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.user.set_fed_admin(is_fed=True)
+        response = self.client.post(f'{url}?{query}', data={
+            'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
+            'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id,
+            'network_id': network_id, 'azone_id': 'test',
+            'username': self.user2.username
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidAzoneId', response=response)
+
+        self.user.set_fed_admin(is_fed=False)
+        response = self.client.post(f'{url}?{query}', data={
+            'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
+            'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id,
+            'network_id': network_id, 'azone_id': 'test',
+            'username': self.user2.username
+        })
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.service.org_data_center.add_admin_user(user=self.user, is_ops_user=False)
+        response = self.client.post(f'{url}?{query}', data={
+            'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
+            'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id,
+            'network_id': network_id, 'azone_id': 'test',
+            'username': self.user2.username
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidAzoneId', response=response)
+
     def test_server_create(self):
+        self.client.force_login(self.user)
         # get network id
         base_url = reverse('servers-api:networks-list')
         response = self.client.get(f'{base_url}?service_id={self.service.id}')
@@ -455,6 +536,184 @@ class ServerOrderTests(MyAPITransactionTestCase):
         except Exception as e:
             raise e
 
+    def test_admin_server_create(self):
+        self.client.force_login(self.user)
+        # get network id
+        base_url = reverse('servers-api:networks-list')
+        response = self.client.get(f'{base_url}?service_id={self.service.id}')
+        self.assertEqual(response.status_code, 200)
+        network_id = response.data[0]['id']
+        is_public_network = response.data[0]['public']
+
+        # service set pay_app_service_id
+        self.service.pay_app_service_id = 'app_service_id'
+        self.service.save(update_fields=['pay_app_service_id'])
+
+        # get image_id
+        url = reverse('servers-api:images-paginate-list')
+        query = parse.urlencode(query={'service_id': self.service.id})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        image_id = response.data['results'][0]['id']
+        min_sys_disk_gb = response.data['results'][0]['min_sys_disk_gb']
+
+        # service quota set
+        ServicePrivateQuotaManager().update(
+            service=self.service, vcpus=6, ram_gib=4, public_ip=1, private_ip=1
+        )
+
+        # admin create user server prepaid mode
+        url = reverse('servers-api:servers-list')
+        query = parse.urlencode(query={'as-admin': ''})
+        response = self.client.post(f'{url}?{query}', data={
+            'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
+            'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id, 'network_id': network_id,
+            'remarks': 'testcase创建，可删除', 'username': self.user2.username
+        })
+        self.assertEqual(response.status_code, 403)
+        self.service.org_data_center.add_admin_user(user=self.user, is_ops_user=True)
+
+        response = self.client.post(f'{url}?{query}', data={
+            'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
+            'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id, 'network_id': network_id,
+            'remarks': 'testcase创建，可删除', 'username': self.user2.username
+        })
+        self.assertEqual(response.status_code, 200)
+        try:
+            self.assertKeysIn(['order_id'], response.data)
+            order_id = response.data['order_id']
+            order, resources = OrderManager().get_order_detail(order_id=order_id, user=self.user2)
+            self.assertEqual(order.owner_type, OwnerType.USER.value)
+            self.assertEqual(order.user_id, self.user2.id)
+            self.assertEqual(order.username, self.user2.username)
+            self.assertEqual(order.vo_id, '')
+            self.assertEqual(order.vo_name, '')
+            self.try_delete_server(server_id=resources[0].instance_id)
+        except Exception as e:
+            raise e
+
+        # create user2 server postpaid mode, no balance
+        user_account = PaymentManager().get_user_point_account(user_id=self.user.id)
+        user_account.balance = Decimal('20000')
+        user_account.save(update_fields=['balance'])
+        response = self.client.post(f'{url}?{query}', data={
+            'pay_type': PayType.POSTPAID.value, 'service_id': self.service.id,
+            'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id, 'network_id': network_id,
+            'remarks': 'testcase创建，可删除', 'username': self.user2.username
+        })
+        self.assertErrorResponse(status_code=409, code='BalanceNotEnough', response=response)
+
+        # create user2 server prepaid mode
+        response = self.client.post(f'{url}?{query}', data={
+            'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
+            'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id, 'network_id': network_id,
+            'remarks': 'testcase创建，可删除', 'systemdisk_size': 500, 'username': self.user2.username
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['order_id'], response.data)
+        order_id = response.data['order_id']
+        order, resources = OrderManager().get_order_detail(order_id=order_id, user=self.user2)
+        self.assertEqual(resources[0].instance_status, resources[0].InstanceStatus.WAIT.value)
+        self.assertEqual(order.trading_status, order.TradingStatus.OPENING.value)
+        self.assertEqual(order.owner_type, OwnerType.USER.value)
+        self.assertEqual(order.user_id, self.user2.id)
+        self.assertEqual(order.username, self.user2.username)
+        self.assertEqual(order.vo_id, '')
+        self.assertEqual(order.vo_name, '')
+
+        original_price, trade_price = PriceManager().describe_server_price(
+            ram_mib=1024*3, cpu=2, disk_gib=500, public_ip=is_public_network, is_prepaid=True,
+            period=12, period_unit=Order.PeriodUnit.MONTH.value, days=0)
+        self.assertEqual(order.total_amount, quantize_10_2(original_price))
+        self.assertEqual(order.payable_amount, quantize_10_2(trade_price))
+
+        # 修改镜像id，让订单交付资源失败
+        s_config = ServerConfig.from_dict(order.instance_config)
+        self.assertEqual(s_config.vm_systemdisk_size, 500)
+        s_config.vm_image_id = 'test'
+        order.instance_config = s_config.to_dict()
+        order.save(update_fields=['instance_config'])
+
+        # 订单交付资源
+        order.payable_amount = Decimal(0)
+        order.save(update_fields=['payable_amount'])
+        pay_url = reverse('order-api:order-pay-order', kwargs={'id': order_id})
+        pay_query = parse.urlencode(query={
+            'payment_method': Order.PaymentMethod.BALANCE.value, 'as-admin': ''
+        })
+        response = self.client.post(f'{pay_url}?{pay_query}')
+        self.assertEqual(response.status_code, 200)
+        try:
+            order, resources = OrderManager().get_order_detail(order_id=order_id, user=self.user2)
+            self.try_delete_server(server_id=resources[0].instance_id)
+            self.assertEqual(resources[0].instance_status, resources[0].InstanceStatus.FAILED.value)
+            self.assertEqual(order.trading_status, order.TradingStatus.UNDELIVERED.value)
+            self.assertEqual(order.owner_type, OwnerType.USER.value)
+            self.assertEqual(order.user_id, self.user2.id)
+        except Exception as e:
+            raise e
+
+        # ----- 一次订购多个资源 test ---
+        # --------vo-------------
+        # create vo server postpaid mode, no balance
+        query = parse.urlencode(query={'as-admin': ''})
+        response = self.client.post(f'{url}?{query}', data={
+            'pay_type': PayType.POSTPAID.value, 'service_id': self.service.id,
+            'image_id': image_id, 'period': 120, 'period_unit': Order.PeriodUnit.DAY.value,
+            'flavor_id': self.flavor.id, 'network_id': network_id,
+            'remarks': 'testcase创建，可删除', 'vo_id': self.vo.id
+        })
+        self.assertErrorResponse(status_code=409, code='VoBalanceNotEnough', response=response)
+
+        # create order
+        response = self.client.post(f'{url}?{query}', data={
+            'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
+            'image_id': image_id, 'period': 120, 'period_unit': Order.PeriodUnit.DAY.value,
+            'flavor_id': self.flavor.id, 'network_id': network_id,
+            'remarks': 'testcase创建，可删除', 'vo_id': self.vo.id
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['order_id'], response.data)
+        order_id = response.data['order_id']
+        order, resources = OrderManager().get_order_detail(order_id=order_id, user=None, check_permission=False)
+        self.assertEqual(resources[0].instance_status, resources[0].InstanceStatus.WAIT.value)
+        self.assertEqual(order.trading_status, order.TradingStatus.OPENING.value)
+        self.assertEqual(order.owner_type, OwnerType.VO.value)
+        self.assertEqual(order.vo_id, self.vo.id)
+        self.assertEqual(order.user_id, self.user.id)
+        original_price, trade_price = PriceManager().describe_server_price(
+            ram_mib=1024 * 3, cpu=2, disk_gib=min_sys_disk_gb, public_ip=is_public_network, is_prepaid=True,
+            period=120, period_unit=Order.PeriodUnit.DAY.value, days=0)
+        self.assertEqual(order.total_amount, quantize_10_2(original_price))
+        self.assertEqual(int(order.payable_amount), int(quantize_10_2(trade_price)))
+
+        # 修改镜像id，让订单交付资源失败
+        s_config = ServerConfig.from_dict(order.instance_config)
+        self.assertEqual(s_config.vm_systemdisk_size, min_sys_disk_gb)
+        self.assertGreaterEqual(s_config.vm_systemdisk_size, EVCloudAdapter.SYSTEM_DISK_MIN_SIZE_GB)
+        s_config.vm_image_id = 'test'
+        order.instance_config = s_config.to_dict()
+        order.save(update_fields=['instance_config'])
+
+        # 支付订单交付资源
+        order.payable_amount = Decimal(0)
+        order.save(update_fields=['payable_amount'])
+        pay_url = reverse('order-api:order-pay-order', kwargs={'id': order_id})
+        query = parse.urlencode(query={
+            'payment_method': Order.PaymentMethod.BALANCE.value, 'as-admin': ''
+        })
+        response = self.client.post(f'{pay_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        try:
+            order, resources = OrderManager().get_order_detail(order_id=order_id, user=None, check_permission=False)
+            self.try_delete_server(server_id=resources[0].instance_id)
+            self.assertEqual(order.trading_status, order.TradingStatus.UNDELIVERED.value)
+            self.assertEqual(order.owner_type, OwnerType.VO.value)
+            self.assertEqual(order.vo_id, self.vo.id)
+            self.assertEqual(resources[0].instance_status, resources[0].InstanceStatus.FAILED.value)
+        except Exception as e:
+            raise e
+
     def test_renew_server(self):
         # 余额支付有关配置
         app = PayApp(name='app', id=PAY_APP_ID)
@@ -497,6 +756,10 @@ class ServerOrderTests(MyAPITransactionTestCase):
         renew_to_time = (now_time + timedelta(200)).isoformat()
         renew_to_time = renew_to_time.split('.')[0] + 'Z'
         url = reverse('servers-api:servers-renew-server', kwargs={'id': user_server.id})
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 401)
+        self.client.force_login(self.user)
+
         response = self.client.post(url)
         self.assertErrorResponse(status_code=400, code='MissingPeriod', response=response)
 
@@ -801,6 +1064,10 @@ class ServerOrderTests(MyAPITransactionTestCase):
         # pay_type
         url = reverse('servers-api:servers-modify-pay-type', kwargs={'id': user_server.id})
         response = self.client.post(url)
+        self.assertEqual(response.status_code, 401)
+        self.client.force_login(self.user)
+
+        response = self.client.post(url)
         self.assertErrorResponse(status_code=400, code='MissingPayType', response=response)
         query = parse.urlencode(query={'pay_type': PayType.POSTPAID.value})
         response = self.client.post(f'{url}?{query}')
@@ -1053,6 +1320,10 @@ class ServerOrderTests(MyAPITransactionTestCase):
         user_server.save(force_insert=True)
 
         url = reverse('servers-api:servers-server-suspend', kwargs={'id': user_server.id})
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 401)
+        self.client.force_login(self.user)
+
         query = parse.urlencode(query={'act': 'act'})
         response = self.client.post(f'{url}?{query}')
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)

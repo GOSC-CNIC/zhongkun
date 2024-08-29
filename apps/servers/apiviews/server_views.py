@@ -258,6 +258,7 @@ class ServersViewSet(CustomGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('创建云服务器实例'),
+        manual_parameters=CustomGenericViewSet.PARAMETERS_AS_ADMIN,
         responses={
             200: '''    
                 {
@@ -270,6 +271,7 @@ class ServersViewSet(CustomGenericViewSet):
         """
         创建云服务器实例
 
+            * 联邦管理员和服务单元管理员可以帮用户提交订购订单
             * 预付费模式时，请求成功会创建一个待支付的订单，支付订单成功后，订购的资源才会创建交付；
             * 按量计费模式时，请求成功会创建一个已支付订单，订购的资源会立即创建交付；
             * 可通过 number 指定订购资源数量，可选1-3，默认为1
@@ -301,6 +303,8 @@ class ServersViewSet(CustomGenericViewSet):
                 InvalidNetworkId: 指定网络不存在
                 InvalidAzoneId: 指定的可用区azone_id不存在
                 FlavorServiceMismatch: 配置规格和服务单元不匹配
+                ArgumentConflict: 只有以管理员身份请求时允许提交用户名 / 不能同时提交vo组和用户名
+                MissingArgument: 只有以管理员身份请求时需要提交用户名或者vo组
 
                 403:
                 AccessDenied: 你不是组管理员，没有组管理权限

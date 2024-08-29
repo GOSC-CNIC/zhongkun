@@ -31,6 +31,7 @@ from apps.order.models import ResourceType, Order
 from apps.order.managers import OrderManager, ServerConfig, OrderPaymentManager
 from apps.app_wallet.managers import PaymentManager
 from apps.servers.handlers.disk_handler import DiskHandler
+from apps.users.managers import get_user_by_name
 
 
 def str_to_true_false(val: str):
@@ -375,6 +376,9 @@ class ServerHandler:
         period_unit = data.get('period_unit', None)
         systemdisk_size = data.get('systemdisk_size', None)
         number = data.get('number', 1)
+        username = data.get('username', None)
+
+        is_as_admin = view.is_as_admin_request(request=request)
 
         if not (1 <= number <= 3):
             raise exceptions.InvalidArgument(message=_('订购资源数量可选范围1-3'), code='InvalidNumber')
@@ -412,19 +416,35 @@ class ServerHandler:
         if pay_type == PayType.PREPAID.value and period == 0:
             raise exceptions.BadRequest(message=_('预付费模式时，必须指定订购时长'), code='MissingPeriod')
 
+        if username and not is_as_admin:
+            raise exceptions.InvalidArgument(message=_('只有以管理员身份请求时允许提交用户名'), code='ArgumentConflict')
+
+        if username and vo_id:
+            raise exceptions.InvalidArgument(message=_('不能同时提交vo组和用户名'), code='ArgumentConflict')
+
+        if is_as_admin:
+            if not username and not vo_id:
+                raise exceptions.InvalidArgument(
+                    message=_('只有以管理员身份请求时需要提交用户名或者vo组'), code='MissingArgument')
+
         flavor = Flavor.objects.filter(id=flavor_id, enable=True).first()
         if not flavor:
             raise exceptions.BadRequest(message=_('无效的配置规格flavor id'), code='InvalidFlavorId')
 
         if vo_id:
-            try:
-                vo, member = VoManager().get_has_manager_perm_vo(vo_id=vo_id, user=request.user)
-            except exceptions.Error as exc:
-                if exc.status_code == 404:
-                    raise exceptions.BadRequest(message=str(exc), code='InvalidVoId')
-                raise exc
+            vo = VoManager.get_vo_by_id(vo_id=vo_id)
+            if vo is None:
+                raise exceptions.BadRequest(message=_('项目组不存在'), code='InvalidVoId')
         else:
             vo = None
+
+        if username:
+            try:
+                order_user = get_user_by_name(username=username)
+            except exceptions.UserNotExist as exc:
+                raise exceptions.InvalidArgument(message=_('用户不存在'), code='InvalidUsername')
+        else:
+            order_user = None
 
         try:
             service = view.get_service(request, in_='body')
@@ -438,6 +458,17 @@ class ServerHandler:
 
         if flavor.service_id and flavor.service_id != service.id:
             raise exceptions.BadRequest(message=_('配置规格和服务单元不匹配'), code='FlavorServiceMismatch')
+
+        # 管理员身份请求，检查管理员权限
+        auth_user = request.user
+        if is_as_admin:
+            if not auth_user.is_federal_admin() and not ServiceManager.has_perm(
+                    user_id=auth_user.id, service_id=service.id):
+                raise exceptions.AccessDenied(message=_('你没有服务单元的管理员权限'))
+        else:
+            # 非管理员身份请求，检查vo组管理权限
+            if vo:
+                VoManager().check_manager_perm(vo=vo, user=auth_user)
 
         try:
             out_net = view.request_service(
@@ -490,7 +521,8 @@ class ServerHandler:
             'period': period,
             'period_unit': period_unit,
             'systemdisk_size': systemdisk_size,
-            'number': number
+            'number': number,
+            'order_user': order_user
         }
 
     @staticmethod
@@ -550,17 +582,30 @@ class ServerHandler:
         period_unit = data['period_unit']
         systemdisk_size = data['systemdisk_size']
         number = data['number']
+        order_user = data['order_user']
 
-        user = request.user
+        auth_user = request.user
         is_public_network = network.public
+
         if vo or isinstance(vo, VirtualOrganization):
             vo_id = vo.id
             vo_name = vo.name
             owner_type = OwnerType.VO.value
+            order_user_id = auth_user.id
+            order_username = auth_user.username
+            buy_user = None
         else:
             vo_id = ''
             vo_name = ''
             owner_type = OwnerType.USER.value
+            # 管理员为用户订购
+            if order_user:
+                buy_user = order_user
+            else:   # 用户个人订购
+                buy_user = auth_user
+
+            order_user_id = buy_user.id
+            order_username = buy_user.username
 
         instance_config = ServerConfig(
             vm_cpu=flavor.vcpus, vm_ram=flavor.ram_gib, systemdisk_size=systemdisk_size, public_ip=is_public_network,
@@ -580,7 +625,7 @@ class ServerHandler:
 
             try:
                 self.__check_balance_create_server_order(
-                    service=service, owner_type=owner_type, user=user, vo_id=vo_id, day_price=original_price
+                    service=service, owner_type=owner_type, buy_user=buy_user, vo_id=vo_id, day_price=original_price
                 )
             except Exception as exc:
                 return view.exception_response(exc)
@@ -609,8 +654,8 @@ class ServerHandler:
             period=period,
             period_unit=period_unit,
             pay_type=pay_type,
-            user_id=user.id,
-            username=user.username,
+            user_id=order_user_id,
+            username=order_username,
             vo_id=vo_id,
             vo_name=vo_name,
             owner_type=owner_type,
@@ -628,7 +673,7 @@ class ServerHandler:
             subject = order.build_subject()
             order = OrderPaymentManager().pay_order(
                 order=order, app_id=pay_app_id, subject=subject,
-                executor=request.user.username, remark='',
+                executor=auth_user.username, remark='',
                 coupon_ids=None, only_coupon=False,
                 required_enough_balance=True
             )
@@ -641,7 +686,7 @@ class ServerHandler:
         })
 
     @staticmethod
-    def __check_balance_create_server_order(service, owner_type: str, user, vo_id: str, day_price: Decimal):
+    def __check_balance_create_server_order(service, owner_type: str, buy_user, vo_id: str, day_price: Decimal):
         """
         按量付费模式云主机订购时，检查余额是否满足限制条件
 
@@ -652,12 +697,12 @@ class ServerHandler:
         lower_limit_amount = Decimal('100.00')
         if owner_type == OwnerType.USER.value:
             qs = ServerManager().get_user_servers_queryset(
-                user=user, service_id=service.id, pay_type=PayType.POSTPAID.value)
+                user=buy_user, service_id=service.id, pay_type=PayType.POSTPAID.value)
             s_count = qs.count()
             money_amount = day_price * s_count + lower_limit_amount
 
             if not PaymentManager().has_enough_balance_user(
-                    user_id=user.id, money_amount=money_amount, with_coupons=True,
+                    user_id=buy_user.id, money_amount=money_amount, with_coupons=True,
                     app_service_id=service.pay_app_service_id
             ):
                 raise exceptions.BalanceNotEnough(
