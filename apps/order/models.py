@@ -124,6 +124,7 @@ class Order(models.Model):
         verbose_name=_('资源交付动作'), max_length=16, choices=OrderAction.choices, default=OrderAction.NONE.value,
         help_text=_('用于记录订单当前的操作动作，比如是否正在交付资源中，防止并发时订单业务冲突')
     )
+    description = models.CharField(verbose_name=_('描述'), max_length=255, blank=True, default='')
 
     class Meta:
         verbose_name = _('订单')

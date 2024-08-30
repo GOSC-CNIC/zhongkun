@@ -587,6 +587,11 @@ class ServerHandler:
         auth_user = request.user
         is_public_network = network.public
 
+        is_as_admin = view.is_as_admin_request(request=request)
+        od_desc = ''
+        if is_as_admin:
+            od_desc = _('管理员（%(name)s）以管理员身份请求订购') % {'name': auth_user.username}
+
         if vo or isinstance(vo, VirtualOrganization):
             vo_id = vo.id
             vo_name = vo.name
@@ -660,7 +665,8 @@ class ServerHandler:
             vo_name=vo_name,
             owner_type=owner_type,
             remark=remarks,
-            number=number
+            number=number,
+            description=od_desc
         )
 
         # 预付费模式时
@@ -738,6 +744,10 @@ class ServerHandler:
         server_id = kwargs.get(view.lookup_field, '')
         auth_user = request.user
         is_as_admin = view.is_as_admin_request(request=request)
+
+        od_desc = ''
+        if is_as_admin:
+            od_desc = _('管理员（%(name)s）以管理员身份请求订购') % {'name': auth_user.username}
 
         try:
             if is_as_admin:
@@ -846,7 +856,8 @@ class ServerHandler:
                 username=order_user_name,
                 vo_id=vo_id,
                 vo_name=vo_name,
-                owner_type=owner_type
+                owner_type=owner_type,
+                description=od_desc
             )
 
         return Response(data={'order_id': order.id})

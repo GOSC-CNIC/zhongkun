@@ -620,6 +620,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         self.assertEqual(order.username, self.user2.username)
         self.assertEqual(order.vo_id, '')
         self.assertEqual(order.vo_name, '')
+        self.assertIn(self.user.username, order.description)
 
         original_price, trade_price = PriceManager().describe_server_price(
             ram_mib=1024*3, cpu=2, disk_gib=500, public_ip=is_public_network, is_prepaid=True,
@@ -681,6 +682,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         self.assertEqual(order.owner_type, OwnerType.VO.value)
         self.assertEqual(order.vo_id, self.vo.id)
         self.assertEqual(order.user_id, self.user.id)
+        self.assertIn(self.user.username, order.description)
         original_price, trade_price = PriceManager().describe_server_price(
             ram_mib=1024 * 3, cpu=2, disk_gib=min_sys_disk_gb, public_ip=is_public_network, is_prepaid=True,
             period=120, period_unit=Order.PeriodUnit.DAY.value, days=0)
@@ -829,6 +831,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         self.assertEqual(config.vm_ram, user_server.ram_gib)
         self.assertEqual(config.vm_cpu, user_server.vcpus)
         self.assertEqual(order.period, period)
+        self.assertEqual(order.period_unit, Order.PeriodUnit.MONTH.value)
         self.assertIsNone(order.start_time)
         self.assertIsNone(order.end_time)
 
@@ -907,6 +910,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         self.assertEqual(order.owner_type, OwnerType.USER.value)
         self.assertEqual(order.user_id, user_server.user.id)
         self.assertEqual(order.username, user_server.user.username)
+        self.assertIn(self.user2.username, order.description)
 
         # ----------renew vo server-----------
         now_time = dj_timezone.now()
@@ -1022,6 +1026,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         self.assertEqual(order.owner_type, OwnerType.VO.value)
         self.assertEqual(order.user_id, self.user2.id)
         self.assertEqual(order.username, self.user2.username)
+        self.assertIn(self.user2.username, order.description)
 
     def test_modify_pay_type(self):
         # 余额支付有关配置

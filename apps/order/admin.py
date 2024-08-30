@@ -13,11 +13,12 @@ class OrderAdmin(BaseModelAdmin):
                     'balance_amount', 'coupon_amount', 'service_name',
                     'resource_type', 'period', 'period_unit', 'start_time', 'end_time', 'pay_type', 'payment_time',
                     'creation_time', 'trading_status', 'completion_time', 'deleted',
-                    'owner_type', 'username', 'vo_name', 'cancelled_time', 'app_service_id', 'order_action')
+                    'owner_type', 'username', 'vo_name', 'cancelled_time', 'app_service_id', 'order_action',
+                    'description')
     list_display_links = ('id',)
     list_filter = ('owner_type', 'resource_type', 'pay_type', 'status', 'order_type', 'trading_status', 'deleted',
                    'order_action')
-    search_fields = ('id', 'username', 'vo_name')
+    search_fields = ('id', 'username', 'vo_name', 'description')
 
     def has_delete_permission(self, request, obj=None):
         return False

@@ -35,7 +35,8 @@ class OrderManager:
             vo_name,
             owner_type,
             number: int = 1,
-            remark: str = ''
+            remark: str = '',
+            description: str = ''
     ) -> (Order, List[Resource]):
         """
         提交一个订单
@@ -66,7 +67,7 @@ class OrderManager:
             resource_type=resource_type, instance_ids=instance_ids, instance_config=instance_config,
             period=period, period_unit=period_unit, start_time=None, end_time=None,
             user_id=user_id, username=username, vo_id=vo_id, vo_name=vo_name, owner_type=owner_type,
-            instance_remark=remark
+            instance_remark=remark, description=description
         )
 
     def create_renew_order(
@@ -74,7 +75,8 @@ class OrderManager:
             pay_app_service_id: str, service_id, service_name,
             resource_type, instance_id: str, instance_config,
             period: int, start_time: Union[datetime, None], end_time: Union[datetime, None],
-            user_id, username, vo_id, vo_name, owner_type, period_unit=Order.PeriodUnit.MONTH.value
+            user_id, username, vo_id, vo_name, owner_type, period_unit=Order.PeriodUnit.MONTH.value,
+            description: str = ''
     ) -> (Order, Resource):
         """
         提交一个续费订单
@@ -106,7 +108,7 @@ class OrderManager:
             resource_type=resource_type, instance_ids=[instance_id], instance_config=instance_config,
             period=period, period_unit=period_unit, start_time=start_time, end_time=end_time,
             user_id=user_id, username=username, vo_id=vo_id, vo_name=vo_name, owner_type=owner_type,
-            instance_remark='renew'
+            instance_remark='renew', description=description
         )
         return order, resources[0]
 
@@ -114,7 +116,8 @@ class OrderManager:
             self, pay_type: str,
             pay_app_service_id: str, service_id, service_name,
             resource_type, instance_id: str, instance_config,
-            period, user_id, username, vo_id, vo_name, owner_type
+            period, user_id, username, vo_id, vo_name, owner_type,
+            description: str = ''
     ) -> (Order, Resource):
         """
         提交一个修改计费方式订单
@@ -140,7 +143,7 @@ class OrderManager:
             resource_type=resource_type, instance_ids=[instance_id], instance_config=instance_config,
             period=period, period_unit=Order.PeriodUnit.MONTH.value, start_time=None, end_time=None,
             user_id=user_id, username=username, vo_id=vo_id, vo_name=vo_name, owner_type=owner_type,
-            instance_remark='post2prepaid'
+            instance_remark='post2prepaid', description=description
         )
         return order, resources[0]
 
@@ -188,7 +191,7 @@ class OrderManager:
             resource_type, instance_ids: List[str], instance_config,
             period: int, period_unit: str, start_time, end_time,
             user_id, username, vo_id, vo_name, owner_type,
-            instance_remark: str = ''
+            instance_remark: str = '', description: str = ''
     ) -> (Order, List[Resource]):
         """
         为资源实例提交一个订单，新购、续费、按量转包年包月
@@ -207,6 +210,7 @@ class OrderManager:
         :instance_ids: 资源实例ids of (server, disk), list长度为订购数量
         :instance_config: BaseConfig
         :period: 时长，月数
+        :description: 订单描述备注信息
         :return:
             order, resources: list
 
@@ -280,7 +284,8 @@ class OrderManager:
             deleted=False,
             trading_status=Order.TradingStatus.OPENING.value,
             completion_time=None,
-            number=number
+            number=number,
+            description=description
         )
 
         resources = []
@@ -387,7 +392,7 @@ class OrderManager:
             resource_type=ResourceType.SCAN.value, instance_ids=instance_ids, instance_config=instance_config,
             period=0, period_unit=Order.PeriodUnit.DAY.value, start_time=None, end_time=None,
             user_id=user_id, username=username, vo_id='', vo_name='', owner_type=OwnerType.USER.value,
-            instance_remark=instance_config.remark
+            instance_remark=instance_config.remark, description=''
         )
 
     @staticmethod
