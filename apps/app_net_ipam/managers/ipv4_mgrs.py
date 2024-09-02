@@ -12,7 +12,7 @@ from core import errors
 from apps.app_net_manage.models import OrgVirtualObject
 from apps.app_net_ipam.models import (
     IPv4Range, ASN, ipv4_str_to_int, IPv4RangeRecord,
-    IPRangeItem, IPRangeIntItem, IPv4Address
+    IPRangeItem, IPRangeIntItem, IPv4Address, IPv4Supernet
 )
 from apps.app_net_ipam.managers.common import NetIPamUserRoleWrapper
 
@@ -1119,5 +1119,53 @@ class IPv4AddressManager:
                 qs = qs.filter(remark__icontains=remark)
             elif remark == '':
                 qs = qs.filter(~Q(remark=''))
+
+        return qs
+
+
+class IPv4SupernetManager:
+    @staticmethod
+    def get_ip_supernet(_id: str) -> IPv4Supernet:
+        ipsupernet = IPv4Supernet.objects.filter(id=_id).first()
+        if ipsupernet is None:
+            raise errors.TargetNotExist(message=_('IP地址超网段不存在'))
+
+        return ipsupernet
+
+    @staticmethod
+    def get_ip_supernet_by_ip(ip_int: int) -> IPv4Supernet:
+        ipsupernet = IPv4Supernet.objects.filter(
+            start_address__lte=ip_int, end_address__gte=ip_int).first()
+        if ipsupernet is None:
+            raise errors.TargetNotExist(message=_('IP地址超网段不存在'))
+
+        return ipsupernet
+
+    @staticmethod
+    def get_queryset() -> QuerySet:
+        return IPv4Supernet.objects.all()
+
+    def filter_queryset(self, status: Union[str, None], asn: int, ipv4_int: int, search: str):
+        """
+        各参数为真时过滤
+        """
+        qs = self.get_queryset()
+        lookups = {}
+
+        if status:
+            lookups['status'] = status
+
+        if asn:
+            lookups['asn__number'] = asn
+
+        if ipv4_int:
+            lookups['start_address__lte'] = ipv4_int
+            lookups['end_address__gte'] = ipv4_int
+
+        if lookups:
+            qs = qs.filter(**lookups)
+
+        if search:
+            qs = qs.filter(Q(name__icontains=search) | Q(remark__icontains=search))
 
         return qs

@@ -227,3 +227,12 @@ class IPv6RangeMergeSerializer(serializers.Serializer):
     fake = serializers.BooleanField(
         label=_('假合并'), allow_null=True, default=False,
         help_text=_('true(假装合并，询问合并结果)；其他值或不提交此参数（正常真实合并地址段）'))
+
+
+class IPv4SupernetCreateSerializer(serializers.Serializer):
+    name = serializers.CharField(label=_('名称'), max_length=255, allow_blank=True, default='')
+    start_address = serializers.CharField(label=_('起始地址'), required=True, max_length=16)
+    end_address = serializers.CharField(label=_('截止地址'), required=True, max_length=16)
+    mask_len = serializers.IntegerField(label=_('子网掩码长度'), required=True, min_value=0, max_value=32)
+    asn = serializers.IntegerField(label=_('AS编号'), required=True, min_value=0, max_value=4294967295)
+    remark = serializers.CharField(label=_('备注'), max_length=255, allow_blank=True, default='')

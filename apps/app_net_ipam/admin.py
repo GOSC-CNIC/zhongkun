@@ -10,7 +10,7 @@ from django.contrib.admin.utils import lookup_spawns_duplicates
 
 from utils.model import BaseModelAdmin
 from .models import (
-    NetIPamUserRole, ASN, IPv4Address, IPv4Range, IPv4RangeRecord,
+    NetIPamUserRole, ASN, IPv4Address, IPv4Range, IPv4RangeRecord, IPv4Supernet,
     IPv6Range, IPv6Address, IPv6RangeRecord
 )
 
@@ -281,5 +281,30 @@ class IPv6RangeRecordAdmin(IPModelAdmin):
             ip_bytes = ipaddress.IPv6Address(search_term).packed
             return models.Q.create(
                 [('start_address__lte', ip_bytes), ('end_address__gte', ip_bytes)], connector=models.Q.AND)
+        except ipaddress.AddressValueError:
+            return None
+
+
+@admin.register(IPv4Supernet)
+class IPv4SupernetAdmin(IPModelAdmin):
+    list_display = ('id', 'name', 'start_address', 'end_address', 'mask_len', 'display_ip_range', 'asn', 'status',
+                    'creation_time', 'update_time', 'remark')
+    list_filter = ('status', 'mask_len')
+    search_fields = ('name', 'remark')
+
+    @staticmethod
+    @admin.display(description=gettext_lazy('地址段易读显示'))
+    def display_ip_range(obj: IPv4Range):
+        return obj.ip_range_display()
+
+    @staticmethod
+    def get_ip_search_q(search_term):
+        if not search_term:
+            return None
+
+        try:
+            ip_int = int(ipaddress.IPv4Address(search_term))
+            return models.Q.create(
+                [('start_address__lte', ip_int), ('end_address__gte', ip_int)], connector=models.Q.AND)
         except ipaddress.AddressValueError:
             return None

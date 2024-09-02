@@ -182,9 +182,9 @@ class IPRangeBase(UuidModel):
         abstract = True
 
 
-class IPv4Range(IPRangeBase):
+class IPv4RangeBase(models.Model):
     """
-    注意：删除时会一起删除关联的 ip address，删除前需要先更新 ip address 关联的ip range
+    ipv4 range抽象基类
     """
     start_address = models.PositiveIntegerField(verbose_name=_('起始地址'))
     end_address = models.PositiveIntegerField(verbose_name=_('截止地址'))
@@ -192,10 +192,7 @@ class IPv4Range(IPRangeBase):
         verbose_name=_('子网掩码长度'), validators=(MaxValueValidator(32),))
 
     class Meta:
-        ordering = ('start_address',)
-        db_table = 'net_ipam_ipv4_range'
-        verbose_name = _('IPv4地址段')
-        verbose_name_plural = verbose_name
+        abstract = True
 
     def __str__(self):
         return self.ip_range_display()
@@ -241,9 +238,7 @@ class IPv4Range(IPRangeBase):
         ip_net = f'{self.end_address_obj}/{self.mask_len}'
         return build_ipv4_network(ip_net=ip_net)
 
-    def clean(self, exclude_ids: list = None):
-        super().clean()
-
+    def clean_check(self, range_id: str, exclude_ids: list = None):
         if self.start_address and self.end_address:
             # Check that the ending address is greater than the starting address
             if not self.end_address >= self.start_address:
@@ -267,8 +262,8 @@ class IPv4Range(IPRangeBase):
                 )
 
             # 检查部分重叠的ranges
-            ids = [self.id] if self.id else []
-            if exclude_ids and self.id not in exclude_ids:
+            ids = [range_id] if range_id else []
+            if exclude_ids and range_id not in exclude_ids:
                 ids = ids + exclude_ids
 
             if len(ids) == 0:
@@ -295,6 +290,18 @@ class IPv4Range(IPRangeBase):
                 raise ValidationError(
                     _("定义的IP地址段范围超过支持的最大大小({max_size})").format(max_size=max_size)
                 )
+
+
+class IPv4Range(IPRangeBase, IPv4RangeBase):
+    class Meta:
+        ordering = ('start_address',)
+        db_table = 'net_ipam_ipv4_range'
+        verbose_name = _('IPv4地址段')
+        verbose_name_plural = verbose_name
+
+    def clean(self, exclude_ids: list = None):
+        super(IPv4Range, self).clean()
+        self.clean_check(range_id=self.id, exclude_ids=exclude_ids)
 
 
 class IPAddressBase(UuidModel):
@@ -405,6 +412,45 @@ class IPv4RangeRecord(IPRangeRecordBase):
         }]
         """
         self.ip_ranges = [i._asdict() for i in ip_ranges]
+
+
+class IPSupernetBase(UuidModel):
+    """IP地址超网段基类"""
+
+    class Status(models.TextChoices):
+        OUT_WAREHOUSE = 'out-warehouse', _('未入库')
+        IN_WAREHOUSE = 'in-warehouse', _('已入库')
+        SPLIT = 'split', _('已拆分')
+
+    name = models.CharField(verbose_name=_('名称'), max_length=255, blank=True, default='')
+    status = models.CharField(
+        verbose_name=_('状态'), max_length=16, choices=Status.choices, default=Status.OUT_WAREHOUSE.value)
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'))
+    update_time = models.DateTimeField(verbose_name=_('更新时间'))
+    asn = models.PositiveIntegerField(verbose_name=_('AS编码'), default=0)
+    remark = models.CharField(verbose_name=_('备注'), max_length=255, blank=True, default='')
+    operator = models.CharField(verbose_name=_('操作人'), max_length=128, blank=True, default='')
+
+    class Meta:
+        abstract = True
+
+
+class IPv4Supernet(IPSupernetBase, IPv4RangeBase):
+    """
+    ipv4地址超网
+    """
+    used_ip_count = models.PositiveIntegerField(verbose_name=_('已分配IP数'), blank=True, default=0)
+    total_ip_count = models.PositiveIntegerField(verbose_name=_('IP总数'), blank=True)
+
+    class Meta:
+        ordering = ('-creation_time',)
+        db_table = 'net_ipam_ipv4_supernet'
+        verbose_name = _('IPv4地址超网段')
+        verbose_name_plural = verbose_name
+
+    def clean(self):
+        super(IPv4Supernet, self).clean()
+        self.clean_check(range_id=self.id)
 
 
 class IPv6Range(IPRangeBase):
