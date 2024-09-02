@@ -20,6 +20,7 @@ class Migration(migrations.Migration):
                     ('aai_login_url', 'AAI登录，登录地址'), ('aai_login_token_url', 'AAI登录，token查询地址'),
                     ('aai_login_user_info_url', 'AAI登录，用户信息查询地址'), ('aai_login_client_id', 'AAI登录，客户端id'),
                     ('aai_login_client_secret', 'AAI登录，客户端密钥'),
+                    ('aai_jwt_verifying_key', 'AAI JWT认证公钥'),
                     ('prometheus_service_url', 'prometheus服务地址'), ('prometheus_base', 'promtheus基础配置文件'),
                     ('prometheus_blackbox_http', 'promtheus blackbox http 配置文件模板'),
                     ('prometheus_blackbox_tcp', 'promtheus blackbox tcp 配置文件模板'),

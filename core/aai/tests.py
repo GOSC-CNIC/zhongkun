@@ -6,6 +6,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
 
 from apps.users.models import UserProfile
+from apps.app_global.models import GlobalConfig
 from . import jwt
 from .authentication import CreateUserJWTAuthentication, JWTInvalidError
 
@@ -88,6 +89,16 @@ class JWTTestCase(TestCase):
         token = str(token1)
         token2 = jwt.Token(token=token, backend=token_backend)
         self.assertEqual(token2["username"], 'test')
+
+        obj = GlobalConfig(
+            name=GlobalConfig.ConfigName.AAI_JWT_VERIFYING_KEY.value,
+            value=self.public_key, remark=''
+        )
+        obj.save(force_insert=True)
+        jwt.global_configs.clear_cache()
+        token3 = jwt.Token(token=token)
+        self.assertEqual(token3["username"], 'test')
+        obj.delete()
 
     def test_sha256_rsa2048(self):
         from utils.crypto.rsa import SHA256WithRSA

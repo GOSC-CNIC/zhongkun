@@ -19,6 +19,8 @@ from apps.app_wallet.managers.payment import PaymentManager, TransactionBillMana
 from utils.test import get_or_create_user, get_or_create_organization, MyAPITestCase, MyAPITransactionTestCase
 from utils.model import OwnerType
 from apps.vo.models import VirtualOrganization
+from apps.app_global.models import GlobalConfig
+from apps.app_global.configs_manager import global_configs
 
 
 def response_sign_assert(test_case, r, wallet_public_key: str):
@@ -404,8 +406,12 @@ class TradeTests(MyAPITransactionTestCase):
     def test_trade_charge_jwt(self):
         rs512_private_key, rs512_public_key = self.get_aai_jwt_rsa_key()
         aai_jwt = self.get_aai_jwt(rs512_private_key)
-        from core.aai import jwt
-        jwt.token_backend.verifying_key = rs512_public_key
+        obj = GlobalConfig(
+            name=GlobalConfig.ConfigName.AAI_JWT_VERIFYING_KEY.value,
+            value=rs512_public_key, remark=''
+        )
+        obj.save(force_insert=True)
+        global_configs.clear_cache()
 
         out_order_id1 = 'order_id1'
         body = {

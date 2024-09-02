@@ -11,6 +11,7 @@ from rest_framework.settings import settings
 from rest_framework import HTTP_HEADER_ENCODING
 
 from core.errors import Error
+from apps.app_global.configs_manager import global_configs
 
 
 utc = timezone.utc
@@ -136,10 +137,20 @@ class TokenBackend:
             raise JWTInvalidError('Invalid algorithm specified') from ex
         except InvalidTokenError:
             raise JWTInvalidError('Token is invalid or expired')
+        except Exception as exc:
+            raise JWTInvalidError(str(exc))
 
 
-token_backend = TokenBackend(JWT_SETTINGS.ALGORITHM, JWT_SETTINGS.SIGNING_KEY,
-                             JWT_SETTINGS.VERIFYING_KEY, JWT_SETTINGS.AUDIENCE, JWT_SETTINGS.ISSUER)
+def build_token_backend() -> TokenBackend:
+    verifying_key = global_configs.get(global_configs.ConfigName.AAI_JWT_VERIFYING_KEY.value)
+    if not verifying_key and not verifying_key.strip(' '):
+        raise JWTInvalidError(
+            'The authentication public key of AAI JWT is not configured in the global configuration of the admin site')
+
+    return TokenBackend(
+        algorithm=JWT_SETTINGS.ALGORITHM, signing_key=JWT_SETTINGS.SIGNING_KEY,
+        verifying_key=verifying_key,
+        audience=JWT_SETTINGS.AUDIENCE, issuer=JWT_SETTINGS.ISSUER)
 
 
 class Token:
@@ -156,7 +167,7 @@ class Token:
         message if the given token is invalid, expired, or otherwise not safe
         to use.
         """
-        self.token_backend = backend if backend else token_backend
+        self.token_backend = backend if backend else build_token_backend()
         if self.token_type is None or self.lifetime is None:
             raise JWTInvalidError('Cannot create token with no type or lifetime')
 

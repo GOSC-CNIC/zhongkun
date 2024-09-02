@@ -66,6 +66,7 @@ class GlobalConfig(models.Model):
         AAI_LOGIN_USER_INFO_URL = 'aai_login_user_info_url', _('AAI登录，用户信息查询地址')
         AAI_LOGIN_CLIENT_ID = 'aai_login_client_id', _('AAI登录，客户端id')
         AAI_LOGIN_CLIENT_SECRET = 'aai_login_client_secret', _('AAI登录，客户端密钥')
+        AAI_JWT_VERIFYING_KEY = 'aai_jwt_verifying_key', _('AAI JWT认证公钥')
         PROMETHEUS_SERVICE_URL = 'prometheus_service_url', _('prometheus服务地址')
         PROMETHEUS_BASE = 'prometheus_base', _('promtheus基础配置文件')
         PROMETHEUS_BLACKBOX_HTTP = 'prometheus_blackbox_http', _('promtheus blackbox http 配置文件模板')
@@ -87,6 +88,7 @@ class GlobalConfig(models.Model):
         ConfigName.AAI_LOGIN_USER_INFO_URL.value: 'https://aai.cstcloud.net/oidc/userinfo',
         ConfigName.AAI_LOGIN_CLIENT_ID.value: '',
         ConfigName.AAI_LOGIN_CLIENT_SECRET.value: '',
+        ConfigName.AAI_JWT_VERIFYING_KEY.value: '',
         ConfigName.PROMETHEUS_SERVICE_URL.value: 'http://127.0.0.1:9090',
         ConfigName.PROMETHEUS_BASE.value: prometheus_base_default,
         ConfigName.PROMETHEUS_BLACKBOX_HTTP.value: prometheus_blackbox_http_default,
