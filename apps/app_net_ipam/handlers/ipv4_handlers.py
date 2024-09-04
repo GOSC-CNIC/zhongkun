@@ -8,7 +8,7 @@ from apps.api.viewsets import NormalGenericViewSet, serializer_error_msg
 from apps.app_net_manage.models import OrgVirtualObject
 from apps.app_net_ipam.managers.common import NetIPamUserRoleWrapper
 from apps.app_net_ipam.managers.ipv4_mgrs import IPv4RangeManager, IPv4AddressManager, IPv4SupernetManager
-from apps.app_net_ipam.models import IPv4Range
+from apps.app_net_ipam.models import IPv4Range, IPv4Supernet
 from apps.app_net_ipam import serializers as ipam_serializers
 
 
@@ -571,10 +571,10 @@ class IPv4SupernetHandler:
                 errors.AccessDenied(message=_('你没有网络IP管理功能的管理员权限')))
 
         try:
-            ipv4_supernet = IPv4SupernetManager.create_ipv4_supernet(
+            ipv4_supernet = IPv4SupernetManager().create_ipv4_supernet(
                 start_address=int(data['start_address']), end_address=int(data['end_address']),
                 mask_len=data['mask_len'], asn=data['asn'],
-                remark='', operator=request.user.username
+                remark=data['remark'], operator=request.user.username
             )
         except errors.ValidationError as exc:
             return view.exception_response(errors.InvalidArgument(message=exc.message))
@@ -624,3 +624,55 @@ class IPv4SupernetHandler:
         data['end_address'] = end_address
         return data
 
+    def list_ipv4_supernets(self, view: NormalGenericViewSet, request):
+        try:
+            data = self._list_ipv4_supernet_validate_params(request=request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        ur_wrapper = NetIPamUserRoleWrapper(user=request.user)
+        if not ur_wrapper.has_ipam_admin_readable():
+            return view.exception_response(
+                errors.AccessDenied(message=_('你没有网络IP管理功能的管理员权限')))
+
+        queryset = IPv4SupernetManager().filter_queryset(
+            status=data['status'], asn=data['asn'], ipv4_int=data['ipv4'], search=data['search']
+        )
+
+        queryset = queryset.order_by('start_address')
+        try:
+            objs = view.paginate_queryset(queryset)
+            serializer = view.get_serializer(instance=objs, many=True)
+            return view.get_paginated_response(serializer.data)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+    @staticmethod
+    def _list_ipv4_supernet_validate_params(request):
+        asn = request.query_params.get('asn', None)
+        ipv4 = request.query_params.get('ip', None)
+        search = request.query_params.get('search', None)
+        status = request.query_params.get('status', None)
+
+        if asn:
+            try:
+                asn = int(asn)
+            except ValueError:
+                raise errors.InvalidArgument(message=_('指定的AS编码无效，必须是一个正整数'))
+
+        if ipv4:
+            try:
+                ipv4 = ipaddress.IPv4Address(ipv4)
+            except ipaddress.AddressValueError:
+                raise errors.InvalidArgument(message=_('指定的ip地址格式无效'))
+
+        if status:
+            if status not in IPv4Supernet.Status.values:
+                raise errors.InvalidArgument(message=_('指定的状态参数值无效'))
+
+        return {
+            'asn': asn,
+            'ipv4': int(ipv4) if ipv4 else None,
+            'search': search,
+            'status': status
+        }

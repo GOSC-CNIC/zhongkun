@@ -243,57 +243,70 @@ class IPv4RangeBase(models.Model):
         return build_ipv4_network(ip_net=ip_net)
 
     def clean_check(self, range_id: str, exclude_ids: list = None):
-        if self.start_address and self.end_address:
-            # Check that the ending address is greater than the starting address
-            if not self.end_address >= self.start_address:
-                raise ValidationError({
-                    'end_address': _(
-                        "结束地址必须大于等于起始地址({start_address})"
-                    ).format(start_address=self.start_address_obj)
-                })
+        if self.start_address < 0:
+            raise ValidationError({
+                'start_address': _(
+                    "起始地址({start_address})无效"
+                ).format(start_address=self.start_address_obj)
+            })
 
-            # 是否同一网段，网络号是否一致
-            try:
-                start_net_addr = self.start_address_network
-                end_net_addr = self.end_address_network
-            except ipaddress.NetmaskValueError as exc:
-                raise ValidationError({'mask_len': str(exc)})
+        if self.end_address < 0:
+            raise ValidationError({
+                'end_address': _(
+                    "结束地址({start_address})无效"
+                ).format(start_address=self.start_address_obj)
+            })
 
-            if start_net_addr != end_net_addr:
-                raise ValidationError(_(
-                        "起始地址网络号({start_net_addr})和结束地址网络号({end_net_addr})不一致"
-                    ).format(start_net_addr=start_net_addr, end_net_addr=end_net_addr)
-                )
+        # Check that the ending address is greater than the starting address
+        if not self.end_address >= self.start_address:
+            raise ValidationError({
+                'end_address': _(
+                    "结束地址必须大于等于起始地址({start_address})"
+                ).format(start_address=self.start_address_obj)
+            })
 
-            # 检查部分重叠的ranges
-            ids = [range_id] if range_id else []
-            if exclude_ids and range_id not in exclude_ids:
-                ids = ids + exclude_ids
+        # 是否同一网段，网络号是否一致
+        try:
+            start_net_addr = self.start_address_network
+            end_net_addr = self.end_address_network
+        except ipaddress.NetmaskValueError as exc:
+            raise ValidationError({'mask_len': str(exc)})
 
-            if len(ids) == 0:
-                exclude_lookup = {}
-            elif len(ids) == 1:
-                exclude_lookup = {'id': ids[0]}
-            else:
-                exclude_lookup = {'id__in': ids}
+        if start_net_addr != end_net_addr:
+            raise ValidationError(_(
+                    "起始地址网络号({start_net_addr})和结束地址网络号({end_net_addr})不一致"
+                ).format(start_net_addr=start_net_addr, end_net_addr=end_net_addr)
+            )
 
-            overlapping_range = type(self).objects.exclude(**exclude_lookup).filter(
-                Q(start_address__gte=self.start_address, start_address__lte=self.end_address) |  # 已存在start在新ip段内部
-                Q(end_address__gte=self.start_address, end_address__lte=self.end_address) |  # 已存在end在新ip段内部
-                Q(start_address__lte=self.start_address, end_address__gte=self.end_address)  # start和end在新ip段外部
-            ).first()
-            if overlapping_range:
-                raise ValidationError(
-                    _("定义的IP地址段({value})与已存在地址段({overlapping_range})范围重叠").format(
-                        value=self, overlapping_range=overlapping_range
-                    ))
+        # 检查部分重叠的ranges
+        ids = [range_id] if range_id else []
+        if exclude_ids and range_id not in exclude_ids:
+            ids += exclude_ids
 
-            # Validate maximum size
-            max_size = 2 ** 32 - 1
-            if int(self.end_address - self.start_address) + 1 > max_size:
-                raise ValidationError(
-                    _("定义的IP地址段范围超过支持的最大大小({max_size})").format(max_size=max_size)
-                )
+        if len(ids) == 0:
+            exclude_lookup = {}
+        elif len(ids) == 1:
+            exclude_lookup = {'id': ids[0]}
+        else:
+            exclude_lookup = {'id__in': ids}
+
+        overlapping_range = type(self).objects.exclude(**exclude_lookup).filter(
+            Q(start_address__gte=self.start_address, start_address__lte=self.end_address) |  # 已存在start在新ip段内部
+            Q(end_address__gte=self.start_address, end_address__lte=self.end_address) |  # 已存在end在新ip段内部
+            Q(start_address__lte=self.start_address, end_address__gte=self.end_address)  # start和end在新ip段外部
+        ).first()
+        if overlapping_range:
+            raise ValidationError(
+                _("定义的IP地址段({value})与已存在地址段({overlapping_range})范围重叠").format(
+                    value=self, overlapping_range=overlapping_range
+                ))
+
+        # Validate maximum size
+        max_size = 2 ** 32 - 1
+        if int(self.end_address - self.start_address) + 1 > max_size:
+            raise ValidationError(
+                _("定义的IP地址段范围超过支持的最大大小({max_size})").format(max_size=max_size)
+            )
 
 
 class IPv4Range(IPRangeBase, IPv4RangeBase):

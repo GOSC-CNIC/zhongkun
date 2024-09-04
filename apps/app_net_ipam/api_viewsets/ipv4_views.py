@@ -8,7 +8,7 @@ from drf_yasg import openapi
 from apps.api.paginations import NewPageNumberPagination, NewPageNumberPagination100
 from apps.api.viewsets import NormalGenericViewSet
 from apps.app_net_ipam.handlers.ipv4_handlers import IPv4RangeHandler, IPv4SupernetHandler
-from apps.app_net_ipam.models import IPv4Range
+from apps.app_net_ipam.models import IPv4Range, IPv4Supernet
 from apps.app_net_ipam import serializers as ipam_serializers
 from apps.app_net_ipam.permissions import IPamIPRestrictPermission
 
@@ -686,12 +686,11 @@ class IPv4AddressViewSet(NormalGenericViewSet):
 
 class IPv4SupernetViewSet(NormalGenericViewSet):
     permission_classes = [IsAuthenticated, IPamIPRestrictPermission]
-    pagination_class = NewPageNumberPagination
+    pagination_class = NewPageNumberPagination100
     lookup_field = 'id'
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('ipv4地址池添加一个超网地址段'),
-        manual_parameters=[],
         responses={
             200: ''''''
         }
@@ -732,8 +731,89 @@ class IPv4SupernetViewSet(NormalGenericViewSet):
         """
         return IPv4SupernetHandler().add_ipv4_supernet(view=self, request=request)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举ipv4超网地址段'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='asn',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=False,
+                description=gettext_lazy('ASN编码筛选')
+            ),
+            openapi.Parameter(
+                name='ip',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('ip查询，x.x.x.x')
+            ),
+            openapi.Parameter(
+                name='search',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('关键字查询，搜索名称和备注')
+            ),
+            openapi.Parameter(
+                name='status',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('状态筛选') + f'{IPv4Supernet.Status.choices}'
+            ),
+        ],
+        responses={
+            200: ''''''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        列举ipv4超网地址段，需要有IP地址管理员权限
+
+            http Code 200 Ok:
+                {
+                  "count": 1,
+                  "page_num": 1,
+                  "page_size": 100,
+                  "results": [
+                    {
+                      "start_address": 0,
+                      "end_address": 255,
+                      "mask_len": 24,
+                      "asn": 4294967295,
+                      "remark": "",
+                      "id": "tzjrjbzn6h2dfoe2wbxk1nvoz",
+                      "name": "0.0.0.0/24",
+                      "status": "out-warehouse",
+                      "creation_time": "2024-09-04T07:04:48.256099Z",
+                      "update_time": "2024-09-04T07:04:48.256099Z",
+                      "operator": "wangyushun@cnic.cn",
+                      "used_ip_count": 0,
+                      "total_ip_count": 256
+                    }
+                  ]
+                }
+
+            Http Code 400, 403, 500:
+                {
+                    "code": "BadRequest",
+                    "message": "xxxx"
+                }
+
+                可能的错误码：
+                400:
+                InvalidArgument: 参数无效
+
+                403:
+                AccessDenied: 你没有IP管理功能的管理员权限
+        """
+        return IPv4SupernetHandler().list_ipv4_supernets(view=self, request=request)
+
     def get_serializer_class(self):
-        if self.action == 'create':
+        if self.action == 'list':
+            return ipam_serializers.IPv4SupernetSerializer
+        elif self.action == 'create':
             return ipam_serializers.IPv4SupernetCreateSerializer
 
         return Serializer

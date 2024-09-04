@@ -1126,11 +1126,13 @@ class IPv4AddressManager:
 
 class IPv4SubnetCollector:
     def __init__(
-            self, assigned_ranges: list, assigned_ip_count: int,
+            self, supernet: IPv4Supernet,
+            assigned_ranges: list, assigned_ip_count: int,
             reserved_ranges: list, reserved_ip_count: int,
             wait_ranges: list, wait_ip_count: int,
             subnet_count: int
     ):
+        self.supernet = supernet
         self.assigned_ranges = assigned_ranges
         self.assigned_ip_count = assigned_ip_count
         self.reserved_ranges = reserved_ranges
@@ -1140,7 +1142,10 @@ class IPv4SubnetCollector:
         self.subnet_count = subnet_count
 
     @classmethod
-    def parse(cls, ipv4_ranges):
+    def parse(cls, supernet: IPv4Supernet):
+        ipv4_ranges = IPv4Range.objects.filter(
+            start_address__gte=supernet.start_address, end_address__lte=supernet.end_address
+        )
         assigned_ip_count = 0
         assigned_ip_ranges = []
         reserved_ip_count = 0
@@ -1160,14 +1165,33 @@ class IPv4SubnetCollector:
                 wait_ip_ranges.append(iprange)
 
         return cls(
+            supernet=supernet,
             assigned_ranges=assigned_ip_ranges, assigned_ip_count=assigned_ip_count,
             reserved_ranges=reserved_ip_ranges, reserved_ip_count=reserved_ip_count,
             wait_ranges=wait_ip_ranges, wait_ip_count=wait_ip_count, subnet_count=len(ipv4_ranges)
         )
 
     @property
-    def ips_num(self):
+    def subnet_ips_num(self) -> int:
         return self.assigned_ip_count + self.reserved_ip_count + self.wait_ip_count
+
+    @property
+    def supernet_ips_num(self) -> int:
+        return self.supernet.end_address - self.supernet.start_address + 1
+
+    def supernet_status(self):
+        subnet_count = self.subnet_count
+        if subnet_count <= 0:  # 未入库
+            status = IPv4Supernet.Status.OUT_WAREHOUSE.value
+        elif subnet_count > 1:  # 已拆分
+            status = IPv4Supernet.Status.SPLIT.value
+        else:
+            if self.subnet_ips_num < self.supernet_ips_num:
+                status = IPv4Supernet.Status.SPLIT.value  # 已拆分
+            else:
+                status = IPv4Supernet.Status.IN_WAREHOUSE.value  # 已入库
+
+        return status
 
 
 class IPv4SupernetManager:
@@ -1203,7 +1227,7 @@ class IPv4SupernetManager:
             lookups['status'] = status
 
         if asn:
-            lookups['asn__number'] = asn
+            lookups['asn'] = asn
 
         if ipv4_int:
             lookups['start_address__lte'] = ipv4_int
@@ -1217,47 +1241,47 @@ class IPv4SupernetManager:
 
         return qs
 
-    @staticmethod
-    def get_ipv4_stats_in_supernet(start_address: int, end_address: int) -> IPv4SubnetCollector:
-        """
-        查询ip范围内的所有子网段ip统计信息
-        """
-        qs = IPv4Range.objects.filter(start_address__gte=start_address, end_address__lte=end_address)
-        return IPv4SubnetCollector.parse(ipv4_ranges=qs)
-
-    @staticmethod
     def create_ipv4_supernet(
-            start_address: int, end_address: int, mask_len: int, asn: int, remark: str,
+            self, start_address: int, end_address: int, mask_len: int, asn: int, remark: str,
             operator: str
     ):
-        nt = dj_timezone.now()
-        supernet_ip_num = end_address - start_address + 1
-        supernet = IPv4Supernet(
+        supernet = self.build_ipv4_supernet(
             start_address=start_address, end_address=end_address, mask_len=mask_len, asn=asn,
-            remark=remark, operator=operator, creation_time=nt, update_time=nt,
-            total_ip_count=supernet_ip_num
+            remark=remark, operator=operator, status=IPv4Supernet.Status.OUT_WAREHOUSE.value,
+            used_ip_count=0
         )
-
-        subnet_collector = IPv4SupernetManager.get_ipv4_stats_in_supernet(
-            start_address=supernet.start_address, end_address=supernet.end_address)
-        subnet_count = subnet_collector.subnet_count
-        if subnet_count <= 0:   # 未入库
-            status = IPv4Supernet.Status.OUT_WAREHOUSE.value
-        elif subnet_count > 1:  # 已拆分
-            status = IPv4Supernet.Status.SPLIT.value
-        else:
-            if subnet_collector.ips_num < supernet_ip_num:
-                status = IPv4Supernet.Status.SPLIT.value    # 已拆分
-            else:
-                status = IPv4Supernet.Status.IN_WAREHOUSE.value    # 已入库
-
-        supernet.name = str(supernet.start_address_network)
+        subnet_collector = IPv4SubnetCollector.parse(supernet=supernet)
         supernet.used_ip_count = subnet_collector.assigned_ip_count
-        supernet.status = status
+        supernet.status = subnet_collector.supernet_status()
         try:
             supernet.clean()
         except ValidationError as exc:
             raise errors.ValidationError(message=str(exc))
 
         supernet.save(force_insert=True)
+        return supernet
+
+    @staticmethod
+    def build_ipv4_supernet(
+            start_address: int, end_address: int, mask_len: int, asn: int, remark: str,
+            operator: str, used_ip_count: int, status: str, creation_time=None, update_time=None
+    ):
+        """
+        构建超网对象，不保存到数据库
+        """
+        nt = dj_timezone.now()
+        if not creation_time:
+            creation_time = nt
+
+        if not update_time:
+            update_time = nt
+
+        supernet_ip_num = end_address - start_address + 1
+        supernet = IPv4Supernet(
+            start_address=start_address, end_address=end_address, mask_len=mask_len, asn=asn,
+            remark=remark, operator=operator, creation_time=creation_time, update_time=update_time,
+            total_ip_count=supernet_ip_num, used_ip_count=used_ip_count, status=status
+        )
+
+        supernet.name = str(supernet.start_address_network)
         return supernet
