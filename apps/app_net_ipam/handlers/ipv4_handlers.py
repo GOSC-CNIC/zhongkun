@@ -7,7 +7,7 @@ from core import errors
 from apps.api.viewsets import NormalGenericViewSet, serializer_error_msg
 from apps.app_net_manage.models import OrgVirtualObject
 from apps.app_net_ipam.managers.common import NetIPamUserRoleWrapper
-from apps.app_net_ipam.managers.ipv4_mgrs import IPv4RangeManager, IPv4AddressManager
+from apps.app_net_ipam.managers.ipv4_mgrs import IPv4RangeManager, IPv4AddressManager, IPv4SupernetManager
 from apps.app_net_ipam.models import IPv4Range
 from apps.app_net_ipam import serializers as ipam_serializers
 
@@ -555,3 +555,72 @@ class IPv4RangeHandler:
             return view.get_paginated_response(serializer.data)
         except Exception as exc:
             return view.exception_response(exc)
+
+
+class IPv4SupernetHandler:
+
+    def add_ipv4_supernet(self, view: NormalGenericViewSet, request):
+        try:
+            data = self._add_ipv4_ranges_validate_params(view=view, request=request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        ur_wrapper = NetIPamUserRoleWrapper(user=request.user)
+        if not ur_wrapper.has_ipam_admin_writable():
+            return view.exception_response(
+                errors.AccessDenied(message=_('你没有网络IP管理功能的管理员权限')))
+
+        try:
+            ipv4_supernet = IPv4SupernetManager.create_ipv4_supernet(
+                start_address=int(data['start_address']), end_address=int(data['end_address']),
+                mask_len=data['mask_len'], asn=data['asn'],
+                remark='', operator=request.user.username
+            )
+        except errors.ValidationError as exc:
+            return view.exception_response(errors.InvalidArgument(message=exc.message))
+
+        return Response(data=ipam_serializers.IPv4SupernetSerializer(instance=ipv4_supernet).data)
+
+    @staticmethod
+    def _add_ipv4_ranges_validate_params(view: NormalGenericViewSet, request):
+        serializer = view.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=False):
+            s_errors = serializer.errors
+            if 'start_address' in s_errors:
+                exc = errors.InvalidArgument(
+                    message=_('起始IP地址无效。') + s_errors['start_address'][0])
+            elif 'end_address' in s_errors:
+                exc = errors.InvalidArgument(
+                    message=_('结束IP地址无效。') + s_errors['end_address'][0])
+            elif 'mask_len' in s_errors:
+                exc = errors.InvalidArgument(
+                    message=_('子网掩码长度无效。') + s_errors['mask_len'][0])
+            elif 'asn' in s_errors:
+                exc = errors.InvalidArgument(
+                    message=_('AS编号无效。') + s_errors['asn'][0])
+            else:
+                msg = serializer_error_msg(s_errors)
+                exc = errors.BadRequest(message=msg)
+
+            raise exc
+
+        data = serializer.validated_data.copy()
+        start_address = data['start_address']
+        end_address = data['end_address']
+
+        if start_address:
+            try:
+                start_address = ipaddress.IPv4Address(start_address)
+            except ipaddress.AddressValueError:
+                raise errors.InvalidArgument(message=_('起始IP地址无效'))
+
+        if end_address:
+            try:
+                end_address = ipaddress.IPv4Address(end_address)
+            except ipaddress.AddressValueError:
+                raise errors.InvalidArgument(message=_('结束IP地址无效'))
+
+        data['start_address'] = start_address
+        data['end_address'] = end_address
+        return data
+

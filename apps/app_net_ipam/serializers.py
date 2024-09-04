@@ -230,9 +230,19 @@ class IPv6RangeMergeSerializer(serializers.Serializer):
 
 
 class IPv4SupernetCreateSerializer(serializers.Serializer):
-    name = serializers.CharField(label=_('名称'), max_length=255, allow_blank=True, default='')
-    start_address = serializers.CharField(label=_('起始地址'), required=True, max_length=16)
-    end_address = serializers.CharField(label=_('截止地址'), required=True, max_length=16)
+    start_address = serializers.IntegerField(label=_('起始地址'), required=True, min_value=0, max_value=4294967295)
+    end_address = serializers.IntegerField(label=_('截止地址'), required=True, min_value=0, max_value=4294967295)
     mask_len = serializers.IntegerField(label=_('子网掩码长度'), required=True, min_value=0, max_value=32)
     asn = serializers.IntegerField(label=_('AS编号'), required=True, min_value=0, max_value=4294967295)
     remark = serializers.CharField(label=_('备注'), max_length=255, allow_blank=True, default='')
+
+
+class IPv4SupernetSerializer(IPv4SupernetCreateSerializer):
+    id = serializers.CharField()
+    name = serializers.CharField()
+    status = serializers.CharField()
+    creation_time = serializers.DateTimeField()
+    update_time = serializers.DateTimeField()
+    operator = serializers.CharField()
+    used_ip_count = serializers.IntegerField()
+    total_ip_count = serializers.IntegerField()

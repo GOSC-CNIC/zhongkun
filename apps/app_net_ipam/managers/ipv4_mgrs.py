@@ -1,6 +1,7 @@
 import ipaddress
 from typing import Union, List, Tuple
 from datetime import datetime
+from collections import namedtuple
 
 from django.db.models import Q, QuerySet
 from django.db import transaction, IntegrityError
@@ -1123,6 +1124,52 @@ class IPv4AddressManager:
         return qs
 
 
+class IPv4SubnetCollector:
+    def __init__(
+            self, assigned_ranges: list, assigned_ip_count: int,
+            reserved_ranges: list, reserved_ip_count: int,
+            wait_ranges: list, wait_ip_count: int,
+            subnet_count: int
+    ):
+        self.assigned_ranges = assigned_ranges
+        self.assigned_ip_count = assigned_ip_count
+        self.reserved_ranges = reserved_ranges
+        self.reserved_ip_count = reserved_ip_count
+        self.wait_ranges = wait_ranges
+        self.wait_ip_count = wait_ip_count
+        self.subnet_count = subnet_count
+
+    @classmethod
+    def parse(cls, ipv4_ranges):
+        assigned_ip_count = 0
+        assigned_ip_ranges = []
+        reserved_ip_count = 0
+        reserved_ip_ranges = []
+        wait_ip_count = 0
+        wait_ip_ranges = []
+        for iprange in ipv4_ranges:
+            ip_count = iprange.end_address - iprange.start_address + 1
+            if iprange.status == IPv4Range.Status.ASSIGNED.value:
+                assigned_ip_count += ip_count
+                assigned_ip_ranges.append(iprange)
+            elif iprange.status == IPv4Range.Status.RESERVED.value:
+                reserved_ip_count += ip_count
+                reserved_ip_ranges.append(iprange)
+            else:
+                wait_ip_count += ip_count
+                wait_ip_ranges.append(iprange)
+
+        return cls(
+            assigned_ranges=assigned_ip_ranges, assigned_ip_count=assigned_ip_count,
+            reserved_ranges=reserved_ip_ranges, reserved_ip_count=reserved_ip_count,
+            wait_ranges=wait_ip_ranges, wait_ip_count=wait_ip_count, subnet_count=len(ipv4_ranges)
+        )
+
+    @property
+    def ips_num(self):
+        return self.assigned_ip_count + self.reserved_ip_count + self.wait_ip_count
+
+
 class IPv4SupernetManager:
     @staticmethod
     def get_ip_supernet(_id: str) -> IPv4Supernet:
@@ -1169,3 +1216,48 @@ class IPv4SupernetManager:
             qs = qs.filter(Q(name__icontains=search) | Q(remark__icontains=search))
 
         return qs
+
+    @staticmethod
+    def get_ipv4_stats_in_supernet(start_address: int, end_address: int) -> IPv4SubnetCollector:
+        """
+        查询ip范围内的所有子网段ip统计信息
+        """
+        qs = IPv4Range.objects.filter(start_address__gte=start_address, end_address__lte=end_address)
+        return IPv4SubnetCollector.parse(ipv4_ranges=qs)
+
+    @staticmethod
+    def create_ipv4_supernet(
+            start_address: int, end_address: int, mask_len: int, asn: int, remark: str,
+            operator: str
+    ):
+        nt = dj_timezone.now()
+        supernet_ip_num = end_address - start_address + 1
+        supernet = IPv4Supernet(
+            start_address=start_address, end_address=end_address, mask_len=mask_len, asn=asn,
+            remark=remark, operator=operator, creation_time=nt, update_time=nt,
+            total_ip_count=supernet_ip_num
+        )
+
+        subnet_collector = IPv4SupernetManager.get_ipv4_stats_in_supernet(
+            start_address=supernet.start_address, end_address=supernet.end_address)
+        subnet_count = subnet_collector.subnet_count
+        if subnet_count <= 0:   # 未入库
+            status = IPv4Supernet.Status.OUT_WAREHOUSE.value
+        elif subnet_count > 1:  # 已拆分
+            status = IPv4Supernet.Status.SPLIT.value
+        else:
+            if subnet_collector.ips_num < supernet_ip_num:
+                status = IPv4Supernet.Status.SPLIT.value    # 已拆分
+            else:
+                status = IPv4Supernet.Status.IN_WAREHOUSE.value    # 已入库
+
+        supernet.name = str(supernet.start_address_network)
+        supernet.used_ip_count = subnet_collector.assigned_ip_count
+        supernet.status = status
+        try:
+            supernet.clean()
+        except ValidationError as exc:
+            raise errors.ValidationError(message=str(exc))
+
+        supernet.save(force_insert=True)
+        return supernet

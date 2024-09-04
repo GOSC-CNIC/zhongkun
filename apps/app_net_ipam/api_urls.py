@@ -16,6 +16,7 @@ no_slash_router.register(r'ipam/ipv4address', ipv4_views.IPv4AddressViewSet, bas
 no_slash_router.register(r'ipam/record/ipv4range', ip_record_views.IPv4RangeRecordViewSet, basename='record-ipv4range')
 no_slash_router.register(r'ipam/ipv6range', ipv6_views.IPv6RangeViewSet, basename='ipam-ipv6range')
 no_slash_router.register(r'ipam/record/ipv6range', ip_record_views.IPv6RangeRecordViewSet, basename='record-ipv6range')
+no_slash_router.register(r'ipam/ipv4supernet', ipv4_views.IPv4SupernetViewSet, basename='ipam-ipv4supernet')
 
 
 urlpatterns = [

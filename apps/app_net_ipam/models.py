@@ -197,6 +197,10 @@ class IPv4RangeBase(models.Model):
     def __str__(self):
         return self.ip_range_display()
 
+    @property
+    def num_addresses(self) -> int:
+        return self.end_address - self.start_address + 1
+
     @staticmethod
     def convert_to_ip_obj(val: int):
         return ipaddress.IPv4Address(val)
@@ -273,7 +277,7 @@ class IPv4RangeBase(models.Model):
             else:
                 exclude_lookup = {'id__in': ids}
 
-            overlapping_range = IPv4Range.objects.exclude(**exclude_lookup).filter(
+            overlapping_range = type(self).objects.exclude(**exclude_lookup).filter(
                 Q(start_address__gte=self.start_address, start_address__lte=self.end_address) |  # 已存在start在新ip段内部
                 Q(end_address__gte=self.start_address, end_address__lte=self.end_address) |  # 已存在end在新ip段内部
                 Q(start_address__lte=self.start_address, end_address__gte=self.end_address)  # start和end在新ip段外部
