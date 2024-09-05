@@ -853,6 +853,33 @@ class IPv4SupernetViewSet(NormalGenericViewSet):
         """
         return IPv4SupernetHandler().update_ipv4_supernet(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('删除ipv4超网地址段'),
+        manual_parameters=[],
+        responses={
+            200: ''''''
+        }
+    )
+    def destroy(self, request, *args, **kwargs):
+        """
+        删除ipv4超网地址段，需要有IP地址管理员权限
+
+            http Code 204
+
+            Http Code 404, 403, 500:
+                {
+                    "code": "AccessDenied",
+                    "message": "你没有IP管理功能的管理员权限"
+                }
+
+                可能的错误码：
+                403:
+                    AccessDenied: 你没有IP管理功能的管理员权限
+                404:
+                    TargetNotExist: IP地址超网段不存在
+        """
+        return IPv4SupernetHandler.delete_ipv4_supernet(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return ipam_serializers.IPv4SupernetSerializer

@@ -29,8 +29,8 @@ class Migration(migrations.Migration):
                 ('total_ip_count', models.PositiveIntegerField(blank=True, verbose_name='IP总数')),
             ],
             options={
-                'verbose_name': 'IPv4地址超网段',
-                'verbose_name_plural': 'IPv4地址超网段',
+                'verbose_name': 'IPv4超网段',
+                'verbose_name_plural': 'IPv4超网段',
                 'db_table': 'net_ipam_ipv4_supernet',
                 'ordering': ('-creation_time',),
             },

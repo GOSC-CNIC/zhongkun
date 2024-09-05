@@ -697,5 +697,22 @@ class IPv4SupernetHandler:
             )
         except errors.ValidationError as exc:
             return view.exception_response(errors.InvalidArgument(message=exc.message))
+        except errors.Error as exc:
+            return view.exception_response(exc)
 
         return Response(data=ipam_serializers.IPv4SupernetSerializer(instance=supernet).data)
+
+    @staticmethod
+    def delete_ipv4_supernet(view: NormalGenericViewSet, request, kwargs):
+        ur_wrapper = NetIPamUserRoleWrapper(user=request.user)
+        if not ur_wrapper.has_ipam_admin_writable():
+            return view.exception_response(
+                errors.AccessDenied(message=_('你没有网络IP管理功能的管理员权限')))
+
+        try:
+            supernet = IPv4SupernetManager.get_ip_supernet(_id=kwargs[view.lookup_field])
+            supernet.delete()
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        return Response(status=204)

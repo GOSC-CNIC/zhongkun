@@ -468,7 +468,7 @@ class IPv4Supernet(IPSupernetBase, IPv4RangeBase):
     class Meta:
         ordering = ('-creation_time',)
         db_table = 'net_ipam_ipv4_supernet'
-        verbose_name = _('IPv4地址超网段')
+        verbose_name = _('IPv4超网段')
         verbose_name_plural = verbose_name
 
     def save(self, force_insert=False, force_update=False, using=None,

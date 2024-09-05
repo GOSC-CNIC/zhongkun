@@ -9,6 +9,7 @@ from django.utils.text import smart_split, unescape_string_literal
 from django.contrib.admin.utils import lookup_spawns_duplicates
 
 from utils.model import BaseModelAdmin
+from apps.app_net_ipam.managers.ipv4_mgrs import IPv4SupernetManager
 from .models import (
     NetIPamUserRole, ASN, IPv4Address, IPv4Range, IPv4RangeRecord, IPv4Supernet,
     IPv6Range, IPv6Address, IPv6RangeRecord
@@ -288,14 +289,19 @@ class IPv6RangeRecordAdmin(IPModelAdmin):
 @admin.register(IPv4Supernet)
 class IPv4SupernetAdmin(IPModelAdmin):
     list_display = ('id', 'name', 'start_address', 'end_address', 'mask_len', 'display_ip_range', 'asn', 'status',
-                    'creation_time', 'update_time', 'remark')
+                    'used_ip_count', 'total_ip_count', 'display_rate', 'creation_time', 'update_time', 'remark')
     list_filter = ('status', 'mask_len')
     search_fields = ('name', 'remark')
 
     @staticmethod
     @admin.display(description=gettext_lazy('地址段易读显示'))
-    def display_ip_range(obj: IPv4Range):
+    def display_ip_range(obj: IPv4Supernet):
         return obj.ip_range_display()
+
+    @staticmethod
+    @admin.display(description=gettext_lazy('分配率'))
+    def display_rate(obj: IPv4Supernet):
+        return f'{(obj.used_ip_count / obj.total_ip_count * 100):.2}%'
 
     @staticmethod
     def get_ip_search_q(search_term):
@@ -308,3 +314,7 @@ class IPv4SupernetAdmin(IPModelAdmin):
                 [('start_address__lte', ip_int), ('end_address__gte', ip_int)], connector=models.Q.AND)
         except ipaddress.AddressValueError:
             return None
+
+    def save_model(self, request, obj, form, change):
+        super(IPv4SupernetAdmin, self).save_model(request=request, obj=obj, form=form, change=change)
+        IPv4SupernetManager.update_supernet_status_rate(supernet=obj)
