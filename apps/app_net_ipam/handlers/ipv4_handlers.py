@@ -561,7 +561,7 @@ class IPv4SupernetHandler:
 
     def add_ipv4_supernet(self, view: NormalGenericViewSet, request):
         try:
-            data = self._add_ipv4_ranges_validate_params(view=view, request=request)
+            data = self._add_ipv4_supernet_validate_params(view=view, request=request)
         except errors.Error as exc:
             return view.exception_response(exc)
 
@@ -582,7 +582,7 @@ class IPv4SupernetHandler:
         return Response(data=ipam_serializers.IPv4SupernetSerializer(instance=ipv4_supernet).data)
 
     @staticmethod
-    def _add_ipv4_ranges_validate_params(view: NormalGenericViewSet, request):
+    def _add_ipv4_supernet_validate_params(view: NormalGenericViewSet, request):
         serializer = view.get_serializer(data=request.data)
         if not serializer.is_valid(raise_exception=False):
             s_errors = serializer.errors
@@ -676,3 +676,26 @@ class IPv4SupernetHandler:
             'search': search,
             'status': status
         }
+
+    def update_ipv4_supernet(self, view: NormalGenericViewSet, request, kwargs):
+        try:
+            data = self._add_ipv4_supernet_validate_params(view=view, request=request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        ur_wrapper = NetIPamUserRoleWrapper(user=request.user)
+        if not ur_wrapper.has_ipam_admin_writable():
+            return view.exception_response(
+                errors.AccessDenied(message=_('你没有网络IP管理功能的管理员权限')))
+
+        try:
+            supernet = IPv4SupernetManager.get_ip_supernet(_id=kwargs[view.lookup_field])
+            supernet, up_fields = IPv4SupernetManager().update_ipv4_supernet(
+                ip_supernet=supernet, operator=request.user.username,
+                start_address=data['start_address'], end_address=data['end_address'], mask_len=data['mask_len'],
+                asn=data['asn'], remark=data['remark']
+            )
+        except errors.ValidationError as exc:
+            return view.exception_response(errors.InvalidArgument(message=exc.message))
+
+        return Response(data=ipam_serializers.IPv4SupernetSerializer(instance=supernet).data)

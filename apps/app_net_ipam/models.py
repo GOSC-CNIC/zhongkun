@@ -310,6 +310,9 @@ class IPv4RangeBase(models.Model):
 
 
 class IPv4Range(IPRangeBase, IPv4RangeBase):
+    """
+    调用第一个父类IPRangeBase的save
+    """
     class Meta:
         ordering = ('start_address',)
         db_table = 'net_ipam_ipv4_range'
@@ -317,7 +320,10 @@ class IPv4Range(IPRangeBase, IPv4RangeBase):
         verbose_name_plural = verbose_name
 
     def clean(self, exclude_ids: list = None):
+        # 调用第1个父类IPRangeBase的clean
         super(IPv4Range, self).clean()
+        # 调用第2个父类IPv4RangeBase的clean
+        super(IPRangeBase, self).clean()
         self.clean_check(range_id=self.id, exclude_ids=exclude_ids)
 
 
@@ -465,8 +471,24 @@ class IPv4Supernet(IPSupernetBase, IPv4RangeBase):
         verbose_name = _('IPv4地址超网段')
         verbose_name_plural = verbose_name
 
+    def save(self, force_insert=False, force_update=False, using=None,
+             update_fields: list = None):
+        if self.total_ip_count != self.ips_num:
+            self.total_ip_count = self.ips_num
+            if update_fields and 'total_ip_count' not in update_fields:
+                update_fields.append('total_ip_count')
+
+        # 调用第一个父类IPSupernetBase的save
+        super(IPv4Supernet, self).save(
+            force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
+
+    @property
+    def ips_num(self) -> int:
+        return self.end_address - self.start_address + 1
+
     def clean(self):
-        super(IPv4Supernet, self).clean()
+        super(IPv4Supernet, self).clean()       # IPSupernetBase.clean()
+        super(IPSupernetBase, self).clean()     # IPv4RangeBase.clean()
         self.clean_check(range_id=self.id)
 
 

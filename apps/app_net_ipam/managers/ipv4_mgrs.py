@@ -1177,7 +1177,7 @@ class IPv4SubnetCollector:
 
     @property
     def supernet_ips_num(self) -> int:
-        return self.supernet.end_address - self.supernet.start_address + 1
+        return self.supernet.ips_num
 
     def supernet_status(self):
         subnet_count = self.subnet_count
@@ -1285,3 +1285,93 @@ class IPv4SupernetManager:
 
         supernet.name = str(supernet.start_address_network)
         return supernet
+
+    def update_ipv4_supernet(
+            self, ip_supernet: IPv4Supernet, start_address: Union[str, int], end_address: Union[str, int],
+            mask_len: int, asn: int, remark: str, operator: str
+    ) -> (IPv4Supernet, List):
+        """
+        :return: IPv4Supernet, update_fields: list
+        :raises: ValidationError
+        """
+        if isinstance(start_address, int):
+            start_int = start_address
+        else:
+            start_int = ipv4_str_to_int(ipv4=start_address)
+
+        if isinstance(end_address, int):
+            end_int = end_address
+        else:
+            end_int = ipv4_str_to_int(ipv4=end_address)
+
+        mask_len = int(mask_len)
+        if not (0 <= mask_len <= 32):
+            raise errors.ValidationError(message=_('子网掩码长度无效，取值范围为0-32'))
+
+        update_fields = []
+        if start_int != ip_supernet.start_address:
+            ip_supernet.start_address = start_int
+            update_fields.append('start_address')
+
+        if end_int != ip_supernet.end_address:
+            ip_supernet.end_address = end_int
+            update_fields.append('end_address')
+
+        if mask_len != ip_supernet.mask_len:
+            ip_supernet.mask_len = mask_len
+            update_fields.append('mask_len')
+
+        if asn != ip_supernet.asn:
+            ip_supernet.asn = asn
+            update_fields.append('asn')
+
+        if remark and ip_supernet.remark != remark:
+            ip_supernet.remark = remark
+            update_fields.append('remark')
+
+        if update_fields:
+            ip_supernet.clear_cached_property()  # 字段值变更了，需要清除缓存属性
+            new_name = str(ip_supernet.start_address_network)
+            if ip_supernet.name != new_name:
+                ip_supernet.name = new_name
+                update_fields.append('name')
+
+            if ip_supernet.operator != operator:
+                ip_supernet.operator = operator
+                update_fields.append('operator')
+
+            ip_supernet.update_time = dj_timezone.now()
+            update_fields.append('update_time')
+
+            try:
+                ip_supernet.clean()
+            except ValidationError as exc:
+                raise errors.ValidationError(message=exc.messages[0])
+
+            ip_supernet.save(update_fields=update_fields)
+
+        sp, sub_fields = self.update_supernet_status_rate(supernet=ip_supernet)
+        update_fields += sub_fields
+
+        return ip_supernet, update_fields
+
+    @staticmethod
+    def update_supernet_status_rate(supernet: IPv4Supernet):
+        """
+        更新超网状态和ip分配率
+        """
+        update_fields = []
+        subnet_collector = IPv4SubnetCollector.parse(supernet=supernet)
+        if supernet.used_ip_count != subnet_collector.assigned_ip_count:
+            supernet.used_ip_count = subnet_collector.assigned_ip_count
+            update_fields.append('used_ip_count')
+
+        new_status = subnet_collector.supernet_status()
+        if supernet.status != new_status:
+            supernet.status = new_status
+            update_fields.append('status')
+
+        if update_fields:
+            supernet.save(update_fields=update_fields)
+
+        return supernet, update_fields

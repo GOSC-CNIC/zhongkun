@@ -810,10 +810,53 @@ class IPv4SupernetViewSet(NormalGenericViewSet):
         """
         return IPv4SupernetHandler().list_ipv4_supernets(view=self, request=request)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('修改ipv4超网地址段'),
+        manual_parameters=[],
+        responses={
+            200: ''''''
+        }
+    )
+    def update(self, request, *args, **kwargs):
+        """
+        修改ipv4超网地址段，需要有IP地址管理员权限
+
+            http Code 200 Ok:
+                {
+                    "id": "h94kqms93k1bekbs4wqfjrqkj",
+                    "name": "0.0.1.0/24",
+                    "status": "in-warehouse",
+                    "start_address": 256,
+                    "end_address": 511,
+                    "mask_len": 24,
+                    "asn": 4294967295,
+                    "remark": "",
+                    "creation_time": "2024-09-04T01:25:32.903945Z",
+                    "update_time": "2024-09-04T01:25:32.903945Z",
+                    "operator": "tom@qq.com",
+                    "used_ip_count": 0,
+                    "total_ip_count": 255
+                }
+
+            Http Code 400, 403, 500:
+                {
+                    "code": "BadRequest",
+                    "message": "xxxx"
+                }
+
+                可能的错误码：
+                400:
+                InvalidArgument: 参数无效
+
+                403:
+                AccessDenied: 你没有IP管理功能的管理员权限
+        """
+        return IPv4SupernetHandler().update_ipv4_supernet(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return ipam_serializers.IPv4SupernetSerializer
-        elif self.action == 'create':
+        elif self.action in ['create', 'update']:
             return ipam_serializers.IPv4SupernetCreateSerializer
 
         return Serializer
