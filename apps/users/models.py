@@ -92,6 +92,7 @@ class Email(UuidModel):
         RES_EXP = 'res-exp', _('资源过期通知')
         ARREAR = 'arrear', _('欠费通知')
         API = 'api', _('API请求')
+        OPS = 'ops', _('服务维护通知')
         OTHER = 'other', _('其他')
 
     class Status(models.TextChoices):
