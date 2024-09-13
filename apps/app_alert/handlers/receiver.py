@@ -50,7 +50,7 @@ class AlertReceiver(object):
             item["severity"] = severity
             item["summary"] = annotations.get("summary")
             item["description"] = annotations.get("description")
-            item["start"] = self.date_to_timestamp(alert.get("startsAt"))
+            item["start"] = self.timestamp
             item["end"] = self.generate_alert_end_timestamp()
             items.append(item)
         return items
