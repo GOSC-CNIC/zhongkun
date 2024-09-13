@@ -184,6 +184,7 @@ class MeteringServerViewSet(CustomGenericViewSet):
                 "total_public_ip_hours": 2400.0,
                 "total_original_amount": 3810.0,
                 "total_trade_amount": 123.00,
+                "service_id": "xxx",
                 "service_name": "科技云联邦研发与运行",           
                 "server": {                                   
                     "id": "006621ec-36f8-11ec-bc59-c8009fe2eb03",
@@ -825,6 +826,7 @@ class MeteringDiskViewSet(CustomGenericViewSet):
                 "total_size_hours": 19200.0,
                 "total_original_amount": 3810.0,
                 "total_trade_amount": 123.00,
+                "service_id": "xxx",
                 "service_name": "科技云联邦研发与运行",
                 "disk": {
                     "id": "006621ec-36f8-11ec-bc59-c8009fe2eb03",

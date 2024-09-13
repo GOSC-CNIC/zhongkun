@@ -449,7 +449,10 @@ class MeteringServerTests(MyAPITestCase):
         r = self.client.get(f'{base_url}?{query}')
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data["count"], 2)
-        self.assertEqual(len(r.data['results']), 2) 
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertKeysIn([
+            'total_cpu_hours', 'total_ram_hours', 'total_disk_hours', 'total_public_ip_hours', 'total_original_amount',
+            'total_trade_amount', 'service_id', 'service_name', 'server'], r.data['results'][0])
         self.assertEqual(r.data['results'][0]['total_cpu_hours'], 5.1)
         self.assertEqual(r.data['results'][0]['server']['ipv4'], '1.1.1.1')
         self.assertEqual(r.data['results'][1]['total_cpu_hours'], 7)
@@ -2708,7 +2711,7 @@ class MeteringDiskTests(MyAPITestCase):
         self.assertEqual(r.data["count"], 2)
         self.assertEqual(len(r.data['results']), 2)
         self.assertKeysIn(['disk_id', 'total_size_hours', 'total_original_amount', 'total_trade_amount',
-                           'service_name', 'disk'], r.data['results'][0])
+                           'service_id', 'service_name', 'disk'], r.data['results'][0])
         self.assertKeysIn(['id', 'size', 'remarks'], r.data['results'][0]['disk'])
         self.assertEqual(r.data['results'][0]['total_size_hours'], 5.1)
         self.assertEqual(r.data['results'][0]['total_original_amount'], Decimal('1.11'))

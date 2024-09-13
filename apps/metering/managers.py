@@ -337,14 +337,16 @@ class MeteringServerManager(BaseMeteringManager):
         按server id聚合数据分页后混合其他数据
         """
         server_ids = [i['server_id'] for i in data]
-        servers = Server.objects.filter(id__in=server_ids).values('id', 'ipv4', 'ram', 'vcpus', 'service__name')
+        servers = Server.objects.filter(id__in=server_ids).values(
+            'id', 'ipv4', 'ram', 'vcpus', 'service_id', 'service__name')
         archives = ServerArchive.objects.filter(
             server_id__in=server_ids, archive_type=ServerArchive.ArchiveType.ARCHIVE.value
-        ).values('server_id', 'ipv4', 'ram', 'vcpus', 'service__name')
+        ).values('server_id', 'ipv4', 'ram', 'vcpus', 'service_id', 'service__name')
 
         server_dict = {}
         for s in servers:
             d = {
+                'service_id': s.pop('service_id', None),
                 'service_name': s.pop('service__name', None),
                 'server': s
             }
@@ -354,6 +356,7 @@ class MeteringServerManager(BaseMeteringManager):
             server_id = a['id'] = a.pop('server_id', None)
             if server_id and server_id not in server_dict:
                 d = {
+                    'service_id': a.pop('service_id', None),
                     'service_name': a.pop('service__name', None),
                     'server': a
                 }
@@ -365,6 +368,7 @@ class MeteringServerManager(BaseMeteringManager):
             if sid in server_dict:
                 i.update(server_dict[sid])
             else:
+                i['service_id'] = None
                 i['service_name'] = None
                 i['server'] = None
 
@@ -1247,17 +1251,22 @@ class MeteringDiskManager(BaseMeteringManager):
         """
         disk_ids = [i['disk_id'] for i in data]
         disks = Disk.objects.filter(id__in=disk_ids).values(
-            'id', 'size', 'remarks', 'pay_type', 'service__name')
+            'id', 'size', 'remarks', 'pay_type', 'service_id', 'service__name')
 
         disk_dict = {}
         for disk in disks:
-            disk_dict[disk['id']] = {'service_name': disk.pop('service__name', None), 'disk': disk}
+            disk_dict[disk['id']] = {
+                'service_id': disk.pop('service_id', None),
+                'service_name': disk.pop('service__name', None),
+                'disk': disk
+            }
 
         for i in data:
             d_id = i['disk_id']
             if d_id in disk_dict:
                 i.update(disk_dict[d_id])
             else:
+                i['service_id'] = ''
                 i['service_name'] = ''
                 i['disk'] = None
 
