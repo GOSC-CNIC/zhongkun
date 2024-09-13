@@ -13,7 +13,7 @@ from core import errors
 from apps.app_net_manage.models import OrgVirtualObject
 from apps.app_net_ipam.models import (
     IPv4Range, ASN, ipv4_str_to_int, IPv4RangeRecord,
-    IPRangeItem, IPRangeIntItem, IPv4Address, IPv4Supernet
+    IPRangeItem, IPRangeIntItem, IPv4Address, IPv4Supernet, ExternalIPv4Range
 )
 from apps.app_net_ipam.managers.common import NetIPamUserRoleWrapper
 
@@ -1375,3 +1375,91 @@ class IPv4SupernetManager:
             supernet.save(update_fields=update_fields)
 
         return supernet, update_fields
+
+
+class ExternalIPv4RangeManager:
+    @staticmethod
+    def get_ipv4_range(_id: str) -> ExternalIPv4Range:
+        ip_range = ExternalIPv4Range.objects.filter(id=_id).first()
+        if ip_range is None:
+            raise errors.TargetNotExist(message=_('外部IP地址段不存在'))
+
+        return ip_range
+
+    @staticmethod
+    def get_ipv4_range_by_ip(ip_int: int) -> ExternalIPv4Range:
+        ip_range = ExternalIPv4Range.objects.filter(
+            start_address__lte=ip_int, end_address__gte=ip_int).first()
+        if ip_range is None:
+            raise errors.TargetNotExist(message=_('外部IP地址段不存在'))
+
+        return ip_range
+
+    @staticmethod
+    def get_queryset() -> QuerySet:
+        return ExternalIPv4Range.objects.all()
+
+    def filter_queryset(self, status: Union[str, None], asn: int, ipv4_int: int, search: str):
+        """
+        各参数为真时过滤
+        """
+        qs = self.get_queryset()
+        lookups = {}
+
+        if status:
+            lookups['status'] = status
+
+        if asn:
+            lookups['asn'] = asn
+
+        if ipv4_int:
+            lookups['start_address__lte'] = ipv4_int
+            lookups['end_address__gte'] = ipv4_int
+
+        if lookups:
+            qs = qs.filter(**lookups)
+
+        if search:
+            qs = qs.filter(Q(name__icontains=search) | Q(remark__icontains=search))
+
+        return qs
+
+    def create_external_ipv4_range(
+            self, start_address: int, end_address: int, mask_len: int, asn: int, remark: str,
+            operator: str, org_name: str, country: str, city: str
+    ):
+        ip_range = self.build_external_ipv4_range(
+            start_address=start_address, end_address=end_address, mask_len=mask_len, asn=asn,
+            remark=remark, operator=operator, org_name=org_name, country=country, city=city
+        )
+        try:
+            ip_range.clean()
+        except ValidationError as exc:
+            raise errors.ValidationError(message=str(exc))
+
+        ip_range.save(force_insert=True)
+        return ip_range
+
+    @staticmethod
+    def build_external_ipv4_range(
+            start_address: int, end_address: int, mask_len: int, asn: int, remark: str,
+            operator: str, org_name: str, country: str, city: str, creation_time=None, update_time=None
+    ):
+        """
+        构建超网对象，不保存到数据库
+        """
+        nt = dj_timezone.now()
+        if not creation_time:
+            creation_time = nt
+
+        if not update_time:
+            update_time = nt
+
+        ip_range = ExternalIPv4Range(
+            start_address=start_address, end_address=end_address, mask_len=mask_len, asn=asn,
+            remark=remark, operator=operator, creation_time=creation_time, update_time=update_time,
+            org_name=org_name, country=country, city=city
+        )
+
+        ip_range.name = str(ip_range.start_address_network)
+        return ip_range

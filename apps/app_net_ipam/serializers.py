@@ -246,3 +246,20 @@ class IPv4SupernetSerializer(IPv4SupernetCreateSerializer):
     operator = serializers.CharField()
     used_ip_count = serializers.IntegerField()
     total_ip_count = serializers.IntegerField()
+
+
+class ExternalIPv4RangeSerializer(serializers.Serializer):
+    start_address = serializers.IntegerField(label=_('起始地址'), required=True, min_value=0, max_value=4294967295)
+    end_address = serializers.IntegerField(label=_('截止地址'), required=True, min_value=0, max_value=4294967295)
+    mask_len = serializers.IntegerField(label=_('子网掩码长度'), required=True, min_value=0, max_value=32)
+    asn = serializers.IntegerField(label=_('AS编号'), required=True, min_value=0, max_value=4294967295)
+    org_name = serializers.CharField(label=_('机构'), max_length=128, allow_blank=True, default='')
+    country = serializers.CharField(label=_('国家'), max_length=64, allow_blank=True, default='')
+    city = serializers.CharField(label=_('城市'), max_length=128, allow_blank=True, default='')
+    remark = serializers.CharField(label=_('备注'), max_length=255, allow_blank=True, default='')
+
+    id = serializers.CharField(label='id', read_only=True)
+    name = serializers.CharField(label='名称', read_only=True)
+    operator = serializers.CharField(label='操作人', read_only=True)
+    creation_time = serializers.DateTimeField(label='创建时间', read_only=True)
+    update_time = serializers.DateTimeField(label='更新时间', read_only=True)

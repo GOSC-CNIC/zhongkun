@@ -12,7 +12,7 @@ from utils.model import BaseModelAdmin
 from apps.app_net_ipam.managers.ipv4_mgrs import IPv4SupernetManager
 from .models import (
     NetIPamUserRole, ASN, IPv4Address, IPv4Range, IPv4RangeRecord, IPv4Supernet,
-    IPv6Range, IPv6Address, IPv6RangeRecord
+    IPv6Range, IPv6Address, IPv6RangeRecord, ExternalIPv4Range
 )
 
 
@@ -318,3 +318,28 @@ class IPv4SupernetAdmin(IPModelAdmin):
     def save_model(self, request, obj, form, change):
         super(IPv4SupernetAdmin, self).save_model(request=request, obj=obj, form=form, change=change)
         IPv4SupernetManager.update_supernet_status_rate(supernet=obj)
+
+
+@admin.register(ExternalIPv4Range)
+class ExternalIPv4RangeAdmin(IPModelAdmin):
+    list_display = ('id', 'name', 'start_address', 'end_address', 'mask_len', 'display_ip_range', 'asn', 'org_name',
+                    'country', 'city', 'operator', 'creation_time', 'update_time', 'remark')
+    list_filter = ('mask_len',)
+    search_fields = ('name', 'remark', 'org_name')
+
+    @staticmethod
+    @admin.display(description=gettext_lazy('地址段易读显示'))
+    def display_ip_range(obj: IPv4Supernet):
+        return obj.ip_range_display()
+
+    @staticmethod
+    def get_ip_search_q(search_term):
+        if not search_term:
+            return None
+
+        try:
+            ip_int = int(ipaddress.IPv4Address(search_term))
+            return models.Q.create(
+                [('start_address__lte', ip_int), ('end_address__gte', ip_int)], connector=models.Q.AND)
+        except ipaddress.AddressValueError:
+            return None

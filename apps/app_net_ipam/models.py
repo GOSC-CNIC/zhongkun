@@ -492,6 +492,31 @@ class IPv4Supernet(IPSupernetBase, IPv4RangeBase):
         self.clean_check(range_id=self.id)
 
 
+class ExternalIPv4Range(UuidModel, IPv4RangeBase):
+    """
+    外部ipv4地址段
+    """
+    name = models.CharField(verbose_name=_('名称'), max_length=255, blank=True, default='')
+    asn = models.PositiveIntegerField(verbose_name=_('AS编号'), default=0)
+    org_name = models.CharField(verbose_name=_('机构'), max_length=128, blank=True, default='')
+    country = models.CharField(verbose_name=_('国家'), max_length=64, blank=True, default='')
+    city = models.CharField(verbose_name=_('城市'), max_length=128, blank=True, default='')
+    operator = models.CharField(verbose_name=_('操作人'), max_length=128, blank=True, default='')
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'))
+    update_time = models.DateTimeField(verbose_name=_('更新时间'))
+    remark = models.CharField(verbose_name=_('备注'), max_length=255, blank=True, default='')
+
+    class Meta:
+        ordering = ('-creation_time',)
+        db_table = 'net_ipam_external_ipv4'
+        verbose_name = _('IPv4外部地址段')
+        verbose_name_plural = verbose_name
+
+    def clean(self):
+        super(UuidModel, self).clean()     # IPv4RangeBase.clean()
+        self.clean_check(range_id=self.id)
+
+
 class IPv6Range(IPRangeBase):
     """
     注意：删除时会一起删除关联的 ip address，删除前需要先更新 ip address 关联的ip range

@@ -8,6 +8,7 @@ from drf_yasg import openapi
 from apps.api.paginations import NewPageNumberPagination, NewPageNumberPagination100
 from apps.api.viewsets import NormalGenericViewSet
 from apps.app_net_ipam.handlers.ipv4_handlers import IPv4RangeHandler, IPv4SupernetHandler
+from apps.app_net_ipam.handlers.external_ip_handlers import ExternalIPv4RangeHandler
 from apps.app_net_ipam.models import IPv4Range, IPv4Supernet
 from apps.app_net_ipam import serializers as ipam_serializers
 from apps.app_net_ipam.permissions import IPamIPRestrictPermission
@@ -885,5 +886,59 @@ class IPv4SupernetViewSet(NormalGenericViewSet):
             return ipam_serializers.IPv4SupernetSerializer
         elif self.action in ['create', 'update']:
             return ipam_serializers.IPv4SupernetCreateSerializer
+
+        return Serializer
+
+
+class ExternalIPv4RangeViewSet(NormalGenericViewSet):
+    permission_classes = [IsAuthenticated, IPamIPRestrictPermission]
+    pagination_class = NewPageNumberPagination100
+    lookup_field = 'id'
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('添加外部ipv4地址段'),
+        responses={
+            200: ''''''
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        """
+        添加外部ipv4地址段，需要有IP地址管理员权限
+
+            http Code 200 Ok:
+                {
+                    "id": "h94kqms93k1bekbs4wqfjrqkj",
+                    "name": "0.0.1.0/24",
+                    "start_address": 256,
+                    "end_address": 511,
+                    "mask_len": 24,
+                    "asn": 4294967295,
+                    "remark": "",
+                    "creation_time": "2024-09-04T01:25:32.903945Z",
+                    "update_time": "2024-09-04T01:25:32.903945Z",
+                    "operator": "tom@qq.com",
+                    "org_name": "xxx",
+                    "country": "中国",
+                    "city": "北京",
+                }
+
+            Http Code 400, 403, 500:
+                {
+                    "code": "BadRequest",
+                    "message": "xxxx"
+                }
+
+                可能的错误码：
+                400:
+                InvalidArgument: 参数无效
+
+                403:
+                AccessDenied: 你没有IP管理功能的管理员权限
+        """
+        return ExternalIPv4RangeHandler().add_external_ipv4_range(view=self, request=request)
+
+    def get_serializer_class(self):
+        if self.action in ['create', 'update']:
+            return ipam_serializers.ExternalIPv4RangeSerializer
 
         return Serializer
