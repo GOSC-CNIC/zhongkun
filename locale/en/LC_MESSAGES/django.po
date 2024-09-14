@@ -1259,6 +1259,10 @@ msgid "AAI登录，客户端密钥"
 msgstr "AAI Auth，Client Secret Key"
 
 #: apps/app_global/models.py:69
+msgid "AAI JWT认证公钥"
+msgstr ""
+
+#: apps/app_global/models.py:70
 msgid "prometheus服务地址"
 msgstr "Prometheus service url"
 
@@ -1785,6 +1789,10 @@ msgstr "organization"
 msgid "IP地址网段"
 msgstr "IP network segment"
 
+#: apps/app_net_ipam/admin.py:302
+msgid "分配率"
+msgstr "Assign Rate"
+
 #: apps/app_net_ipam/api_viewsets/common_views.py:20
 msgid "查询用户在net_ipam中用户角色和权限"
 msgstr "Query user roles and permissions in net_ipam"
@@ -1945,6 +1953,30 @@ msgstr ""
 "Keyword query for comments, when this parameter value is an empty string, "
 "query all valid IP addresses for comments"
 
+#: apps/app_net_ipam/api_viewsets/ipv4_views.py:693
+msgid "ipv4地址池添加一个超网地址段"
+msgstr "Add a supernet address segment to the IPv4 address pool"
+
+#: apps/app_net_ipam/api_viewsets/ipv4_views.py:735
+msgid "列举ipv4超网地址段"
+msgstr "List IPv4 supernet"
+
+#: apps/app_net_ipam/api_viewsets/ipv4_views.py:749
+msgid "ip查询，x.x.x.x"
+msgstr "search ip, x.x.x.x"
+
+#: apps/app_net_ipam/api_viewsets/ipv4_views.py:763
+msgid "状态筛选"
+msgstr "Status filtering"
+
+#: apps/app_net_ipam/api_viewsets/ipv4_views.py:814
+msgid "修改ipv4超网地址段"
+msgstr "Modify IPv4 supernet address range"
+
+#: apps/app_net_ipam/api_viewsets/ipv4_views.py:857
+msgid "删除ipv4超网地址段"
+msgstr "Delete IPv4 supernet address range"
+
 #: apps/app_net_ipam/api_viewsets/ipv6_views.py:22
 msgid "列举IPv6地址段"
 msgstr "List IPv6 address ranges"
@@ -1984,6 +2016,20 @@ msgstr "Modify the remarks information of a subnet IPv6 address range"
 #: apps/app_net_ipam/api_viewsets/ipv6_views.py:414
 msgid "管理员备注，需要有IP地址管理员权限"
 msgstr "Administrator's remarks, requires administrator privileges"
+
+#: apps/app_net_ipam/api_viewsets/ipv6_views.py:433
+msgid "按指定拆分方案拆分IPv6地址段"
+msgstr "Split IPv6 address segments according to the specified splitting plan"
+
+#: apps/app_net_ipam/api_viewsets/ipv6_views.py:484
+msgid "查询IPv6地址段拆分方案"
+msgstr "Query the IPv6 address segment splitting plan."
+
+#: apps/app_net_ipam/api_viewsets/ipv6_views.py:518
+msgid "子网IPv6地址段合并为一个指定前缀长度的超网地址段"
+msgstr ""
+"Merge subnet IPv6 address segments into a specified mask length supernet "
+"address segment"
 
 #: apps/app_net_ipam/apps.py:8
 msgid "IP管理"
@@ -2187,11 +2233,22 @@ msgstr "The subnet prefix length is invalid."
 msgid "备注信息长度不能超过255字符"
 msgstr "The length of the remark information cannot exceed 255 characters"
 
-#: apps/app_net_ipam/managers/ipv4_mgrs.py:49
-#: apps/app_net_ipam/managers/ipv4_mgrs.py:58
-#: apps/app_net_ipam/managers/ipv4_mgrs.py:693
-#: apps/app_net_ipam/managers/ipv4_mgrs.py:720
-#: apps/app_net_ipam/managers/ipv6_mgrs.py:24
+#: apps/app_net_ipam/handlers/ipv6_handlers.py:392
+msgid "指定的分拆子网数不能超过256"
+msgstr "The specified number of split subnets cannot exceed 256"
+
+#: apps/app_net_ipam/handlers/ipv6_handlers.py:447
+msgid "掩码长度可选的有效值为1-127，并且必须大于要拆分的IP地址段的掩码长度。"
+msgstr ""
+"The valid values for the optional mask length are 1-127, and it must be "
+"greater than the prefix length of the IP address segment to be split."
+
+#: apps/app_net_ipam/managers/ipv4_mgrs.py:50
+#: apps/app_net_ipam/managers/ipv4_mgrs.py:59
+#: apps/app_net_ipam/managers/ipv4_mgrs.py:694
+#: apps/app_net_ipam/managers/ipv4_mgrs.py:721
+#: apps/app_net_ipam/managers/ipv6_mgrs.py:26
+#: apps/app_net_ipam/managers/ipv6_mgrs.py:577
 msgid "IP地址段不存在"
 msgstr "The IP address range does not exist"
 
@@ -2372,10 +2429,15 @@ msgstr ""
 "The following two address ranges do not belong to the same subnet and cannot "
 "be merged into a subnet of the specified mask length:"
 
-#: apps/app_net_ipam/managers/ipv6_mgrs.py:133
-#: apps/app_net_ipam/managers/ipv6_mgrs.py:140
-#: apps/app_net_ipam/managers/ipv6_mgrs.py:219
-#: apps/app_net_ipam/managers/ipv6_mgrs.py:226
+#: apps/app_net_ipam/managers/ipv4_mgrs.py:1202
+#: apps/app_net_ipam/managers/ipv4_mgrs.py:1211
+msgid "IP地址超网段不存在"
+msgstr "The IP address supernet range does not exist"
+
+#: apps/app_net_ipam/managers/ipv6_mgrs.py:135
+#: apps/app_net_ipam/managers/ipv6_mgrs.py:142
+#: apps/app_net_ipam/managers/ipv6_mgrs.py:221
+#: apps/app_net_ipam/managers/ipv6_mgrs.py:228
 msgid "字节格式的ip地址长度必须是16字节"
 msgstr "The length of the IP address in byte format must be 16 bytes"
 
@@ -2384,7 +2446,46 @@ msgstr "The length of the IP address in byte format must be 16 bytes"
 msgid "前缀长度无效，取值范围为0-128"
 msgstr "The prefix length is invalid, with a value range of 0-128"
 
-#: apps/app_net_ipam/models.py:87 apps/app_net_ipam/serializers.py:10
+#: apps/app_net_ipam/managers/ipv6_mgrs.py:511
+msgid "IPv6地址段对象id无效"
+msgstr "Invalid IPv6 address range id"
+
+#: apps/app_net_ipam/managers/ipv6_mgrs.py:513
+msgid "值必须是一个IPv6地址段对象或者是一个id"
+msgstr "The value must be an IPv6 address range object or an ID"
+
+#: apps/app_net_ipam/managers/ipv6_mgrs.py:614
+msgid "子网起始地址(%(subaddr)s)与要拆分的超网起始地址(%(superaddr)s)不一致。"
+msgstr ""
+"The subnet starting address (%(subaddr)s) is inconsistent with the starting "
+"address of the supernet to be split (%(superaddr)s)."
+
+#: apps/app_net_ipam/managers/ipv6_mgrs.py:621
+msgid "子网结束地址(%(subaddr)s)与要拆分的超网结束地址(%(superaddr)s)不一致。"
+msgstr ""
+"The subnet end address (%(subaddr)d) is inconsistent with the subnet end "
+"address (%(superaddr)d) to be split."
+
+#: apps/app_net_ipam/managers/ipv6_mgrs.py:633
+msgid "子网掩码长度不得大于128。"
+msgstr "The subnet prefix length must not exceed 128."
+
+#: apps/app_net_ipam/managers/ipv6_mgrs.py:659
+msgid "子网掩码长度不能大于128"
+msgstr "The subnet prefix length cannot exceed 128"
+
+#: apps/app_net_ipam/managers/ipv6_mgrs.py:703
+msgid "prefixlen_diff 可选值范围1-8，最多平拆出256个目标前缀长度的子网"
+msgstr ""
+"The optional value range for prefix length is 1-8, and up to 256 subnets "
+"with target prefix length can be split."
+
+#: apps/app_net_ipam/managers/ipv6_mgrs.py:815
+msgid "要合并成的超网IP地址段的掩码长度必须为1-128"
+msgstr ""
+"The prefix length of the subnet IP address range to be merged must be 1-128"
+
+#: apps/app_net_ipam/models.py:121 apps/app_net_ipam/serializers.py:10
 msgid "IP管理员"
 msgstr "IP Administrator"
 
@@ -2476,11 +2577,18 @@ msgstr "End address"
 msgid "子网掩码长度"
 msgstr "Subnet mask"
 
-#: apps/app_net_ipam/models.py:163
-msgid "IPv4地址段"
-msgstr "IPv4 address range"
+#: apps/app_net_ipam/models.py:249
+msgid "起始地址({start_address})无效"
+msgstr ""
+"The end address must be greater than or equal to the start address "
+"({start_address})"
 
-#: apps/app_net_ipam/models.py:218 apps/app_net_ipam/models.py:447
+#: apps/app_net_ipam/models.py:256
+#, python-brace-format
+msgid "结束地址({start_address})无效"
+msgstr "The end address ({start_address}) is invalid"
+
+#: apps/app_net_ipam/models.py:264 apps/app_net_ipam/models.py:566
 #, python-brace-format
 msgid "结束地址必须大于等于起始地址({start_address})"
 msgstr ""
@@ -2506,7 +2614,11 @@ msgstr ""
 msgid "定义的IP地址段范围超过支持的最大大小({max_size})"
 msgstr "The IP address range exceeds the maximum supported size ({max_size})"
 
-#: apps/app_net_ipam/models.py:269
+#: apps/app_net_ipam/models.py:319
+msgid "IPv4地址段"
+msgstr "IPv4 address range"
+
+#: apps/app_net_ipam/models.py:333
 msgid "网络管理员备注信息"
 msgstr "Administrator's remarks"
 
@@ -2575,7 +2687,35 @@ msgstr "Secondary organization"
 msgid "IPv4段操作记录"
 msgstr "IPv4 range operation record"
 
-#: apps/app_net_ipam/models.py:383 apps/app_net_ipam/models.py:518
+#: apps/app_net_ipam/models.py:444
+msgid "未入库"
+msgstr "out warehouse"
+
+#: apps/app_net_ipam/models.py:445
+msgid "已入库"
+msgstr "in warehouse"
+
+#: apps/app_net_ipam/models.py:446
+msgid "已拆分"
+msgstr "Split"
+
+#: apps/app_net_ipam/models.py:455
+msgid "操作人"
+msgstr "operator"
+
+#: apps/app_net_ipam/models.py:465
+msgid "已分配IP数"
+msgstr "Assigned IPs"
+
+#: apps/app_net_ipam/models.py:466 apps/app_screenvis/models.py:220
+msgid "IP总数"
+msgstr "Total IPs"
+
+#: apps/app_net_ipam/models.py:471
+msgid "IPv4超网段"
+msgstr "IPv4 Supernet"
+
+#: apps/app_net_ipam/models.py:502 apps/app_net_ipam/models.py:645
 #: apps/app_net_ipam/serializers.py:129 apps/app_net_ipam/serializers.py:173
 msgid "前缀长度"
 msgstr "Prefix"
@@ -2645,6 +2785,10 @@ msgstr "Secondary organization object"
 #: apps/app_net_ipam/serializers.py:162
 msgid "子网前缀"
 msgstr "Subnet Prefix "
+
+#: apps/app_net_ipam/serializers.py:219
+msgid "拆分前缀长度"
+msgstr "split prefix length"
 
 #: apps/app_net_link/api_viewsets/common_views.py:20
 msgid "查询用户在net_link中用户角色和权限"
@@ -2737,9 +2881,14 @@ msgstr "You do not have read permission for link management"
 msgid "参数“link_status”业务状态无效"
 msgstr "The business status of parameter 'link_datus' is invalid"
 
-#: apps/app_net_link/handlers/link.py:68 apps/app_net_link/handlers/link.py:229
-#: apps/app_net_link/handlers/link.py:339
-#: apps/app_net_link/handlers/link.py:381
+#: apps/app_net_link/handlers/link.py:78
+msgid "未知的网元类型"
+msgstr "Unknown network element type"
+
+#: apps/app_net_link/handlers/link.py:114
+#: apps/app_net_link/handlers/link.py:277
+#: apps/app_net_link/handlers/link.py:387
+#: apps/app_net_link/handlers/link.py:429
 msgid "你没有链路管理功能的编辑权限"
 msgstr "You do not have editing permission for link management"
 
@@ -2819,7 +2968,11 @@ msgstr "The leased line does not exist"
 msgid "链路不存在"
 msgstr "The link does not exist"
 
-#: apps/app_net_link/managers/link.py:485
+#: apps/app_net_link/managers/link.py:466
+msgid "网元不存在，网元id无效。"
+msgstr "The network element does not exist, invalid id"
+
+#: apps/app_net_link/managers/link.py:510
 msgid "存在链路位置相同的不同类型的网元"
 msgstr ""
 "There are different types of network elements with the same link location"
@@ -3104,11 +3257,7 @@ msgstr "Network element ID"
 msgid "链路ID数组"
 msgstr "Link ID array"
 
-#: apps/app_net_link/serializers.py:29
-msgid "链路ID"
-msgstr "Link ID"
-
-#: apps/app_net_link/serializers.py:115
+#: apps/app_net_link/serializers.py:131
 msgid "租线状态"
 msgstr "status"
 
@@ -4397,10 +4546,6 @@ msgstr "Server Count"
 #: apps/metering/handlers/metering_handler.py:1964
 msgid "云硬盘数"
 msgstr "Disk Count"
-
-#: apps/app_screenvis/models.py:220
-msgid "IP总数"
-msgstr "IP Count"
 
 #: apps/app_screenvis/models.py:221
 msgid "已用IP数"
@@ -9330,7 +9475,11 @@ msgstr ""
 "resources are being delivered, to prevent business conflicts during "
 "concurrency."
 
-#: apps/order/models.py:158
+#: apps/order/models.py:127 apps/service/models.py:56
+msgid "描述"
+msgstr "Description"
+
+#: apps/order/models.py:159
 msgid "更新订单支付状态错误，balance_amount和coupon_amount不能为负数"
 msgstr ""
 "Update order payment status error, 'balance_maunt' and 'coupon_maunt' cannot "
@@ -11363,11 +11512,12 @@ msgstr ""
 "The cloud host has attached %(count)s cloud disks. Please uninstall the "
 "cloud disks first and try again."
 
-#: apps/servers/handlers/server_handler.py:296
+#: apps/servers/handlers/server_handler.py:297
+#, python-format
 msgid "云主机已创建了%(count)s个快照，请先删除云主机快照后重试。"
 msgstr ""
-"The cloud host has creates %(count)s snapshots. Please delete the "
-"cloud server snapshots first and try again."
+"The cloud host has creates %(count)s snapshots. Please delete the cloud "
+"server snapshots first and try again."
 
 #: apps/servers/handlers/server_handler.py:380
 msgid "订购资源数量可选范围1-3"
@@ -11393,7 +11543,20 @@ msgstr ""
 "The unit for ordering period is invalid. It can be selected as either 'day' "
 "or 'month'"
 
-#: apps/servers/handlers/server_handler.py:406
+#: apps/servers/handlers/server_handler.py:420
+msgid "只有以管理员身份请求时允许提交用户名"
+msgstr ""
+"Allow submission of username only when requested as an administrator"
+
+#: apps/servers/handlers/server_handler.py:423
+msgid "不能同时提交vo组和用户名"
+msgstr "Cannot submit VO member ID and username simultaneously"
+
+#: apps/servers/handlers/server_handler.py:428
+msgid "只有以管理员身份请求时需要提交用户名或者vo组"
+msgstr "Only when requesting as an administrator, it is necessary to submit a username or VO group"
+
+#: apps/servers/handlers/server_handler.py:432
 msgid "无效的配置规格flavor id"
 msgstr "Invalid configuration flavor id"
 
@@ -11401,7 +11564,11 @@ msgstr "Invalid configuration flavor id"
 msgid "配置规格和服务单元不匹配"
 msgstr "The configuration flavor and service unit do not match"
 
-#: apps/servers/handlers/server_handler.py:437
+#: apps/servers/handlers/server_handler.py:467
+msgid "你没有服务单元的管理员权限"
+msgstr "You do not have management permissions for the service unit"
+
+#: apps/servers/handlers/server_handler.py:479
 msgid "指定网络不存在."
 msgstr "The specified network does not exist"
 
@@ -11429,7 +11596,13 @@ msgstr ""
 "The system image requires that the system disk size must not be less than "
 "%(value)d GiB"
 
-#: apps/servers/handlers/server_handler.py:586
+#: apps/servers/handlers/server_handler.py:593
+#: apps/servers/handlers/server_handler.py:750
+#, python-format
+msgid "管理员（%(name)s）以管理员身份请求订购"
+msgstr "Administrator (%(name)s) requests to order as an administrator"
+
+#: apps/servers/handlers/server_handler.py:647
 msgid "指定服务无法提供足够的资源。"
 msgstr "The service cannot provide sufficient resources."
 
@@ -12429,8 +12602,12 @@ msgstr ""
 "The system disk size of the cloud server, measured in GiB, only allows "
 "values that are multiples of 50, such as 50, 100, 150, etc"
 
-#: apps/servers/serializers.py:176 apps/servers/serializers.py:422
-#: apps/servers/serializers.py:429
+#: apps/servers/serializers.py:174
+msgid "通过vo_id指定为vo组创建云服务器，不能和“username”一起提交"
+msgstr "Create a cloud server for the vo group using 'vo_id', which cannot be submitted together with 'username'"
+
+#: apps/servers/serializers.py:176 apps/servers/serializers.py:425
+#: apps/servers/serializers.py:432
 msgid "订购时长，单位由period_unit指定"
 msgstr "Order period, unit specified by 'period_unit'"
 
@@ -12442,9 +12619,16 @@ msgstr "period unit, default (Month)"
 msgid "和时长"
 msgstr "period unit"
 
-#: apps/servers/serializers.py:268 apps/servers/serializers.py:271
-#: apps/servers/serializers.py:274 apps/servers/serializers.py:277
-#: apps/servers/serializers.py:280
+#: apps/servers/serializers.py:184
+msgid ""
+"通过“username”指定为用户创建订购云主机，不能和“vo_id”一起提交，管理员参数"
+msgstr ""
+"Create a subscription cloud host for the user by specifying 'username', "
+"which cannot be submitted together with 'vo_i' as an administrator parameter."
+
+#: apps/servers/serializers.py:271 apps/servers/serializers.py:274
+#: apps/servers/serializers.py:277 apps/servers/serializers.py:280
+#: apps/servers/serializers.py:283
 msgid "不更改不要提交此内容"
 msgstr "If you do not make any changes, do not submit this content"
 
@@ -12710,10 +12894,6 @@ msgstr "Postal Code"
 #: apps/service/models.py:53
 msgid "单位地址"
 msgstr "Company Address"
-
-#: apps/service/models.py:56
-msgid "描述"
-msgstr "Description"
 
 #: apps/service/models.py:60
 msgid "机构认证代码url"
@@ -13771,7 +13951,11 @@ msgstr "Notice of Arrears"
 msgid "API请求"
 msgstr "API request"
 
-#: apps/users/models.py:98
+#: apps/users/models.py:95
+msgid "服务维护通知"
+msgstr "Service Maintenance"
+
+#: apps/users/models.py:99
 msgid "待发送"
 msgstr "Wait"
 
@@ -14360,3 +14544,6 @@ msgstr "Resource quota voucher"
 #: utils/validators.py:16
 msgid "值必须是一个有效的JSON字符串。"
 msgstr "The value must be a valid JSON string."
+
+#~ msgid "链路ID"
+#~ msgstr "Link ID"
