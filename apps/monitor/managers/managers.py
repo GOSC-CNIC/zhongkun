@@ -613,7 +613,12 @@ class MonitorWebsiteManager:
         detection_point = self.get_detection_ponit(dp_id=dp_id)
         provider = detection_point.provider
         mntr_label = detection_point.get_mntr_label()
-        return self.request_data(provider=provider, mntr_label=mntr_label, tag=tag, url=website.full_url)
+        if website.scheme.startswith('tcp'):
+            query_url = website.hostname
+        else:
+            query_url = website.full_url
+
+        return self.request_data(provider=provider, mntr_label=mntr_label, tag=tag, url=query_url)
 
     def request_data(self, provider: MonitorProvider, mntr_label: str, tag: str, url: str):
         """
@@ -656,8 +661,14 @@ class MonitorWebsiteManager:
         detection_point = self.get_detection_ponit(dp_id=dp_id)
         provider = detection_point.provider
         mntr_label = detection_point.get_mntr_label()
+
+        if website.scheme.startswith('tcp'):
+            query_url = website.hostname
+        else:
+            query_url = website.full_url
+
         return self.request_range_data(
-            provider=provider, mntr_label=mntr_label, tag=tag, url=website.full_url, start=start, end=end, step=step)
+            provider=provider, mntr_label=mntr_label, tag=tag, url=query_url, start=start, end=end, step=step)
 
     def request_range_data(
             self, provider: MonitorProvider, mntr_label: str, tag: str, url: str, start: int, end: int, step: int
