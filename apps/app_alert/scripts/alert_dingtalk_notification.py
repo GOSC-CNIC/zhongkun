@@ -425,7 +425,7 @@ class DingTalk(object):
 
 def run_task_use_lock():
     nt = dj_timezone.now()
-    ok, exc = alert_dingtalk_notify_lock.acquire(expire_time=(nt + timedelta(minutes=1)))  # 先拿锁
+    ok, exc = alert_dingtalk_notify_lock.acquire(expire_time=(nt + timedelta(minutes=10)))  # 先拿锁
     if not ok:  # 未拿到锁退出
         return
 
