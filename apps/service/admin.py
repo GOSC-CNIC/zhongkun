@@ -157,14 +157,38 @@ class ContactsAdmin(NoDeleteSelectModelAdmin):
     list_display = ('id', 'name', 'telephone', 'email', 'address', 'creation_time', 'remarks')
 
 
+class ODCAdminODCFilter(SimpleListFilter):
+    title = gettext_lazy("数据中心")
+    parameter_name = 'odc_id'
+
+    def lookups(self, request, model_admin):
+        r = OrgDataCenter.objects.order_by('organization__sort_weight', 'sort_weight').values_list(
+            'id', 'name', 'organization__name'
+        )
+        d = {i[0]: f'{i[2]}【{i[1]}】' for i in r}
+        return [(k, v) for k, v in d.items()]
+
+    def queryset(self, request, queryset):
+        org_id = request.GET.get(self.parameter_name)
+        if org_id:
+            return queryset.filter(orgdatacenter_id=org_id)
+
+
 @admin.register(OrgDataCenterAdminUser)
 class OrgDataCenterAdminUserAdmin(BaseModelAdmin):
     list_display_links = ('id',)
-    list_display = ('id', 'orgdatacenter', 'userprofile', 'role', 'join_time')
-    list_select_related = ('userprofile', 'orgdatacenter')
-    list_filter = ('orgdatacenter',)
-    raw_id_fields = ('userprofile',)
-    search_fields = ('userprofile__username', 'orgdatacenter__name', 'orgdatacenter_id')
+    list_display = ('id', 'show_org_name', 'orgdatacenter', 'userprofile', 'role', 'join_time')
+    list_select_related = ('userprofile', 'orgdatacenter__organization')
+    list_filter = (ODCAdminODCFilter,)
+    raw_id_fields = ('userprofile', 'orgdatacenter')
+    search_fields = ('userprofile__username', 'orgdatacenter__name', 'orgdatacenter__id')
+
+    @admin.display(description=gettext_lazy('机构'))
+    def show_org_name(self, obj):
+        try:
+            return obj.orgdatacenter.organization.name
+        except Exception:
+            return ''
 
     def save_model(self, request, obj: OrgDataCenterAdminUser, form, change):
         super().save_model(request=request, obj=obj, form=form, change=change)
