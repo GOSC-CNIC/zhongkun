@@ -243,7 +243,7 @@ class ServiceTests(MyAPITestCase):
         r_service2 = map_[service2.id]
         self.assertKeysIn([
             "id", "name", "name_en", "sort_weight", "organization"], r_service1['org_data_center'])
-        self.assertKeysIn(["id", "name", "name_en"], r_service1['org_data_center']['organization'])
+        self.assertKeysIn(["id", "name", "name_en", "sort_weight"], r_service1['org_data_center']['organization'])
         self.assertIsInstance(r_service1['status'], str)
         self.assertEqual(r_service1['status'], ServiceConfig.Status.ENABLE)
         self.assertIs(r_service1['disk_available'], False)
@@ -379,7 +379,8 @@ class ServiceTests(MyAPITestCase):
                            ], response.data["results"][0])
         self.assertKeysIn([
             "id", "name", "name_en", "sort_weight", "organization"], response.data["results"][0]['org_data_center'])
-        self.assertKeysIn(["id", "name", "name_en"], response.data["results"][0]['org_data_center']['organization'])
+        self.assertKeysIn(["id", "name", "name_en", "sort_weight"
+                           ], response.data["results"][0]['org_data_center']['organization'])
         self.assertIsInstance(response.data["results"][0]['status'], str)
         self.assertEqual(len(response.data["results"][0]['admin_users']), 1)
         self.assertEqual(response.data["results"][0]['admin_users'][0]['id'], self.user.id)

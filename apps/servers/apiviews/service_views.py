@@ -224,6 +224,7 @@ class ServiceViewSet(CustomGenericViewSet):
                         "id": 3,
                         "name": "VMware机构",
                         "name_en": "xxx",
+                        "sort_weight": 8
                     }
                   },
                   "longitude": 0,

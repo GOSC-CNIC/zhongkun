@@ -352,7 +352,7 @@ class ServiceSerializer(serializers.Serializer):
             data['organization'] = None
         else:
             data['organization'] = {
-                'id': org.id, 'name': org.name, 'name_en': org.name_en
+                'id': org.id, 'name': org.name, 'name_en': org.name_en, 'sort_weight': org.sort_weight
             }
 
         return data
