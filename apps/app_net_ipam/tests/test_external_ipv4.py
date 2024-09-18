@@ -470,3 +470,52 @@ class ExternalIPv4RangeTests(MyAPITransactionTestCase):
         self.assertEqual(ip_range1.org_name, 'org_name2')
         self.assertEqual(ip_range1.country, '中国')
         self.assertEqual(ip_range1.city, '上海')
+
+    def test_delete(self):
+        ip_range1 = ExternalIPv4RangeManager().create_external_ipv4_range(
+            start_address=int(ipaddress.IPv4Address('127.0.0.1')),
+            end_address=int(ipaddress.IPv4Address('127.0.0.255')), mask_len=24, asn=66,
+            operator='zhangsan@cnic.cn', org_name='机构1', country='中国', city='北京', remark='remark1'
+        )
+        ip_range2 = ExternalIPv4RangeManager().create_external_ipv4_range(
+            start_address=int(ipaddress.IPv4Address('0.0.2.1')),
+            end_address=int(ipaddress.IPv4Address('0.0.2.255')), mask_len=24, asn=33,
+            operator='tom@cnic.cn', org_name='机构2', country='新加坡', city='新加坡', remark='remark2'
+        )
+
+        base_url = reverse('net_ipam-api:ipam-external-ipv4range-detail', kwargs={'id': 'test'})
+        response = self.client.delete(base_url)
+        self.assertEqual(response.status_code, 401)
+
+        self.client.force_login(self.user1)
+
+        # AccessDenied
+        response = self.client.delete(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        u1_role_wrapper = NetIPamUserRoleWrapper(user=self.user1)
+        u1_role_wrapper.user_role = u1_role_wrapper.get_or_create_user_role()
+        u1_role_wrapper.set_ipam_readonly(True)
+        response = self.client.delete(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        u1_role_wrapper = NetIPamUserRoleWrapper(user=self.user1)
+        u1_role_wrapper.set_ipam_readonly(False)
+        u1_role_wrapper.set_ipam_admin(True)
+
+        response = self.client.delete(base_url)
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+
+        # ok
+        base_url = reverse('net_ipam-api:ipam-external-ipv4range-detail', kwargs={'id': ip_range1.id})
+        self.assertEqual(ExternalIPv4Range.objects.count(), 2)
+        response = self.client.delete(base_url)
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(ExternalIPv4Range.objects.count(), 1)
+        ip_range = ExternalIPv4Range.objects.first()
+        self.assertEqual(ip_range.id, ip_range2.id)
+
+        base_url = reverse('net_ipam-api:ipam-external-ipv4range-detail', kwargs={'id': ip_range2.id})
+        response = self.client.delete(base_url)
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(ExternalIPv4Range.objects.count(), 0)

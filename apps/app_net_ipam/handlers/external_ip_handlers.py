@@ -147,3 +147,18 @@ class ExternalIPv4RangeHandler:
             'ipv4': int(ipv4) if ipv4 else None,
             'search': search
         }
+
+    @staticmethod
+    def delete_external_ipv4_range(view: NormalGenericViewSet, request, kwargs):
+        ur_wrapper = NetIPamUserRoleWrapper(user=request.user)
+        if not ur_wrapper.has_ipam_admin_writable():
+            return view.exception_response(
+                errors.AccessDenied(message=_('你没有网络IP管理功能的管理员权限')))
+
+        try:
+            ip_range = ExternalIPv4RangeManager.get_ipv4_range(_id=kwargs[view.lookup_field])
+            ip_range.delete()
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        return Response(status=204)
