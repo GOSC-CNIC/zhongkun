@@ -77,6 +77,30 @@ class ExternalIPv4RangeHandler:
         data['end_address'] = end_address
         return data
 
+    def update_external_ipv4_range(self, view: NormalGenericViewSet, request, kwargs):
+        try:
+            data = self._add_external_ipv4_validate(view=view, request=request)
+            ipv4_range = ExternalIPv4RangeManager.get_ipv4_range(_id=kwargs[view.lookup_field])
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        ur_wrapper = NetIPamUserRoleWrapper(user=request.user)
+        if not ur_wrapper.has_ipam_admin_writable():
+            return view.exception_response(
+                errors.AccessDenied(message=_('你没有网络IP管理功能的管理员权限')))
+
+        try:
+            ipv4_range, ud_fileds = ExternalIPv4RangeManager.update_external_ipv4_range(
+                ip_range=ipv4_range, operator=request.user.username,
+                start_address=data['start_address'], end_address=data['end_address'],
+                mask_len=data['mask_len'], asn=data['asn'],
+                remark=data['remark'], org_name=data['org_name'], country=data['country'], city=data['city']
+            )
+        except errors.ValidationError as exc:
+            return view.exception_response(errors.InvalidArgument(message=exc.message))
+
+        return Response(data=ipam_serializers.ExternalIPv4RangeSerializer(instance=ipv4_range).data)
+
     def list_external_ipv4_ranges(self, view: NormalGenericViewSet, request):
         try:
             data = self._list_ipv4_validate_params(request=request)

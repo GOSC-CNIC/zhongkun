@@ -1009,6 +1009,49 @@ class ExternalIPv4RangeViewSet(NormalGenericViewSet):
         """
         return ExternalIPv4RangeHandler().list_external_ipv4_ranges(view=self, request=request)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('修改外部IPv4地址段'),
+        manual_parameters=[],
+        responses={
+            200: ''''''
+        }
+    )
+    def update(self, request, *args, **kwargs):
+        """
+        修改外部IPv4地址段，需要有科技网管理员权限
+
+            http Code 200 Ok:
+                {
+                    "id": "h94kqms93k1bekbs4wqfjrqkj",
+                    "name": "0.0.1.0/24",
+                    "start_address": 256,
+                    "end_address": 511,
+                    "mask_len": 24,
+                    "asn": 4294967295,
+                    "remark": "",
+                    "creation_time": "2024-09-04T01:25:32.903945Z",
+                    "update_time": "2024-09-04T01:25:32.903945Z",
+                    "operator": "tom@qq.com",
+                    "org_name": "xxx",
+                    "country": "中国",
+                    "city": "北京"
+                }
+
+            Http Code 400, 403, 500:
+                {
+                    "code": "BadRequest",
+                    "message": "xxxx"
+                }
+
+                可能的错误码：
+                400:
+                InvalidArgument: 参数无效
+
+                403:
+                AccessDenied: 你没有科技网IP管理功能的管理员权限
+        """
+        return ExternalIPv4RangeHandler().update_external_ipv4_range(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return ipam_serializers.ExternalIPv4RangeSerializer

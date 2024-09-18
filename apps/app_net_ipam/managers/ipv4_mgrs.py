@@ -1463,3 +1463,81 @@ class ExternalIPv4RangeManager:
 
         ip_range.name = str(ip_range.start_address_network)
         return ip_range
+
+    @staticmethod
+    def update_external_ipv4_range(
+            ip_range: ExternalIPv4Range,
+            start_address: Union[str, int], end_address: Union[str, int], mask_len: int, asn: int,
+            remark: str, operator: str, org_name: str, country: str, city: str
+    ) -> Tuple[ExternalIPv4Range, List[str]]:
+        """
+        :return: IPv4Range, update_fields: list
+        :raises: ValidationError
+        """
+        if isinstance(start_address, int):
+            start_int = start_address
+        else:
+            start_int = ipv4_str_to_int(ipv4=start_address)
+
+        if isinstance(end_address, int):
+            end_int = end_address
+        else:
+            end_int = ipv4_str_to_int(ipv4=end_address)
+
+        mask_len = int(mask_len)
+        if not (0 <= mask_len <= 32):
+            raise errors.ValidationError(message=_('子网掩码长度无效，取值范围为0-32'))
+
+        update_fields = []
+        if start_int != ip_range.start_address:
+            ip_range.start_address = start_int
+            update_fields.append('start_address')
+
+        if end_int != ip_range.end_address:
+            ip_range.end_address = end_int
+            update_fields.append('end_address')
+
+        if mask_len != ip_range.mask_len:
+            ip_range.mask_len = mask_len
+            update_fields.append('mask_len')
+
+        if asn != ip_range.asn:
+            ip_range.asn = asn
+            update_fields.append('asn')
+
+        if remark and ip_range.remark != remark:
+            ip_range.remark = remark
+            update_fields.append('remark')
+
+        if operator and ip_range.operator != operator:
+            ip_range.operator = operator
+            update_fields.append('operator')
+
+        if org_name and ip_range.org_name != org_name:
+            ip_range.org_name = org_name
+            update_fields.append('org_name')
+
+        if country and ip_range.country != country:
+            ip_range.country = country
+            update_fields.append('country')
+
+        if city and ip_range.city != city:
+            ip_range.city = city
+            update_fields.append('city')
+
+        if update_fields:
+            ip_range.clear_cached_property()  # 字段值变更了，需要清除缓存属性
+            ip_range.name = str(ip_range.start_address_network)
+            update_fields.append('name')
+
+            ip_range.update_time = dj_timezone.now()
+            update_fields.append('update_time')
+
+            try:
+                ip_range.clean()
+            except ValidationError as exc:
+                raise errors.ValidationError(message=exc.messages[0])
+
+            ip_range.save(update_fields=update_fields)
+
+        return ip_range, update_fields
