@@ -1399,15 +1399,12 @@ class ExternalIPv4RangeManager:
     def get_queryset() -> QuerySet:
         return ExternalIPv4Range.objects.all()
 
-    def filter_queryset(self, status: Union[str, None], asn: int, ipv4_int: int, search: str):
+    def filter_queryset(self, asn: int, ipv4_int: int, search: str):
         """
         各参数为真时过滤
         """
         qs = self.get_queryset()
         lookups = {}
-
-        if status:
-            lookups['status'] = status
 
         if asn:
             lookups['asn'] = asn
@@ -1420,7 +1417,10 @@ class ExternalIPv4RangeManager:
             qs = qs.filter(**lookups)
 
         if search:
-            qs = qs.filter(Q(name__icontains=search) | Q(remark__icontains=search))
+            qs = qs.filter(
+                Q(name__icontains=search) | Q(remark__icontains=search) | Q(org_name__icontains=search)
+                | Q(country__icontains=search) | Q(city__icontains=search)
+            )
 
         return qs
 

@@ -937,8 +937,82 @@ class ExternalIPv4RangeViewSet(NormalGenericViewSet):
         """
         return ExternalIPv4RangeHandler().add_external_ipv4_range(view=self, request=request)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举外部ipv4地址段'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='asn',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=False,
+                description=gettext_lazy('ASN编码筛选')
+            ),
+            openapi.Parameter(
+                name='ip',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('ip查询，x.x.x.x')
+            ),
+            openapi.Parameter(
+                name='search',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('关键字查询，搜索名称、机构、国家、城市和备注')
+            ),
+        ],
+        responses={
+            200: ''''''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        列举外部ipv4地址段，需要有IP地址管理员权限
+
+            http Code 200 Ok:
+                {
+                  "count": 1,
+                  "page_num": 1,
+                  "page_size": 100,
+                  "results": [
+                    {
+                        "id": "h94kqms93k1bekbs4wqfjrqkj",
+                        "name": "0.0.1.0/24",
+                        "start_address": 256,
+                        "end_address": 511,
+                        "mask_len": 24,
+                        "asn": 4294967295,
+                        "remark": "",
+                        "creation_time": "2024-09-04T01:25:32.903945Z",
+                        "update_time": "2024-09-04T01:25:32.903945Z",
+                        "operator": "tom@qq.com",
+                        "org_name": "xxx",
+                        "country": "中国",
+                        "city": "北京"
+                    }
+                  ]
+                }
+
+            Http Code 400, 403, 500:
+                {
+                    "code": "BadRequest",
+                    "message": "xxxx"
+                }
+
+                可能的错误码：
+                400:
+                InvalidArgument: 参数无效
+
+                403:
+                AccessDenied: 你没有IP管理功能的管理员权限
+        """
+        return ExternalIPv4RangeHandler().list_external_ipv4_ranges(view=self, request=request)
+
     def get_serializer_class(self):
-        if self.action in ['create', 'update']:
+        if self.action == 'list':
+            return ipam_serializers.ExternalIPv4RangeSerializer
+        elif self.action in ['create', 'update']:
             return ipam_serializers.ExternalIPv4RangeSerializer
 
         return Serializer

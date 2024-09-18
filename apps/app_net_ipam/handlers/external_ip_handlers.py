@@ -76,3 +76,50 @@ class ExternalIPv4RangeHandler:
         data['start_address'] = start_address
         data['end_address'] = end_address
         return data
+
+    def list_external_ipv4_ranges(self, view: NormalGenericViewSet, request):
+        try:
+            data = self._list_ipv4_validate_params(request=request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        ur_wrapper = NetIPamUserRoleWrapper(user=request.user)
+        if not ur_wrapper.has_ipam_admin_readable():
+            return view.exception_response(
+                errors.AccessDenied(message=_('你没有网络IP管理功能的管理员权限')))
+
+        queryset = ExternalIPv4RangeManager().filter_queryset(
+            asn=data['asn'], ipv4_int=data['ipv4'], search=data['search']
+        )
+
+        queryset = queryset.order_by('start_address')
+        try:
+            objs = view.paginate_queryset(queryset)
+            serializer = view.get_serializer(instance=objs, many=True)
+            return view.get_paginated_response(serializer.data)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+    @staticmethod
+    def _list_ipv4_validate_params(request):
+        asn = request.query_params.get('asn', None)
+        ipv4 = request.query_params.get('ip', None)
+        search = request.query_params.get('search', None)
+
+        if asn:
+            try:
+                asn = int(asn)
+            except ValueError:
+                raise errors.InvalidArgument(message=_('指定的AS编码无效，必须是一个正整数'))
+
+        if ipv4:
+            try:
+                ipv4 = ipaddress.IPv4Address(ipv4)
+            except ipaddress.AddressValueError:
+                raise errors.InvalidArgument(message=_('指定的ip地址格式无效'))
+
+        return {
+            'asn': asn,
+            'ipv4': int(ipv4) if ipv4 else None,
+            'search': search
+        }

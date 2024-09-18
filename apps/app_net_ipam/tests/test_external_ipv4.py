@@ -1,9 +1,11 @@
 import ipaddress
+from urllib import parse
 
 from django.urls import reverse
 
 from utils.test import get_or_create_user, MyAPITransactionTestCase
 from apps.app_net_ipam.managers.common import NetIPamUserRoleWrapper
+from apps.app_net_ipam.managers.ipv4_mgrs import ExternalIPv4RangeManager
 from apps.app_net_ipam.models import ExternalIPv4Range
 from apps.app_net_ipam.permissions import IPamIPRestrictor
 
@@ -173,3 +175,134 @@ class ExternalIPv4RangeTests(MyAPITransactionTestCase):
         self.assertEqual(subnet2.operator, self.user1.username)
         self.assertEqual(subnet2.country, '中国')
         self.assertEqual(subnet2.city, '上海')
+
+    def test_list(self):
+        ip_range1 = ExternalIPv4RangeManager().create_external_ipv4_range(
+            start_address=int(ipaddress.IPv4Address('127.0.0.1')),
+            end_address=int(ipaddress.IPv4Address('127.0.0.255')), mask_len=24, asn=66,
+            operator='zhangsan@cnic.cn', org_name='机构1', country='中国', city='北京', remark='remark1'
+        )
+        ip_range2 = ExternalIPv4RangeManager().create_external_ipv4_range(
+            start_address=int(ipaddress.IPv4Address('159.0.1.1')),
+            end_address=int(ipaddress.IPv4Address('159.0.2.255')), mask_len=22, asn=88,
+            operator='zhangsan@cnic.cn', org_name='机构2', country='新加坡', city='新加坡', remark='remark2'
+        )
+        ip_range3 = ExternalIPv4RangeManager().create_external_ipv4_range(
+            start_address=int(ipaddress.IPv4Address('10.0.1.1')),
+            end_address=int(ipaddress.IPv4Address('10.0.1.255')), mask_len=24, asn=88,
+            operator='tom@qq.com', org_name='机构3', country='中国', city='shanghai', remark='remark3'
+        )
+        ip_range4 = ExternalIPv4RangeManager().create_external_ipv4_range(
+            start_address=int(ipaddress.IPv4Address('10.0.2.1')),
+            end_address=int(ipaddress.IPv4Address('10.0.2.255')), mask_len=24, asn=88,
+            operator='tom@qq.com', org_name='机构3', country='中国', city='台北', remark='remark4'
+        )
+
+        base_url = reverse('net_ipam-api:ipam-external-ipv4range-list')
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 401)
+
+        self.client.force_login(self.user1)
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        u1_role_wrapper = NetIPamUserRoleWrapper(user=self.user1)
+        u1_role_wrapper.user_role = u1_role_wrapper.get_or_create_user_role()
+        u1_role_wrapper.set_ipam_readonly(True)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
+        self.assertEqual(response.data['count'], 4)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 100)
+        self.assertEqual(len(response.data['results']), 4)
+        self.assertEqual(response.data['results'][0]['id'], ip_range3.id)
+        self.assertEqual(response.data['results'][1]['id'], ip_range4.id)
+        self.assertEqual(response.data['results'][2]['id'], ip_range1.id)
+        self.assertEqual(response.data['results'][3]['id'], ip_range2.id)
+        iprange = response.data['results'][0]
+        self.assertKeysIn([
+            'id', 'name', 'start_address', 'end_address', 'mask_len', 'asn', 'remark', 'creation_time', 'update_time',
+            'operator', 'org_name', 'country', 'city'
+        ], iprange)
+        self.assertEqual(iprange['id'], ip_range3.id)
+        self.assertEqual(iprange['start_address'], int(ipaddress.IPv4Address('10.0.1.1')))
+        self.assertEqual(iprange['end_address'], int(ipaddress.IPv4Address('10.0.1.255')))
+        self.assertEqual(iprange['mask_len'], 24)
+        self.assertEqual(iprange['asn'], 88)
+        self.assertEqual(iprange['remark'], ip_range3.remark)
+        self.assertEqual(iprange['operator'], ip_range3.operator)
+        self.assertEqual(iprange['org_name'], ip_range3.org_name)
+        self.assertEqual(iprange['country'], ip_range3.country)
+        self.assertEqual(iprange['city'], ip_range3.city)
+
+        # query "asn"
+        query = parse.urlencode(query={'asn': 'a'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        query = parse.urlencode(query={'asn': '66'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['id'], ip_range1.id)
+
+        query = parse.urlencode(query={'asn': 88})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 3)
+        self.assertEqual(len(response.data['results']), 3)
+
+        # query "ip"
+        query = parse.urlencode(query={'ip': '127.0.0.256'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        query = parse.urlencode(query={'ip': '127.0.0.88'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['id'], ip_range1.id)
+
+        query = parse.urlencode(query={'ip': '127.0.1.0'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(len(response.data['results']), 0)
+
+        query = parse.urlencode(query={'ip': '159.0.1.188'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['id'], ip_range2.id)
+
+        # query "search"
+        query = parse.urlencode(query={'search': 'remark4'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['id'], ip_range4.id)
+
+        query = parse.urlencode(query={'search': '中国'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 3)
+        self.assertEqual(len(response.data['results']), 3)
+        self.assertEqual(response.data['results'][0]['id'], ip_range3.id)
+        self.assertEqual(response.data['results'][1]['id'], ip_range4.id)
+        self.assertEqual(response.data['results'][2]['id'], ip_range1.id)
+
+        # query "page"、"page_size"
+        query = parse.urlencode(query={'page': 2, 'page_size': 3})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 4)
+        self.assertEqual(response.data['page_num'], 2)
+        self.assertEqual(response.data['page_size'], 3)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['id'], ip_range2.id)
