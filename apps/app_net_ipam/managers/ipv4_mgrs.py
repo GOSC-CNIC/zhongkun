@@ -1196,8 +1196,12 @@ class IPv4SubnetCollector:
 
 class IPv4SupernetManager:
     @staticmethod
-    def get_ip_supernet(_id: str) -> IPv4Supernet:
-        ipsupernet = IPv4Supernet.objects.filter(id=_id).first()
+    def get_ip_supernet(_id: str, select_for_update: bool = False) -> IPv4Supernet:
+        if select_for_update:
+            ipsupernet = IPv4Supernet.objects.select_for_update().filter(id=_id).first()
+        else:
+            ipsupernet = IPv4Supernet.objects.filter(id=_id).first()
+
         if ipsupernet is None:
             raise errors.TargetNotExist(message=_('IP地址超网段不存在'))
 

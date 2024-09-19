@@ -881,6 +881,38 @@ class IPv4SupernetViewSet(NormalGenericViewSet):
         """
         return IPv4SupernetHandler.delete_ipv4_supernet(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('把ipv4超网入库ipv4地址库'),
+        manual_parameters=[],
+        responses={
+            200: ''''''
+        }
+    )
+    @action(methods=['post'], detail=True, url_path='warehouse', url_name='warehouse')
+    def put_in_warehouse(self, request, *args, **kwargs):
+        """
+        把ipv4超网入库ipv4地址库，需要有IP地址管理员权限
+
+            http Code 200:
+                {
+                  "supernet_id": "bz05x5wxa3y0viz1dn6k88hww",
+                  "ip_range_id": "sd05vbfrt3yfghxccn6ks8wew"
+                }
+
+            Http Code 400, 404, 403, 409, 500:
+                {
+                    "code": "AccessDenied",
+                    "message": "你没有IP管理功能的管理员权限"
+                }
+
+                可能的错误码：
+                403:
+                    AccessDenied: 你没有IP管理功能的管理员权限
+                404:
+                    TargetNotExist: IP地址超网段不存在
+        """
+        return IPv4SupernetHandler.put_in_warehouse(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return ipam_serializers.IPv4SupernetSerializer

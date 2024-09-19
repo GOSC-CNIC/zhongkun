@@ -1,5 +1,6 @@
 import ipaddress
 
+from django.db import transaction
 from django.utils.translation import gettext as _
 from rest_framework.response import Response
 
@@ -716,3 +717,31 @@ class IPv4SupernetHandler:
             return view.exception_response(exc)
 
         return Response(status=204)
+
+    @staticmethod
+    def put_in_warehouse(view: NormalGenericViewSet, request, kwargs):
+        ur_wrapper = NetIPamUserRoleWrapper(user=request.user)
+        if not ur_wrapper.has_ipam_admin_writable():
+            return view.exception_response(
+                errors.AccessDenied(message=_('你没有网络IP管理功能的管理员权限')))
+
+        try:
+            with transaction.atomic():
+                supernet = IPv4SupernetManager.get_ip_supernet(_id=kwargs[view.lookup_field], select_for_update=True)
+                if supernet.status != supernet.Status.OUT_WAREHOUSE.value:
+                    raise errors.ConflictError(message=_('超网地址段不是“未入库”状态'))
+
+                ipv4_range = IPv4RangeManager.do_create_ipv4_range(
+                    user=request.user, name='',
+                    start_ip=supernet.start_address, end_ip=supernet.end_address, mask_len=supernet.mask_len,
+                    asn=supernet.asn, org_virt_obj=None, admin_remark=supernet.remark, remark='',
+                    create_time=None, update_time=None
+                )
+                supernet.status = supernet.Status.IN_WAREHOUSE.value
+                supernet.save(update_fields=['status'])
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        return Response(data={
+            'supernet_id': supernet.id, 'ip_range_id': ipv4_range.id
+        }, status=200)

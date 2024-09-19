@@ -420,3 +420,68 @@ class IPv4SupernetTests(MyAPITransactionTestCase):
         response = self.client.delete(base_url)
         self.assertEqual(response.status_code, 204)
         self.assertEqual(IPv4Supernet.objects.count(), 1)
+
+    def test_in_warehouse(self):
+        nt = dj_timezone.now()
+        ip_range1 = IPv4RangeManager.create_ipv4_range(
+            name='已分配1', start_ip='0.0.0.1', end_ip='0.0.0.255', mask_len=24, asn=666,
+            create_time=nt, update_time=nt, status_code=IPv4Range.Status.ASSIGNED.value,
+            org_virt_obj=None, assigned_time=nt, admin_remark='admin1', remark='remark1'
+        )
+
+        nt = dj_timezone.now()
+        supernet1 = IPv4SupernetManager.build_ipv4_supernet(
+            start_address=0, end_address=255, mask_len=24, asn=66,
+            creation_time=nt, update_time=nt, status=IPv4Supernet.Status.OUT_WAREHOUSE.value,
+            remark='remark1', operator='tom@cnic.cn', used_ip_count=0
+        )
+        supernet1.clean()
+        supernet1.save(force_insert=True)
+
+        supernet2 = IPv4SupernetManager.build_ipv4_supernet(
+            start_address=256, end_address=511, mask_len=24, asn=66,
+            creation_time=nt, update_time=nt, status=IPv4Supernet.Status.IN_WAREHOUSE.value,
+            remark='remark2', operator='tom@cnic.cn', used_ip_count=0
+        )
+        supernet2.clean()
+        supernet2.save(force_insert=True)
+
+        base_url = reverse('net_ipam-api:ipam-ipv4supernet-warehouse', kwargs={'id': 'test'})
+        response = self.client.post(base_url)
+        self.assertEqual(response.status_code, 401)
+
+        self.client.force_login(self.user1)
+        response = self.client.post(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        u1_role_wrapper = NetIPamUserRoleWrapper(user=self.user1)
+        u1_role_wrapper.user_role = u1_role_wrapper.get_or_create_user_role()
+        u1_role_wrapper.set_ipam_readonly(True)
+
+        response = self.client.post(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        u1_role_wrapper.set_ipam_admin(True)
+        response = self.client.post(base_url)
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+
+        base_url = reverse('net_ipam-api:ipam-ipv4supernet-warehouse', kwargs={'id': supernet1.id})
+        response = self.client.post(base_url)
+        self.assertErrorResponse(status_code=400, code='ValidationError', response=response)
+
+        base_url = reverse('net_ipam-api:ipam-ipv4supernet-warehouse', kwargs={'id': supernet2.id})
+        response = self.client.post(base_url)
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+
+        supernet2.status = IPv4Supernet.Status.OUT_WAREHOUSE.value
+        supernet2.save(update_fields=['status'])
+        self.assertEqual(IPv4Range.objects.count(), 1)
+        response = self.client.post(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(IPv4Range.objects.count(), 2)
+        self.assertKeysIn(['supernet_id', 'ip_range_id'], response.data)
+        ip_range2 = IPv4Range.objects.last()
+        self.assertEqual(supernet2.start_address, ip_range2.start_address)
+        self.assertEqual(supernet2.end_address, ip_range2.end_address)
+        self.assertEqual(supernet2.mask_len, ip_range2.mask_len)
+        self.assertEqual(supernet2.asn, ip_range2.asn.number)
