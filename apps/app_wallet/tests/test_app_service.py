@@ -50,7 +50,7 @@ class AppServiceTests(MyAPITestCase):
         self.assertKeysIn(keys=[
             'id', 'name', 'name_en', 'resources', 'desc', 'creation_time', 'status',
             'contact_person', 'contact_email', 'contact_telephone', 'contact_fixed_phone', 'contact_address',
-            'longitude', 'latitude', 'category', 'orgnazition', 'app_id'
+            'longitude', 'latitude', 'category', 'orgnazition', 'app_id', 'service_id'
         ], container=r.data['results'][0])
 
         # unset federal admin, list 0
@@ -71,7 +71,7 @@ class AppServiceTests(MyAPITestCase):
         self.assertKeysIn(keys=[
             'id', 'name', 'name_en', 'resources', 'desc', 'creation_time', 'status',
             'contact_person', 'contact_email', 'contact_telephone', 'contact_fixed_phone', 'contact_address',
-            'longitude', 'latitude', 'category', 'orgnazition', 'app_id'
+            'longitude', 'latitude', 'category', 'orgnazition', 'app_id', 'service_id'
         ], container=r.data['results'][0])
         self.assertEqual(r.data['results'][0]['id'], self.app_service2.id)
 
@@ -118,7 +118,7 @@ class AppServiceTests(MyAPITestCase):
         self.assertKeysIn(keys=[
             'id', 'name', 'name_en', 'resources', 'desc', 'creation_time', 'status',
             # 'contact_person', 'contact_email', 'contact_telephone', 'contact_fixed_phone', 'contact_address',
-            'longitude', 'latitude', 'category', 'orgnazition', 'app_id'
+            'longitude', 'latitude', 'category', 'orgnazition', 'app_id', 'service_id'
         ], container=r.data['results'][0])
 
         # query "app_id"

@@ -109,7 +109,8 @@ class AppServiceViewSet(CustomGenericViewSet):
                     "name": "网络中心",
                     "name_en": "cnic"
                   },
-                  "app_id": "20220622082141"
+                  "app_id": "20220622082141",
+                  "service_id": "xxx"   # 云主机、对象存储服务单元id，或空
                 }
               ]
             }
@@ -181,7 +182,8 @@ class AppServiceViewSet(CustomGenericViewSet):
                     "name": "网络中心",
                     "name_en": "cnic"
                   },
-                  "app_id": "20220622082141"
+                  "app_id": "20220622082141",
+                  "service_id": "xxx"
                 }
               ]
             }

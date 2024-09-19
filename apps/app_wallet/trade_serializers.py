@@ -56,6 +56,7 @@ class AppServiceSimpleSerializer(serializers.Serializer):
     category = serializers.CharField(label=_('服务类别'), max_length=16)
     orgnazition = serializers.SerializerMethodField(label=_('机构|组织'), method_name='get_orgnazition')
     app_id = serializers.CharField(label=_('应用APP ID'))
+    service_id = serializers.CharField(label='服务单元id')
 
     @staticmethod
     def get_orgnazition(obj):
