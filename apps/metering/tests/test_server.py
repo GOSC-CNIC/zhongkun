@@ -2,17 +2,21 @@ from decimal import Decimal
 from datetime import datetime, timedelta, time, timezone as dt_timezone
 
 from django.test import TransactionTestCase
-from django.utils import timezone
+from django.utils import timezone as dj_timezone
+from django.conf import settings
+from django.urls import reverse
 
-from utils.test import get_or_create_user, get_or_create_service, get_or_create_organization
-from utils.model import PayType, OwnerType
+from utils.test import get_or_create_user, get_or_create_service, get_or_create_organization, MyAPITransactionTestCase
+from utils.model import PayType, OwnerType, ResourceType
 from utils.decimal_utils import quantize_10_2
 from core import errors
-from apps.servers.models import Server, ServerArchive
+from core import site_configs_manager
+from apps.servers.models import Server, ServerArchive, ServiceConfig
 from apps.vo.managers import VoManager
 from apps.order.tests import create_price
+from apps.order.models import Order
+from apps.order.managers import OrderManager, ServerConfig, OrderPaymentManager
 from apps.app_wallet.models import CashCoupon, PaymentHistory, PayAppService, PayApp
-from apps.servers.models import ServiceConfig
 from apps.metering.measurers import ServerMeasurer
 from apps.metering.models import MeteringServer, PaymentStatus, DailyStatementServer
 from apps.metering.payment import MeteringPaymentManager
@@ -20,6 +24,7 @@ from apps.metering.statement_generators import GenerateDailyStatementServer
 from apps.users.models import UserProfile
 
 utc = dt_timezone.utc
+PAY_APP_ID = site_configs_manager.get_pay_app_id(settings)
 
 
 def create_server_metadata(
@@ -230,12 +235,12 @@ class MeteringServerTests(TransactionTestCase):
             self.assertEqual(count, 2)
 
     def test_only_server(self):
-        now = timezone.now()
+        now = dj_timezone.now()
         server1, server2, server3, server4 = self.init_data_only_server(now)
         self.do_assert_server(now=now, server1=server1, server2=server2)
 
     def test_archive_server(self):
-        now = timezone.now()
+        now = dj_timezone.now()
         server1, server2, server3, server4 = self.init_data_only_server(now)
 
         server1_id = server1.id
@@ -245,7 +250,7 @@ class MeteringServerTests(TransactionTestCase):
         self.do_assert_server(now=now, server1=server1, server2=server2)
 
     def test_archive_rebuild_server(self):
-        now = timezone.now()
+        now = dj_timezone.now()
         server1, server2, server3, server4 = self.init_data_only_server(now)
 
         server1_id = server1.id
@@ -271,7 +276,7 @@ class MeteringServerTests(TransactionTestCase):
         self._rebuild_post2pre_server_test(test_archive=False)
 
     def _rebuild_post2pre_server_test(self, test_archive: bool):
-        now = timezone.now()
+        now = dj_timezone.now()
         today_srart = now.replace(hour=0, minute=0, second=0, microsecond=0)
         yesterday_start = today_srart - timedelta(days=1)
         server1, server2, server3, server4 = self.init_data_only_server(now)
@@ -359,7 +364,7 @@ class MeteringPaymentManagerTests(TransactionTestCase):
         # pay bill, invalid user id
         dss_bill1 = DailyStatementServer(
             service_id=self.service.id,
-            date=timezone.now().date(),
+            date=dj_timezone.now().date(),
             owner_type=OwnerType.USER.value,
             user_id='user_id',
             vo_id='',
@@ -415,7 +420,7 @@ class MeteringPaymentManagerTests(TransactionTestCase):
         # pay bill
         dss_bill2 = DailyStatementServer(
             service_id=self.service.id,
-            date=(timezone.now() - timedelta(days=1)).date(),
+            date=(dj_timezone.now() - timedelta(days=1)).date(),
             owner_type=OwnerType.USER.value,
             user_id=self.user.id,
             vo_id='',
@@ -442,7 +447,7 @@ class MeteringPaymentManagerTests(TransactionTestCase):
         # pay bill, pay_type POSTPAID
         dss_bill3 = DailyStatementServer(
             service_id=self.service.id,
-            date=(timezone.now() - timedelta(days=2)),
+            date=(dj_timezone.now() - timedelta(days=2)),
             owner_type=OwnerType.USER.value,
             user_id=self.user.id,
             vo_id='',
@@ -482,7 +487,7 @@ class MeteringPaymentManagerTests(TransactionTestCase):
         self.assertEqual(pay_history.instance_id, '')
 
         # ------- test coupon --------
-        now_time = timezone.now()
+        now_time = dj_timezone.now()
         # 有效, service
         coupon1_user = CashCoupon(
             face_value=Decimal('20'),
@@ -525,7 +530,7 @@ class MeteringPaymentManagerTests(TransactionTestCase):
         # pay bill, pay_type POSTPAID
         dss_bill4 = DailyStatementServer(
             service_id=self.service.id,
-            date=(timezone.now() - timedelta(days=2)),
+            date=(dj_timezone.now() - timedelta(days=2)),
             owner_type=OwnerType.USER.value,
             user_id=self.user.id,
             vo_id='',
@@ -576,7 +581,7 @@ class MeteringPaymentManagerTests(TransactionTestCase):
         # pay bill, invalid vo id
         dss_bill1 = DailyStatementServer(
             service_id=self.service.id,
-            date=timezone.now().date(),
+            date=dj_timezone.now().date(),
             owner_type=OwnerType.VO.value,
             user_id='',
             vo_id='vo_id',
@@ -632,7 +637,7 @@ class MeteringPaymentManagerTests(TransactionTestCase):
         # pay bill, pay_type PREPAID
         dss_bill2 = DailyStatementServer(
             service_id=self.service.id,
-            date=(timezone.now() - timedelta(days=1)).date(),
+            date=(dj_timezone.now() - timedelta(days=1)).date(),
             owner_type=OwnerType.VO.value,
             user_id='',
             vo_id=self.vo.id,
@@ -658,7 +663,7 @@ class MeteringPaymentManagerTests(TransactionTestCase):
         # pay bill, pay_type POSTPAID
         dss_bill3 = DailyStatementServer(
             service_id=self.service.id,
-            date=(timezone.now() - timedelta(days=2)),
+            date=(dj_timezone.now() - timedelta(days=2)),
             owner_type=OwnerType.VO.value,
             user_id='',
             vo_id=self.vo.id,
@@ -697,7 +702,7 @@ class MeteringPaymentManagerTests(TransactionTestCase):
         # pay bill, status PAID
         dss_bill4_paid = DailyStatementServer(
             service_id=self.service.id,
-            date=(timezone.now() - timedelta(days=3)),
+            date=(dj_timezone.now() - timedelta(days=3)),
             owner_type=OwnerType.VO.value,
             user_id='',
             vo_id=self.vo.id,
@@ -723,7 +728,7 @@ class MeteringPaymentManagerTests(TransactionTestCase):
             )
 
         # ------- test coupon --------
-        now_time = timezone.now()
+        now_time = dj_timezone.now()
         # 有效, service
         coupon1_vo = CashCoupon(
             face_value=Decimal('20'),
@@ -766,7 +771,7 @@ class MeteringPaymentManagerTests(TransactionTestCase):
         # pay bill
         dss_bill5 = DailyStatementServer(
             service_id=self.service.id,
-            date=(timezone.now() - timedelta(days=2)),
+            date=(dj_timezone.now() - timedelta(days=2)),
             owner_type=OwnerType.VO.value,
             user_id='',
             vo_id=self.vo.id,
@@ -1173,3 +1178,244 @@ class DailyStatementTests(TransactionTestCase):
             statement_date=st_date, service_id=self.service.id, vo_id=self.vo.id)
         self.assertEqual(daily_statement3.original_amount, original_amount)
         self.assertEqual(daily_statement3.payable_amount, payable_amount)
+
+
+class ServerStatementTests(MyAPITransactionTestCase):
+    def setUp(self):
+        self.user = get_or_create_user()
+        self.user2 = UserProfile(id='user2', username='username2')
+        self.user2.save(force_insert=True)
+
+        self.service = get_or_create_service()
+
+        self.price = create_price()
+
+        # 余额支付有关配置
+        self.app = PayApp(name='app', id=PAY_APP_ID)
+        self.app.save(force_insert=True)
+        app_service1 = PayAppService(
+            id='123', name='service1', app=self.app,
+            orgnazition=self.service.org_data_center.organization, service_id=self.service.id
+        )
+        app_service1.save(force_insert=True)
+        self.app_service1 = app_service1
+        self.service.pay_app_service_id = app_service1.id
+        self.service.save(update_fields=['pay_app_service_id'])
+
+    def test_settlement(self):
+        nt = dj_timezone.now()
+        today = nt.date()
+        server1 = create_server_metadata(
+            service=self.service,
+            user=self.user,
+            vcpu=4,
+            ram=4,
+            disk_size=100,
+            public_ip=True,
+            start_time=nt,
+            creation_time=nt,
+            pay_type=PayType.PREPAID.value
+        )
+        server2 = create_server_metadata(
+            service=self.service,
+            user=self.user2,
+            vcpu=8,
+            ram=16,
+            disk_size=100,
+            public_ip=True,
+            start_time=nt,
+            creation_time=nt,
+            pay_type=PayType.POSTPAID.value
+        )
+
+        coupon1 = CashCoupon(
+            face_value=Decimal('66.6'),
+            balance=Decimal('66.6'),
+            effective_time=nt - timedelta(days=1),
+            expiration_time=nt + timedelta(days=1),
+            status=CashCoupon.Status.AVAILABLE.value,
+            app_service_id=self.app_service1.id,
+            user=self.user2, owner_type=OwnerType.USER.value
+        )
+        coupon1.save(force_insert=True)
+
+        # order
+        order_instance_config = ServerConfig(
+            vm_cpu=2, vm_ram=2, systemdisk_size=100, public_ip=True,
+            image_id='image_id', image_name='', network_id='network_id', network_name='',
+            azone_id='azone_id', azone_name='azone_name', flavor_id=''
+        )
+        order, resource_list = OrderManager().create_order(
+            order_type=Order.OrderType.NEW.value,
+            pay_app_service_id=self.service.pay_app_service_id,
+            service_id=self.service.id,
+            service_name='test',
+            resource_type=ResourceType.VM.value,
+            instance_config=order_instance_config,
+            period=2,
+            period_unit=Order.PeriodUnit.MONTH.value,
+            pay_type=PayType.PREPAID.value,
+            user_id=self.user.id,
+            username=self.user.username,
+            vo_id='', vo_name='',
+            owner_type=OwnerType.USER.value
+        )
+        resource_list[0].instance_id = server1.id
+        resource_list[0].save(update_fields=['instance_id'])
+        subject = order.build_subject()
+        order = OrderPaymentManager().pay_order(
+            order=order, app_id=site_configs_manager.get_pay_app_id(settings), subject=subject,
+            executor=self.user.username, remark='',
+            coupon_ids=[], only_coupon=False,
+            required_enough_balance=False
+        )
+
+        # metering
+        metering1 = MeteringServer(
+            original_amount=Decimal('1.11'),
+            trade_amount=Decimal('1.11'),
+            daily_statement_id='',
+            service_id=self.service.id,
+            server_id=server1.id,
+            date=today,
+            user_id=self.user.id,
+            username=self.user.username,
+            vo_id='',
+            vo_name='',
+            owner_type=OwnerType.USER.value,
+            pay_type=PayType.PREPAID.value
+        )
+        metering1.save(force_insert=True)
+        metering2 = MeteringServer(
+            original_amount=Decimal('2.22'),
+            trade_amount=Decimal('2.11'),
+            daily_statement_id='',
+            service_id=self.service.id,
+            server_id=server2.id,
+            date=today,
+            user_id=self.user2.id,
+            username=self.user2.username,
+            vo_id='',
+            vo_name='',
+            owner_type=OwnerType.USER.value,
+            pay_type=PayType.POSTPAID.value
+        )
+        metering2.save(force_insert=True)
+        dss2 = DailyStatementServer(
+            original_amount='2.22',
+            payable_amount='2.22',
+            trade_amount='2.22',
+            payment_status=PaymentStatus.UNPAID.value,
+            payment_history_id='',
+            service_id=self.service.id,
+            date=today,
+            user_id=self.user2.id,
+            username=self.user2.username,
+            vo_id='',
+            vo_name='',
+            owner_type=OwnerType.USER.value,
+        )
+        dss2.save(force_insert=True)
+        metering2.set_daily_statement_id(dss2.id)
+        MeteringPaymentManager().pay_daily_statement_bill(
+            daily_statement=dss2, app_id=PAY_APP_ID, subject='metering', executor='metering', remark='',
+            required_enough_balance=True
+        )
+
+        base_url = reverse('metering-api:last-settlement-server-detail', kwargs={'server_id': 'tes6'})
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 401)
+
+        self.client.force_login(self.user2)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 404)
+
+        base_url = reverse('metering-api:last-settlement-server-detail', kwargs={'server_id': server1.id})
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 403)
+
+        self.client.logout()
+        self.client.force_login(self.user)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['server', 'settlement'], response.data)
+        self.assertKeysIn([
+            "id", "name", "vcpus", "ram", "ram_gib", "ipv4",
+            "public_ip", "image", "creation_time",
+            "remarks", "service", 'img_sys_type', 'img_sys_arch', 'img_release', 'img_release_version',
+            "center_quota", "classification", "vo_id", "user", 'vo',
+            "image_id", "image_desc", "default_user", "default_password",
+            "lock", "pay_type"], response.data['server'])
+        self.assertKeysIn(["id", "name", "name_en", "service_type"], response.data['server']['service'])
+        self.assertKeysIn(['order', 'payment'], response.data['settlement'])
+        self.assertKeysIn([
+            "id", "order_type", "status", "total_amount", "pay_amount",
+            "service_id", "service_name", "resource_type", "instance_config",
+            "period", "period_unit", "start_time", "end_time",
+            "payment_time", "pay_type", "creation_time", "user_id", "username", 'number',
+            "vo_id", "vo_name", "owner_type", "cancelled_time", "app_service_id", 'trading_status'
+        ], response.data['settlement']['order'])
+        self.assertIsNotNone(response.data['settlement']['payment'])
+        self.assertKeysIn([
+            "id", "payment_method", "executor", "payer_id", "payer_name",
+            "payer_type", "amounts", "coupon_amount",
+            "payment_time", "remark", "order_id", "subject", "app_service_id", "app_id",
+            "status", 'status_desc', 'creation_time', 'payable_amounts'
+        ], response.data['settlement']['payment'])
+        self.assertIsInstance(response.data['settlement']['payment']['coupon_historys'], list)
+        self.assertEqual(len(response.data['settlement']['payment']['coupon_historys']), 0)
+
+        base_url = reverse('metering-api:last-settlement-server-detail', kwargs={'server_id': server2.id})
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get(f'{base_url}?as-admin=true')
+        self.assertEqual(response.status_code, 403)
+        self.service.users.add(self.user)
+
+        response = self.client.get(f'{base_url}?as-admin=true')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['server', 'settlement'], response.data)
+        self.assertKeysIn([
+            "id", "name", "vcpus", "ram", "ram_gib", "ipv4",
+            "public_ip", "image", "creation_time",
+            "remarks", "service", 'img_sys_type', 'img_sys_arch', 'img_release', 'img_release_version',
+            "center_quota", "classification", "vo_id", "user", 'vo',
+            "image_id", "image_desc", "default_user", "default_password",
+            "lock", "pay_type"
+        ], response.data['server'])
+        self.assertKeysIn(["id", "name", "name_en", "service_type"], response.data['server']['service'])
+        self.assertKeysIn(['metering', 'daily_statement', 'payment'], response.data['settlement'])
+        self.assertKeysIn([
+            "id", "original_amount", "trade_amount",
+            "daily_statement_id", "service_id", "server_id", "date",
+            "creation_time", "user_id", "vo_id", "owner_type",
+            "cpu_hours", "ram_hours", "disk_hours", "public_ip_hours",
+            "snapshot_hours", "upstream", "downstream", "pay_type",
+            "username", "vo_name"
+        ], response.data['settlement']['metering'])
+        self.assertKeysIn([
+            "id", "original_amount", "payable_amount", "trade_amount",
+            "payment_status", "payment_history_id", "service", "date", "creation_time",
+            "user_id", "username", "vo_id", "vo_name", "owner_type"
+        ], response.data['settlement']['daily_statement'])
+        self.assertIsNotNone(response.data['settlement']['payment'])
+        self.assertKeysIn([
+            "id", "payment_method", "executor", "payer_id", "payer_name",
+            "payer_type", "amounts", "coupon_amount",
+            "payment_time", "remark", "order_id", "subject", "app_service_id", "app_id",
+            "status", 'status_desc', 'creation_time', 'payable_amounts'
+        ], response.data['settlement']['payment'])
+        self.assertIsInstance(response.data['settlement']['payment']['coupon_historys'], list)
+        self.assertEqual(len(response.data['settlement']['payment']['coupon_historys']), 1)
+        self.assertKeysIn([
+            'cash_coupon_id', 'amounts', 'before_payment', 'after_payment', 'creation_time', 'cash_coupon'
+        ], response.data['settlement']['payment']['coupon_historys'][0])
+        self.assertKeysIn([
+            "id", "face_value", "creation_time", "effective_time", "expiration_time",
+            "balance", "status", "granted_time", "issuer",
+            "owner_type", "app_service", "user", "vo", "activity", 'remark'
+        ], response.data['settlement']['payment']['coupon_historys'][0]['cash_coupon'])
+        self.assertKeysIn([
+            "id", "name", "name_en", "service_id", "category"
+        ], response.data['settlement']['payment']['coupon_historys'][0]['cash_coupon']['app_service'])

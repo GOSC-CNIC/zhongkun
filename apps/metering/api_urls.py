@@ -1,7 +1,9 @@
 from django.urls import path, include
 from rest_framework.routers import SimpleRouter
 
-from apps.metering.apiviews import metering_views, storage_metering_views, monitor_metering_views
+from apps.metering.apiviews import (
+    metering_views, storage_metering_views, monitor_metering_views, settlement_views
+)
 
 
 app_name = 'metering'
@@ -22,6 +24,8 @@ no_slash_router.register(
     r'metering/monitor/site', monitor_metering_views.MeteringMonitorSiteViewSet, basename='metering-monitor-site')
 no_slash_router.register(
     r'statement/monitor/site', monitor_metering_views.StatementMonitorSiteViewSet, basename='statement-monitor-site')
+no_slash_router.register(r'app_metering/last-settlement/server', settlement_views.ServerSettlementViewSet,
+                         basename='last-settlement-server')
 
 no_slash_router.register(
     r'admin/metering/server/statistics', metering_views.AdminMeteringServerStatisticsViewSet,
