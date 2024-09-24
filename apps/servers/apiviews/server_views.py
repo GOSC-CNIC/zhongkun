@@ -157,6 +157,7 @@ class ServersViewSet(CustomGenericViewSet):
                   "img_sys_arch": "x86-64",
                   "img_release": "CentOS",
                   "img_release_version": "stream 9",
+                  "instance_id": "xx",              # 云主机在服务单元服务中的id
                   "creation_time": "2020-11-02T07:47:39.776384Z",
                   "remarks": "",
                   "service": {
@@ -230,6 +231,7 @@ class ServersViewSet(CustomGenericViewSet):
                   "img_sys_arch": "x86-64",
                   "img_release": "CentOS",
                   "img_release_version": "stream 9",
+                  "instance_id": "xx",              # 云主机在服务单元服务中的id
                   "creation_time": "2020-11-02T07:47:39.776384Z",
                   "remarks": "",
                   "service": {
