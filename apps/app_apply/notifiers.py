@@ -19,12 +19,17 @@ class CouponApplyEmailNotifier:
 
     @staticmethod
     def build_apply_message(apply: CouponApply):
-        apply_msg = f'服务类型为 {apply.get_service_type_display()}，服务单元为 {apply.service_name}，' \
-                     f'申请点数为 {apply.face_value}，申请人为 {apply.username}'
+        if apply.odc:
+            service_name = f'{apply.odc.organization.name} / {apply.odc.name} / {apply.service_name}'
+        else:
+            service_name = apply.service_name
+
+        apply_msg = f'服务类型为 {apply.get_service_type_display()}，服务单元为 {service_name}，' \
+                    f'申请点数为 {apply.face_value}，申请人为 {apply.username}'
         if apply.is_owner_vo():
             apply_msg = f'{apply_msg}，为项目组“{apply.vo_name}”申请。'
         else:
-            apply_msg = apply_msg + '，个人申请。'
+            apply_msg += '，个人申请。'
 
         if apply.apply_desc:
             apply_msg += '\n申请描述：' + apply.apply_desc
