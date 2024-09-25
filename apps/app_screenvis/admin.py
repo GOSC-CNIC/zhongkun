@@ -29,8 +29,7 @@ class ScreenConfigAdmin(BaseModelAdmin):
 
     @admin.action(description=gettext_lazy('清理更新配置项'))
     def update_configs(self, request, queryset):
-        screen_configs.clear_cache()
-        screen_configs.get_configs()
+        screen_configs.get_configs_no_cache(remove_invalid=True)
 
     update_configs.act_not_need_selected = True
 

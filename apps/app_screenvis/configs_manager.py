@@ -17,12 +17,7 @@ class Configs(metaclass=Singleton):
     CACHE_KEY = 'app_screenvis_configs_cache'
 
     @staticmethod
-    def get_configs():
-        cache_key = Configs.CACHE_KEY
-        configs = dj_cache.get(cache_key)
-        if configs:
-            return configs
-
+    def get_configs_no_cache(remove_invalid: bool = False):
         qs = ScreenConfig.objects.all().values('name', 'value')
         configs = {}
         invalid_names = []
@@ -33,7 +28,7 @@ class Configs(metaclass=Singleton):
             else:
                 invalid_names.append(name)
 
-        if invalid_names:
+        if remove_invalid and invalid_names:
             ScreenConfig.objects.filter(name__in=invalid_names).delete()
 
         # 缺少配置
@@ -44,6 +39,16 @@ class Configs(metaclass=Singleton):
                         name=name, defaults={'value': ScreenConfig.value_defaults.get(name, '')})
                     configs[name] = obj.value
 
+        return configs
+
+    @staticmethod
+    def get_configs():
+        cache_key = Configs.CACHE_KEY
+        configs = dj_cache.get(cache_key)
+        if configs:
+            return configs
+
+        configs = Configs.get_configs_no_cache(remove_invalid=False)
         dj_cache.set(cache_key, configs, timeout=120)
         return configs
 
