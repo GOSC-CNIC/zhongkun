@@ -36,9 +36,17 @@ def do_get_center_and_services():
             'org_data_center__organization').filter(status=ServiceConfig.Status.ENABLE).all()
         sorted_services = sorted(service_qs, key=lambda x: x.sort_weight, reverse=False)
         for s in sorted_services:
+            if s.org_data_center:
+                if is_en_lang:
+                    name = f'{s.org_data_center.name_en}-{s.name_en}'
+                else:
+                    name = f'{s.org_data_center.name}-{s.name}'
+            else:
+                name = s.name_en if is_en_lang else s.name
+
             s_data = {
                 'id': s.id,
-                'name': s.name_en if is_en_lang else s.name,
+                'name': name,
                 'service_type': s.service_type, 'sort_weight': s.sort_weight
             }
             org = s.org_data_center.organization if s.org_data_center else None
