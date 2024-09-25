@@ -102,7 +102,7 @@ class ServerAdmin(NoDeleteSelectModelAdmin):
         except Exception:
             return ''
 
-    @admin.display(description=_('数据中心') )
+    @admin.display(description=_('数据中心'))
     def show_odc_name(self, obj):
         if not obj.service or not obj.service.org_data_center:
             return ''

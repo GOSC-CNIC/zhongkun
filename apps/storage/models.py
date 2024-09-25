@@ -340,7 +340,7 @@ class Bucket(BucketBase):
     user = models.ForeignKey(to=User, null=True, related_name='+', on_delete=models.SET_NULL,
                              verbose_name=_('所属用户'))
     service = models.ForeignKey(to=ObjectsService, related_name='+', null=True,
-                                on_delete=models.SET_NULL, verbose_name=_('所属服务'))
+                                on_delete=models.SET_NULL, verbose_name=_('服务单元'))
 
     class Meta:
         db_table = 'bucket'
@@ -390,7 +390,7 @@ class BucketArchive(BucketBase):
     user = models.ForeignKey(to=User, null=True, related_name='+', on_delete=models.SET_NULL,
                              verbose_name=_('所属用户'))
     service = models.ForeignKey(to=ObjectsService, null=True, related_name='+',
-                                on_delete=models.SET_NULL, verbose_name=_('所属服务'))
+                                on_delete=models.SET_NULL, verbose_name=_('服务单元'))
     delete_time = models.DateTimeField(auto_now_add=True, verbose_name=_('删除时间'))
     archiver = models.CharField(verbose_name=_('删除归档人'), max_length=128, blank=True, default='')
 

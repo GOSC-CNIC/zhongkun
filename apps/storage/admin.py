@@ -10,6 +10,7 @@ from core import errors
 from utils.model import NoDeleteSelectModelAdmin, BaseModelAdmin
 from apps.storage.managers import ObjectsServiceManager
 from apps.service.odc_manager import OrgDataCenterManager
+from apps.service.models import OrgDataCenter
 from . import models
 from . import forms
 
@@ -30,6 +31,25 @@ class ServiceOrgFilter(SimpleListFilter):
         org_id = request.GET.get(self.parameter_name)
         if org_id:
             return queryset.filter(org_data_center__organization_id=org_id)
+
+
+class BucketServiceFilter(SimpleListFilter):
+    title = _("服务单元")
+    parameter_name = 'service_id'
+
+    def lookups(self, request, model_admin):
+        r = models.ObjectsService.objects.order_by(
+            'org_data_center__organization__sort_weight', 'sort_weight'
+        ).values_list(
+            'id', 'name', 'org_data_center__name', 'org_data_center__organization__name'
+        )
+        d = {i[0]: f'{i[3]} / {i[2]} /【{i[1]}】' for i in r}
+        return [(k, v) for k, v in d.items()]
+
+    def queryset(self, request, queryset):
+        service_id = request.GET.get(self.parameter_name)
+        if service_id:
+            return queryset.filter(service_id=service_id)
 
 
 @admin.register(models.ObjectsService)
@@ -221,13 +241,27 @@ class ObjectsServiceAdmin(BaseModelAdmin):
 
 @admin.register(models.Bucket)
 class BucketAdmin(NoDeleteSelectModelAdmin):
-    list_display = ('id', 'name', 'bucket_id', 'service', 'creation_time', 'user',
+    list_display = ('id', 'name', 'bucket_id', 'show_org_name', 'show_odc_name', 'service', 'creation_time', 'user',
                     'task_status', 'situation', 'situation_time', 'storage_size', 'object_count',
                     'stats_time', 'tag')
     list_select_related = ('service', 'user')
     raw_id_fields = ('user',)
-    list_filter = ['service', 'situation', 'task_status', 'tag']
+    list_filter = [BucketServiceFilter, 'situation', 'task_status', 'tag']
     search_fields = ['name', 'user__username', 'id']
+
+    @admin.display(description=_('机构'))
+    def show_org_name(self, obj):
+        try:
+            return obj.service.org_data_center.organization.name
+        except Exception:
+            return ''
+
+    @admin.display(description=_('数据中心'))
+    def show_odc_name(self, obj):
+        if not obj.service or not obj.service.org_data_center:
+            return ''
+
+        return obj.service.org_data_center.name
 
     def delete_model(self, request, obj):
         bucket = obj

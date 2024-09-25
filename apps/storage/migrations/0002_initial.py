@@ -34,7 +34,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='bucketarchive',
             name='service',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='storage.objectsservice', verbose_name='所属服务'),
+            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='storage.objectsservice', verbose_name='服务单元'),
         ),
         migrations.AddField(
             model_name='bucketarchive',
@@ -44,7 +44,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='bucket',
             name='service',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='storage.objectsservice', verbose_name='所属服务'),
+            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='storage.objectsservice', verbose_name='服务单元'),
         ),
         migrations.AddField(
             model_name='bucket',
