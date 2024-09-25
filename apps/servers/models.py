@@ -642,7 +642,7 @@ class Server(ServerBase):
         OPERATION = 'lock-operation', _('锁定所有操作，只允许读')
 
     service = models.ForeignKey(to=ServiceConfig, null=True, on_delete=models.SET_NULL, related_name='server_set',
-                                verbose_name=_('接入的服务配置'))
+                                verbose_name=_('服务单元'))
     user = models.ForeignKey(to=User, verbose_name=_('创建者'), on_delete=models.SET_NULL, related_name='user_servers',
                              null=True)
     vo = models.ForeignKey(to=VirtualOrganization, null=True, on_delete=models.SET_NULL, default=None, blank=True,

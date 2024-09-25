@@ -13,6 +13,7 @@ from apps.servers.models import (
 )
 from apps.servers.managers import ServiceManager
 from apps.service.odc_manager import OrgDataCenterManager
+from apps.service.models import OrgDataCenter
 
 
 class ServerAdminForm(forms.ModelForm):
@@ -28,17 +29,51 @@ class ServerAdminForm(forms.ModelForm):
         return super().save(commit=commit)
 
 
+class ServerODCFilter(SimpleListFilter):
+    title = _("数据中心")
+    parameter_name = 'odc_id'
+
+    def lookups(self, request, model_admin):
+        r = OrgDataCenter.objects.order_by('organization__sort_weight', 'sort_weight').values_list(
+            'id', 'name', 'organization__name'
+        )
+        d = {i[0]: f'{i[2]}【{i[1]}】' for i in r}
+        return [(k, v) for k, v in d.items()]
+
+    def queryset(self, request, queryset):
+        odc_id = request.GET.get(self.parameter_name)
+        if odc_id:
+            return queryset.filter(service__org_data_center_id=odc_id)
+
+
+class ServerServiceFilter(SimpleListFilter):
+    title = _("服务单元")
+    parameter_name = 'service_id'
+
+    def lookups(self, request, model_admin):
+        r = ServiceConfig.objects.order_by('org_data_center__organization__sort_weight', 'sort_weight').values_list(
+            'id', 'name', 'org_data_center__name', 'org_data_center__organization__name'
+        )
+        d = {i[0]: f'{i[3]} / {i[2]} /【{i[1]}】' for i in r}
+        return [(k, v) for k, v in d.items()]
+
+    def queryset(self, request, queryset):
+        service_id = request.GET.get(self.parameter_name)
+        if service_id:
+            return queryset.filter(service_id=service_id)
+
+
 @admin.register(Server)
 class ServerAdmin(NoDeleteSelectModelAdmin):
     form = ServerAdminForm
     list_display_links = ('id',)
-    list_display = ('id', 'service', 'azone_id', 'instance_id', 'vcpus', 'ram', 'disk_size', 'ipv4', 'image',
+    list_display = ('id', 'show_org_name', 'show_odc_name', 'service', 'azone_id', 'instance_id', 'vcpus', 'ram', 'disk_size', 'ipv4', 'image',
                     'img_sys_type', 'img_sys_arch', 'img_release', 'img_release_version',
                     'creation_time', 'start_time', 'user', 'task_status', 'center_quota',
                     'pay_type', 'classification', 'vo', 'lock', 'situation', 'situation_time',
                     'default_user', 'show_default_password', 'expiration_time', 'remarks')
     search_fields = ['id', 'name', 'image', 'ipv4', 'remarks']
-    list_filter = ['service__org_data_center', 'service', 'classification', 'public_ip']
+    list_filter = [ServerODCFilter, ServerServiceFilter, 'classification', 'public_ip']
     raw_id_fields = ('user', )
     list_select_related = ('service', 'user', 'vo')
     readonly_fields = ['default_password']
@@ -59,6 +94,20 @@ class ServerAdmin(NoDeleteSelectModelAdmin):
     )
     def show_default_password(self, obj):
         return obj.raw_default_password
+
+    @admin.display(description=_('机构'))
+    def show_org_name(self, obj):
+        try:
+            return obj.service.org_data_center.organization.name
+        except Exception:
+            return ''
+
+    @admin.display(description=_('数据中心') )
+    def show_odc_name(self, obj):
+        if not obj.service or not obj.service.org_data_center:
+            return ''
+
+        return obj.service.org_data_center.name
 
     def has_delete_permission(self, request, obj=None):
         return False
