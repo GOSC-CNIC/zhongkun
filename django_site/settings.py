@@ -438,8 +438,8 @@ CRONTABJOBS = [
      'python3 /home/uwsgi/zhongkun/scripts/run_scan_process.py >> /var/log/zhongkun/task_scan_process.log'),
     ('task8_alert_email_notification', '*/1 * * * *',
      'python3 /home/uwsgi/zhongkun/apps/app_alert/scripts/alert_email_notification.py >> /var/log/zhongkun/task_alert_email_notification.log'),
-    ('task9_alert_dingtalk_notification', '*/1 * * * *',
-     'python3 /home/uwsgi/zhongkun/apps/app_alert/scripts/alert_dingtalk_notification.py >> /var/log/zhongkun/task_alert_dingtalk_notification.log'),
+    # ('task9_alert_dingtalk_notification', '*/1 * * * *',
+    #  'python3 /home/uwsgi/zhongkun/apps/app_alert/scripts/alert_dingtalk_notification.py >> /var/log/zhongkun/task_alert_dingtalk_notification.log'),
     ('task13_netflow_update_element', '0 */1 * * *',
      'python3 /home/uwsgi/zhongkun/apps/app_net_flow/scripts/netflow_update_element.py >> /var/log/zhongkun/netflow_update_element.log'),
 ]
