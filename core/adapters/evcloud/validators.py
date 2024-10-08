@@ -16,6 +16,8 @@ class InputValidator:
             group_id = None
             if params.azone_id:
                 group_id = int(params.azone_id)
+
+            owner = params.owner
         except ValueError as e:
             raise exceptions.APIInvalidParam(extend_msg=str(e))
 
@@ -50,6 +52,9 @@ class InputValidator:
 
         if group_id:
             data['group_id'] = group_id
+
+        if owner:
+            data['username'] = owner
 
         return data
 

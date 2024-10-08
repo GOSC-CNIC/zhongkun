@@ -54,6 +54,7 @@ class ServerCreateInput(InputBase):
         :param network_id: 子网id; type: str; required: False
         :param remarks: 备注信息; type: str; required: False
         :param azone_id: availability zone id; type: str
+        :param owner: 云主机的拥有者; type: str；required: False
         """
         self.ram = ram
         self.vcpu = vcpu
@@ -65,6 +66,7 @@ class ServerCreateInput(InputBase):
         self.remarks = kwargs.get('remarks', None)
         self.azone_id = kwargs.get('azone_id', None)
         self.flavor_id = kwargs.get('flavor_id', None)
+        self.owner = kwargs.get('owner', None)
         super().__init__(**kwargs)
 
 

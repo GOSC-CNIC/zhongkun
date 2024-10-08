@@ -240,10 +240,16 @@ class OrderResourceDeliverer:
 
         inst_remarks = self.format_inst_remark(order=order, remark=resource.instance_remark)
         who_action = self._format_who_action(order=order)
+        # evcloud, 直接指定创建云主机拥有者
+        param_owner = None
+        if service.service_type == ServiceConfig.ServiceType.EVCLOUD.value and order.owner_type == OwnerType.USER.value:
+            param_owner = order.username
+
         params = inputs.ServerCreateInput(
             ram=config.vm_ram_mib, vcpu=config.vm_cpu, image_id=config.vm_image_id, azone_id=config.vm_azone_id,
             region_id=service.region_id, network_id=config.vm_network_id, remarks=inst_remarks,
-            systemdisk_size=config.vm_systemdisk_size, flavor_id=config.vm_flavor_id, _who_action=who_action
+            systemdisk_size=config.vm_systemdisk_size, flavor_id=config.vm_flavor_id, _who_action=who_action,
+            owner=param_owner
         )
         try:
             out = self._request_create_server(service=service, params=params)
