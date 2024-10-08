@@ -147,6 +147,25 @@ class TaskLockManager:
             return ok, exc, task_lock
 
     @staticmethod
+    def release_lock_if_expired(task: str, run_desc: str) -> Tuple[bool, Union[None, Exception], TimedTaskLock]:
+        """
+        如果锁定过期时间过期了就释放锁
+
+        :run_desc: 任务执行结果描述；success， 或者执行发生错误时错误信息
+        :return:
+            False, Exception, TimedTaskLock()   # 释放锁失败
+            True, None, TimedTaskLock()         # 释放锁成功
+        """
+        now_time = dj_timezone.now()
+        with transaction.atomic():
+            task_lock = TimedTaskLock.objects.select_for_update().get(task=task)
+            if task_lock.expire_time and task_lock.expire_time < now_time:
+                ok, exc, task_lock = TaskLockManager._release(task_lock=task_lock, run_desc=run_desc)
+                return ok, exc, task_lock
+
+        return False, Exception(_('锁定时间未过期')), task_lock
+
+    @staticmethod
     def _release(task_lock: TimedTaskLock, run_desc: str) -> Tuple[bool, Union[None, Exception], TimedTaskLock]:
         """
         :return:
@@ -263,6 +282,22 @@ class TaskLock:
             True, None         # 释放锁成功
         """
         ok, exc, tlock = TaskLockManager.release_task_lock(task=self.task_name, run_desc=run_desc)
+        self._task_lock = tlock
+        if ok:
+            self._is_locked = False
+
+        return ok, exc
+
+    def release_if_expired(self):
+        """
+        如果锁定过期时间过期了就释放锁
+
+        :run_desc: 任务执行结果描述；success， 或者执行发生错误时错误信息
+        :return:
+            False, Exception   # 释放锁失败
+            True, None         # 释放锁成功
+        """
+        ok, exc, tlock = TaskLockManager.release_lock_if_expired(task=self.task_name, run_desc='过期释放')
         self._task_lock = tlock
         if ok:
             self._is_locked = False
