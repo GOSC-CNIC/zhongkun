@@ -1,6 +1,6 @@
 from django.contrib import admin, messages
 from django.contrib.admin.filters import SimpleListFilter
-from django.utils.translation import gettext, gettext_lazy as _
+from django.utils.translation import get_language, gettext, gettext_lazy as _
 from django.utils.html import format_html
 from django.db import transaction
 from django import forms
@@ -14,6 +14,33 @@ from apps.servers.models import (
 from apps.servers.managers import ServiceManager
 from apps.service.odc_manager import OrgDataCenterManager
 from apps.service.models import OrgDataCenter
+
+
+class ServerOrgOdcShowMixin:
+    SHOW_ORG_NAME = 'show_org_name'
+    SHOW_ODC_NAME = 'show_odc_name'
+
+    @admin.display(description=_('机构'))
+    def show_org_name(self, obj):
+        try:
+            lang = get_language()
+            if lang == 'en':
+                return obj.service.org_data_center.organization.name_en
+            else:
+                return obj.service.org_data_center.organization.name
+        except Exception:
+            return ''
+
+    @admin.display(description=_('数据中心'))
+    def show_odc_name(self, obj):
+        if not obj.service or not obj.service.org_data_center:
+            return ''
+
+        lang = get_language()
+        if lang == 'en':
+            return obj.service.org_data_center.name_en
+        else:
+            return obj.service.org_data_center.name
 
 
 class ServerAdminForm(forms.ModelForm):
@@ -34,9 +61,13 @@ class ServerODCFilter(SimpleListFilter):
     parameter_name = 'odc_id'
 
     def lookups(self, request, model_admin):
-        r = OrgDataCenter.objects.order_by('organization__sort_weight', 'sort_weight').values_list(
-            'id', 'name', 'organization__name'
-        )
+        qs = OrgDataCenter.objects.order_by('organization__sort_weight', 'sort_weight')
+        lang = get_language()
+        if lang == 'en':
+            r = qs.values_list('id', 'name_en', 'organization__name_en')
+        else:
+            r = qs.values_list('id', 'name', 'organization__name')
+
         d = {i[0]: f'{i[2]}【{i[1]}】' for i in r}
         return [(k, v) for k, v in d.items()]
 
@@ -51,9 +82,14 @@ class ServerServiceFilter(SimpleListFilter):
     parameter_name = 'service_id'
 
     def lookups(self, request, model_admin):
-        r = ServiceConfig.objects.order_by('org_data_center__organization__sort_weight', 'sort_weight').values_list(
-            'id', 'name', 'org_data_center__name', 'org_data_center__organization__name'
-        )
+        qs = ServiceConfig.objects.order_by('org_data_center__organization__sort_weight', 'sort_weight')
+
+        lang = get_language()
+        if lang == 'en':
+            r = qs.values_list('id', 'name_en', 'org_data_center__name_en', 'org_data_center__organization__name_en')
+        else:
+            r = qs.values_list('id', 'name', 'org_data_center__name', 'org_data_center__organization__name')
+
         d = {i[0]: f'{i[3]} / {i[2]} /【{i[1]}】' for i in r}
         return [(k, v) for k, v in d.items()]
 
@@ -64,10 +100,11 @@ class ServerServiceFilter(SimpleListFilter):
 
 
 @admin.register(Server)
-class ServerAdmin(NoDeleteSelectModelAdmin):
+class ServerAdmin(NoDeleteSelectModelAdmin, ServerOrgOdcShowMixin):
     form = ServerAdminForm
     list_display_links = ('id',)
-    list_display = ('id', 'show_org_name', 'show_odc_name', 'service', 'azone_id', 'instance_id', 'vcpus', 'ram', 'disk_size', 'ipv4', 'image',
+    list_display = ('id', ServerOrgOdcShowMixin.SHOW_ORG_NAME, ServerOrgOdcShowMixin.SHOW_ODC_NAME,
+                    'service', 'azone_id', 'instance_id', 'vcpus', 'ram', 'disk_size', 'ipv4', 'image',
                     'img_sys_type', 'img_sys_arch', 'img_release', 'img_release_version',
                     'creation_time', 'start_time', 'user', 'task_status', 'center_quota',
                     'pay_type', 'classification', 'vo', 'lock', 'situation', 'situation_time',
@@ -75,7 +112,7 @@ class ServerAdmin(NoDeleteSelectModelAdmin):
     search_fields = ['id', 'name', 'image', 'ipv4', 'remarks']
     list_filter = [ServerODCFilter, ServerServiceFilter, 'classification', 'public_ip']
     raw_id_fields = ('user', )
-    list_select_related = ('service', 'user', 'vo')
+    list_select_related = ('service__org_data_center__organization', 'user', 'vo')
     readonly_fields = ['default_password']
 
     fieldsets = [
@@ -95,20 +132,6 @@ class ServerAdmin(NoDeleteSelectModelAdmin):
     def show_default_password(self, obj):
         return obj.raw_default_password
 
-    @admin.display(description=_('机构'))
-    def show_org_name(self, obj):
-        try:
-            return obj.service.org_data_center.organization.name
-        except Exception:
-            return ''
-
-    @admin.display(description=_('数据中心'))
-    def show_odc_name(self, obj):
-        if not obj.service or not obj.service.org_data_center:
-            return ''
-
-        return obj.service.org_data_center.name
-
     def has_delete_permission(self, request, obj=None):
         return False
 
@@ -127,17 +150,19 @@ class ServerAdmin(NoDeleteSelectModelAdmin):
 
 
 @admin.register(ServerArchive)
-class ServerArchiveAdmin(NoDeleteSelectModelAdmin):
+class ServerArchiveAdmin(NoDeleteSelectModelAdmin, ServerOrgOdcShowMixin):
     list_display_links = ('id',)
-    list_display = ('id', 'service', 'name', 'instance_id', 'vcpus', 'ram', 'disk_size', 'ipv4', 'image',
+    list_display = ('id', ServerOrgOdcShowMixin.SHOW_ORG_NAME, ServerOrgOdcShowMixin.SHOW_ODC_NAME,
+                    'service', 'name', 'instance_id',
+                    'vcpus', 'ram', 'disk_size', 'ipv4', 'image',
                     'img_sys_type', 'img_sys_arch', 'img_release', 'img_release_version',
                     'creation_time', 'user', 'task_status', 'pay_type', 'classification', 'vo',
                     'center_quota',
                     'start_time', 'deleted_time', 'archive_user', 'archive_type', 'remarks')
     search_fields = ['id', 'name', 'image', 'ipv4', 'remarks']
-    list_filter = ['archive_type', 'service', 'classification']
+    list_filter = ['archive_type', ServerServiceFilter, 'classification']
     raw_id_fields = ('user',)
-    list_select_related = ('service', 'user', 'archive_user', 'vo')
+    list_select_related = ('service__org_data_center__organization', 'user', 'archive_user', 'vo')
     show_full_result_count = False
 
     def has_delete_permission(self, request, obj=None):
@@ -151,24 +176,27 @@ class ServerArchiveAdmin(NoDeleteSelectModelAdmin):
 
 
 @admin.register(Flavor)
-class FlavorAdmin(BaseModelAdmin):
+class FlavorAdmin(BaseModelAdmin, ServerOrgOdcShowMixin):
     list_display_links = ('id',)
-    list_display = ('id', 'vcpus', 'ram', 'enable', 'service', 'creation_time')
+    list_display = ('id', 'vcpus', 'ram', 'enable', 'service',
+                    ServerOrgOdcShowMixin.SHOW_ORG_NAME, ServerOrgOdcShowMixin.SHOW_ODC_NAME, 'creation_time')
     ordering = ('vcpus', 'ram')
-    list_filter = ['service']
+    list_filter = [ServerServiceFilter]
+    list_select_related = ('service__org_data_center__organization',)
 
 
 @admin.register(Disk)
-class DiskAdmin(NoDeleteSelectModelAdmin):
+class DiskAdmin(NoDeleteSelectModelAdmin, ServerOrgOdcShowMixin):
     list_display_links = ('id',)
-    list_display = ('id', 'service', 'azone_id', 'azone_name', 'size', 'instance_id', 'quota_type',
+    list_display = ('id', ServerOrgOdcShowMixin.SHOW_ORG_NAME, ServerOrgOdcShowMixin.SHOW_ODC_NAME,
+                    'service', 'azone_id', 'azone_name', 'size', 'instance_id', 'quota_type',
                     'creation_time', 'task_status', 'expiration_time', 'start_time', 'pay_type',
                     'classification', 'user', 'vo', 'lock', 'show_deleted', 'deleted_time', 'deleted_user',
                     'server', 'mountpoint', 'attached_time', 'detached_time', 'remarks')
     search_fields = ['id', 'instance_id', 'server__id', 'remarks', 'user__username']
-    list_filter = ['service__org_data_center', 'service', 'classification', 'deleted']
+    list_filter = [ServerODCFilter, ServerServiceFilter, 'classification', 'deleted']
     raw_id_fields = ('user', 'vo', 'server')
-    list_select_related = ('service', 'user', 'vo')
+    list_select_related = ('service__org_data_center__organization', 'user', 'vo', 'server')
     readonly_fields = ['deleted_user']
 
     fieldsets = [
@@ -221,7 +249,7 @@ class DiskChangeLogAdmin(NoDeleteSelectModelAdmin):
                     'expiration_time', 'start_time', 'pay_type',
                     'classification', 'user', 'vo', 'remarks')
     search_fields = ['disk_id', 'instance_id', 'remarks', 'user__username', 'change_user']
-    list_filter = ['log_type', 'service', 'classification']
+    list_filter = ['log_type', ServerServiceFilter, 'classification']
     raw_id_fields = ('user', 'vo',)
     list_select_related = ('service', 'user', 'vo')
     readonly_fields = ['change_user']
@@ -481,13 +509,14 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
 
 
 @admin.register(ServicePrivateQuota)
-class ServicePrivateQuotaAdmin(BaseModelAdmin):
+class ServicePrivateQuotaAdmin(BaseModelAdmin, ServerOrgOdcShowMixin):
     list_display_links = ('id',)
-    list_display = ('id', 'service', 'vcpu_total', 'vcpu_used', 'ram_total', 'ram_used', 'disk_size_total',
+    list_display = ('id', ServerOrgOdcShowMixin.SHOW_ORG_NAME, ServerOrgOdcShowMixin.SHOW_ODC_NAME,
+                    'service', 'vcpu_total', 'vcpu_used', 'ram_total', 'ram_used', 'disk_size_total',
                     'disk_size_used', 'private_ip_total', 'private_ip_used', 'public_ip_total', 'public_ip_used',
                     'enable', 'creation_time')
-    list_select_related = ('service',)
-    list_filter = ('service__org_data_center', 'service')
+    list_select_related = ('service__org_data_center__organization',)
+    list_filter = (ServerODCFilter, ServerServiceFilter)
     actions = ['quota_used_update']
 
     @admin.action(description=_("已用配额统计更新"))
@@ -545,7 +574,7 @@ class ServerSnapshotAdmin(NoDeleteSelectModelAdmin):
                     'pay_type', 'expiration_time', 'remarks',
                     'classification', 'user', 'vo', 'server', 'show_deleted', 'deleted_time', 'deleted_user')
     list_select_related = ('user', 'vo', 'service', 'server')
-    list_filter = ('service', 'deleted')
+    list_filter = (ServerServiceFilter, 'deleted')
     raw_id_fields = ('user', 'vo', 'server')
     search_fields = ['remarks', 'system_name']
 
