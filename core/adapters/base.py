@@ -221,3 +221,9 @@ class BaseAdapter:
         云主机回滚到快照
         """
         raise NotImplementedError('`server_rollback_snapshot()` must be implemented.')
+
+    def server_owner_change(self, params: inputs.ServerOwnerChangeInput) -> outputs.ServerOwnerChangeOutput:
+        """
+        云主机拥有者变更，主要适用于EVCloud
+        """
+        raise NotImplementedError('`server_owner_change()` must be implemented.')

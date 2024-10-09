@@ -655,3 +655,7 @@ class ServerSnapshotDeleteOutput(OutputBase):
 
 class ServerRollbackSnapshotOutput(OutputBase):
     pass
+
+
+class ServerOwnerChangeOutput(OutputBase):
+    pass

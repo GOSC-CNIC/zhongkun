@@ -178,3 +178,7 @@ class APIBuilder:
 
     def vm_rollback_snap_url(self, vm_uuid: str, snap_id: int, query=None):
         return self.build_url(path=f'api/{self.api_version}/vms/{vm_uuid}/rollback/{snap_id}/', query=query)
+
+    def vm_change_owner_url(self, vm_uuid: str, query=None):
+        return self.build_url(
+            path=f'api/{self.api_version}/vms/{vm_uuid}/handover/', query=query, trailing_slash=True)

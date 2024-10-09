@@ -857,3 +857,16 @@ class EVCloudAdapter(BaseAdapter):
             return outputs.ServerRollbackSnapshotOutput(ok=False, error=e)
 
         return outputs.ServerRollbackSnapshotOutput(ok=True, error=None)
+
+    def server_owner_change(self, params: inputs.ServerOwnerChangeInput) -> outputs.ServerOwnerChangeOutput:
+        """
+        云主机拥有者变更，主要适用于EVCloud
+        """
+        url = self.api_builder.vm_change_owner_url(vm_uuid=params.instance_id, query={'username': params.new_owner})
+        try:
+            headers = self.get_auth_header()
+            r = self.do_request(method='post', ok_status_codes=[200], url=url, headers=headers)
+        except exceptions.Error as e:
+            return outputs.ServerOwnerChangeOutput(ok=False, error=e)
+
+        return outputs.ServerOwnerChangeOutput(ok=True, error=None)

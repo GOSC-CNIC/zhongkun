@@ -275,3 +275,14 @@ class ServerRollbackSnapshotInput(ServerIdNameInput):
         """
         self.snap_id = snap_id
         super().__init__(**kwargs)
+
+
+class ServerOwnerChangeInput(InputBase):
+    def __init__(self, instance_id: str, new_owner: str, **kwargs):
+        """
+        :param instance_id: 云主机的id
+        :param new_owner: 云主机新的拥有者
+        """
+        self.instance_id = instance_id
+        self.new_owner = new_owner
+        super().__init__(**kwargs)

@@ -216,6 +216,13 @@ class OneServiceClient:
             self, params: inputs.ServerRollbackSnapshotInput) -> outputs.ServerRollbackSnapshotOutput:
         return self.adapter.server_rollback_snapshot(params=params)
 
+    @adapter_method_not_support(action='change server owner')
+    def server_owner_change(self, params: inputs.ServerOwnerChangeInput) -> outputs.ServerOwnerChangeOutput:
+        """
+        云主机拥有者变更，主要适用于EVCloud
+        """
+        return self.adapter.server_owner_change(params=params)
+
 
 class VPNClient:
     def __init__(self, endpoint_url, api_version='v3', auth=None):
