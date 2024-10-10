@@ -1,5 +1,5 @@
 from django.contrib import admin, messages
-from django.utils.translation import gettext, gettext_lazy as _
+from django.utils.translation import get_language, gettext, gettext_lazy as _
 from django.utils.html import format_html
 from django.db import transaction
 from django.contrib.admin.filters import SimpleListFilter
@@ -10,9 +10,35 @@ from core import errors
 from utils.model import NoDeleteSelectModelAdmin, BaseModelAdmin
 from apps.storage.managers import ObjectsServiceManager
 from apps.service.odc_manager import OrgDataCenterManager
-from apps.service.models import OrgDataCenter
 from . import models
 from . import forms
+
+
+class StorageOrgOdcShowMixin:
+    SHOW_ORG_NAME = 'show_org_name'
+    SHOW_ODC_NAME = 'show_odc_name'
+
+    @admin.display(description=_('机构'))
+    def show_org_name(self, obj):
+        try:
+            lang = get_language()
+            if lang == 'en':
+                return obj.service.org_data_center.organization.name_en
+            else:
+                return obj.service.org_data_center.organization.name
+        except Exception:
+            return ''
+
+    @admin.display(description=_('数据中心'))
+    def show_odc_name(self, obj):
+        if not obj.service or not obj.service.org_data_center:
+            return ''
+
+        lang = get_language()
+        if lang == 'en':
+            return obj.service.org_data_center.name_en
+        else:
+            return obj.service.org_data_center.name
 
 
 class ServiceOrgFilter(SimpleListFilter):
@@ -20,10 +46,13 @@ class ServiceOrgFilter(SimpleListFilter):
     parameter_name = 'org_id'
 
     def lookups(self, request, model_admin):
-        r = models.ObjectsService.objects.select_related(
-            'org_data_center__organization').order_by('sort_weight').values_list(
-            'org_data_center__organization_id', 'org_data_center__organization__name'
-        )
+        qs = models.ObjectsService.objects.select_related('org_data_center__organization').order_by('sort_weight')
+        lang = get_language()
+        if lang == 'en':
+            r = qs.values_list('org_data_center__organization_id', 'org_data_center__organization__name_en')
+        else:
+            r = qs.values_list('org_data_center__organization_id', 'org_data_center__organization__name')
+
         d = {i[0]: i[1] for i in r}
         return [(k, v) for k, v in d.items()]
 
@@ -38,11 +67,13 @@ class BucketServiceFilter(SimpleListFilter):
     parameter_name = 'service_id'
 
     def lookups(self, request, model_admin):
-        r = models.ObjectsService.objects.order_by(
-            'org_data_center__organization__sort_weight', 'sort_weight'
-        ).values_list(
-            'id', 'name', 'org_data_center__name', 'org_data_center__organization__name'
-        )
+        qs = models.ObjectsService.objects.order_by('org_data_center__organization__sort_weight', 'sort_weight')
+        lang = get_language()
+        if lang == 'en':
+            r = qs.values_list('id', 'name_en', 'org_data_center__name_en', 'org_data_center__organization__name_en')
+        else:
+            r = qs.values_list('id', 'name', 'org_data_center__name', 'org_data_center__organization__name')
+
         d = {i[0]: f'{i[3]} / {i[2]} /【{i[1]}】' for i in r}
         return [(k, v) for k, v in d.items()]
 
@@ -240,28 +271,16 @@ class ObjectsServiceAdmin(BaseModelAdmin):
 
 
 @admin.register(models.Bucket)
-class BucketAdmin(NoDeleteSelectModelAdmin):
-    list_display = ('id', 'name', 'bucket_id', 'show_org_name', 'show_odc_name', 'service', 'creation_time', 'user',
+class BucketAdmin(NoDeleteSelectModelAdmin, StorageOrgOdcShowMixin):
+    list_display = ('id', 'name', 'bucket_id',
+                    StorageOrgOdcShowMixin.SHOW_ORG_NAME, StorageOrgOdcShowMixin.SHOW_ODC_NAME,
+                    'service', 'creation_time', 'user',
                     'task_status', 'situation', 'situation_time', 'storage_size', 'object_count',
                     'stats_time', 'tag')
-    list_select_related = ('service', 'user')
+    list_select_related = ('service__org_data_center__organization', 'user')
     raw_id_fields = ('user',)
     list_filter = [BucketServiceFilter, 'situation', 'task_status', 'tag']
     search_fields = ['name', 'user__username', 'id']
-
-    @admin.display(description=_('机构'))
-    def show_org_name(self, obj):
-        try:
-            return obj.service.org_data_center.organization.name
-        except Exception:
-            return ''
-
-    @admin.display(description=_('数据中心'))
-    def show_odc_name(self, obj):
-        if not obj.service or not obj.service.org_data_center:
-            return ''
-
-        return obj.service.org_data_center.name
 
     def delete_model(self, request, obj):
         bucket = obj
@@ -280,14 +299,16 @@ class BucketAdmin(NoDeleteSelectModelAdmin):
 
 
 @admin.register(models.BucketArchive)
-class BucketArchiveAdmin(BaseModelAdmin):
-    list_display = ('id', 'name', 'service', 'creation_time', 'user', 'delete_time', 'archiver',
+class BucketArchiveAdmin(BaseModelAdmin, StorageOrgOdcShowMixin):
+    list_display = ('id', 'name',
+                    StorageOrgOdcShowMixin.SHOW_ORG_NAME, StorageOrgOdcShowMixin.SHOW_ODC_NAME,
+                    'service', 'creation_time', 'user', 'delete_time', 'archiver',
                     'task_status', 'situation', 'situation_time', 'storage_size', 'object_count',
                     'stats_time', 'tag')
-    list_select_related = ('service', 'user')
+    list_select_related = ('service__org_data_center__organization', 'user')
     raw_id_fields = ('user',)
     search_fields = ['name', 'user__username', 'original_id']
-    list_filter = ['service', 'situation', 'task_status', 'tag']
+    list_filter = [BucketServiceFilter, 'situation', 'task_status', 'tag']
 
     def has_delete_permission(self, request, obj=None):
         return False
