@@ -128,7 +128,8 @@ class ServerSerializer(ServerBaseSerializer):
                 'id': service.id,
                 'name': service.name,
                 'name_en': service.name_en,
-                'service_type': service.service_type
+                'service_type': service.service_type,
+                'endpoint_url': service.endpoint_url
             }
 
         return None

@@ -1599,12 +1599,14 @@ class ServersTests(MyAPITestCase):
                            "lock", "pay_type"], response.data['servers'][0])
         self.assertEqual(response.data['servers'][0]['ram_gib'], 1)
         self.assertEqual(response.data['servers'][0]['ram'], 1)
-        self.assertKeysIn(["id", "name", "name_en", "service_type"], response.data['servers'][0]['service'])
+        self.assertKeysIn([
+            "id", "name", "name_en", "service_type", 'endpoint_url'], response.data['servers'][0]['service'])
         self.assert_is_subdict_of(sub={
             'classification': Server.Classification.PERSONAL,
             'service': {
                 'id': self.miss_server.service.id, 'name': self.miss_server.service.name,
-                "service_type": ServiceConfig.ServiceType.EVCLOUD, 'name_en': self.miss_server.service.name_en
+                "service_type": ServiceConfig.ServiceType.EVCLOUD, 'name_en': self.miss_server.service.name_en,
+                'endpoint_url': self.miss_server.service.endpoint_url
             },
             'id': self.miss_server.id, 'vo_id': None
         }, d=response.data['servers'][0])
@@ -1731,7 +1733,8 @@ class ServersTests(MyAPITestCase):
             'classification': Server.Classification.VO,
             'service': {
                 'id': vo_server.service.id, 'name': vo_server.service.name,
-                "service_type": ServiceConfig.ServiceType.EVCLOUD, 'name_en': vo_server.service.name_en
+                "service_type": ServiceConfig.ServiceType.EVCLOUD, 'name_en': vo_server.service.name_en,
+                'endpoint_url': vo_server.service.endpoint_url
             },
             'id': vo_server.id, 'vo_id': vo_id
         }, d=response.data['servers'][0])
@@ -1772,7 +1775,8 @@ class ServersTests(MyAPITestCase):
             'classification': Server.Classification.VO,
             'service': {
                 'id': vo_server.service.id, 'name': vo_server.service.name,
-                "service_type": ServiceConfig.ServiceType.EVCLOUD, 'name_en': vo_server.service.name_en
+                "service_type": ServiceConfig.ServiceType.EVCLOUD, 'name_en': vo_server.service.name_en,
+                'endpoint_url': vo_server.service.endpoint_url
             },
             'id': vo_server.id, 'vo_id': vo_id
         }, d=response.data['server'])
@@ -1906,7 +1910,8 @@ class ServersTests(MyAPITestCase):
             'classification': Server.Classification.PERSONAL,
             'service': {
                 'id': self.miss_server.service.id, 'name': self.miss_server.service.name,
-                "service_type": ServiceConfig.ServiceType.EVCLOUD, 'name_en': self.miss_server.service.name_en
+                "service_type": ServiceConfig.ServiceType.EVCLOUD, 'name_en': self.miss_server.service.name_en,
+                'endpoint_url': self.miss_server.service.endpoint_url
             },
             'id': self.miss_server.id, 'vo_id': None
         }, d=response.data['servers'][0])
@@ -1922,7 +1927,8 @@ class ServersTests(MyAPITestCase):
             'classification': Server.Classification.VO,
             'service': {
                 'id': vo_server.service.id, 'name': vo_server.service.name,
-                "service_type": ServiceConfig.ServiceType.EVCLOUD, 'name_en': vo_server.service.name_en
+                "service_type": ServiceConfig.ServiceType.EVCLOUD, 'name_en': vo_server.service.name_en,
+                'endpoint_url': vo_server.service.endpoint_url
             },
             'id': vo_server.id, 'vo_id': vo_id
         }, d=response.data['servers'][0])
@@ -2339,7 +2345,8 @@ class ServersTests(MyAPITestCase):
             'classification': Server.Classification.VO,
             'service': {
                 'id': vo_server.service.id, 'name': vo_server.service.name,
-                "service_type": ServiceConfig.ServiceType.EVCLOUD, 'name_en': vo_server.service.name_en
+                "service_type": ServiceConfig.ServiceType.EVCLOUD, 'name_en': vo_server.service.name_en,
+                'endpoint_url': vo_server.service.endpoint_url
             },
             'id': vo_server.id, 'vo_id': self.vo_id
         }, d=response.data['servers'][0])
