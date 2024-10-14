@@ -865,7 +865,7 @@ class EVCloudAdapter(BaseAdapter):
         url = self.api_builder.vm_change_owner_url(vm_uuid=params.instance_id, query={'username': params.new_owner})
         try:
             headers = self.get_auth_header()
-            r = self.do_request(method='post', ok_status_codes=[200], url=url, headers=headers)
+            r = self.do_request(method='post', ok_status_codes=[200, 201], url=url, headers=headers)
         except exceptions.Error as e:
             return outputs.ServerOwnerChangeOutput(ok=False, error=e)
 
