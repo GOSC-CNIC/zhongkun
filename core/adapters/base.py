@@ -227,3 +227,9 @@ class BaseAdapter:
         云主机拥有者变更，主要适用于EVCloud
         """
         raise NotImplementedError('`server_owner_change()` must be implemented.')
+
+    def server_shared(self, params: inputs.ServerSharedInput) -> outputs.ServerSharedOutput:
+        """
+        云主机共享用户和权限更新替换，主要适用于EVCloud
+        """
+        raise NotImplementedError('`server_shared()` must be implemented.')

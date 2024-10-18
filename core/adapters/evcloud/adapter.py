@@ -870,3 +870,17 @@ class EVCloudAdapter(BaseAdapter):
             return outputs.ServerOwnerChangeOutput(ok=False, error=e)
 
         return outputs.ServerOwnerChangeOutput(ok=True, error=None)
+
+    def server_shared(self, params: inputs.ServerSharedInput) -> outputs.ServerSharedOutput:
+        """
+        云主机共享用户和权限更新替换，主要适用于EVCloud
+        """
+        url = self.api_builder.vm_share_user_replace_url(vm_uuid=params.instance_id)
+        try:
+            data = InputValidator.server_shared_replace_validate(params)
+            headers = self.get_auth_header()
+            r = self.do_request(method='post', json=data, ok_status_codes=[200, 201], url=url, headers=headers)
+        except exceptions.Error as e:
+            return outputs.ServerSharedOutput(ok=False, error=e)
+
+        return outputs.ServerSharedOutput(ok=True, error=None)

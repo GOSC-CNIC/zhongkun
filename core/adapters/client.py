@@ -223,6 +223,13 @@ class OneServiceClient:
         """
         return self.adapter.server_owner_change(params=params)
 
+    @adapter_method_not_support(action='replace server shared users')
+    def server_shared(self, params: inputs.ServerSharedInput) -> outputs.ServerSharedOutput:
+        """
+        云主机共享用户和权限更新替换，主要适用于EVCloud
+        """
+        return self.adapter.server_shared(params=params)
+
 
 class VPNClient:
     def __init__(self, endpoint_url, api_version='v3', auth=None):

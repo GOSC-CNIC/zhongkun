@@ -80,3 +80,19 @@ class InputValidator:
             data['group_id'] = group_id
 
         return data
+
+    @staticmethod
+    def server_shared_replace_validate(params: inputs.ServerSharedInput):
+        users = []
+        for item in params.users:
+            if item.permmison == inputs.ServerSharedUser.READONLY:
+                role = 'readonly'
+            elif item.permmison == inputs.ServerSharedUser.READWRITE:
+                role = 'readwrite'
+            else:
+                raise exceptions.APIInvalidParam(
+                    extend_msg=f'invalid permmison, only {inputs.ServerSharedUser.READONLY} or {inputs.ServerSharedUser.READWRITE}')
+
+            users.append({'username': item.username, 'role': role})
+
+        return {'users': users}

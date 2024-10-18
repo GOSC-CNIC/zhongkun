@@ -182,3 +182,7 @@ class APIBuilder:
     def vm_change_owner_url(self, vm_uuid: str, query=None):
         return self.build_url(
             path=f'api/{self.api_version}/vms/{vm_uuid}/handover/', query=query, trailing_slash=True)
+
+    def vm_share_user_replace_url(self, vm_uuid: str, query=None):
+        return self.build_url(
+            path=f'api/{self.api_version}/share/vm/{vm_uuid}/user/replace', query=query, trailing_slash=False)

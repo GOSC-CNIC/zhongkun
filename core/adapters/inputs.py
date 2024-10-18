@@ -286,3 +286,23 @@ class ServerOwnerChangeInput(InputBase):
         self.instance_id = instance_id
         self.new_owner = new_owner
         super().__init__(**kwargs)
+
+
+class ServerSharedUser:
+    READONLY = 'readonly'
+    READWRITE = 'readwrite'
+
+    def __init__(self, username: str, permmison: str):
+        self.username = username
+        self.permmison = permmison
+
+
+class ServerSharedInput(InputBase):
+    def __init__(self, instance_id: str, users: list[ServerSharedUser], **kwargs):
+        """
+        :param instance_id: 云主机的id
+        :param users: 共享用户和权限
+        """
+        self.instance_id = instance_id
+        self.users = users
+        super().__init__(**kwargs)

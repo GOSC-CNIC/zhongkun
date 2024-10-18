@@ -659,3 +659,7 @@ class ServerRollbackSnapshotOutput(OutputBase):
 
 class ServerOwnerChangeOutput(OutputBase):
     pass
+
+
+class ServerSharedOutput(OutputBase):
+    pass
