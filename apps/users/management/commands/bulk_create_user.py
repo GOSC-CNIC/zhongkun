@@ -21,7 +21,7 @@ from apps.users.models import UserProfile
 class Command(BaseCommand):
     help = """
     manage.py bulk_create_user --file="/home/x.xlsx"; 
-    Title format: ['通行证账号','密码', '姓', '名']
+    Title format: ['通行证账号', '姓', '名']
     """
 
     def add_arguments(self, parser):
@@ -50,16 +50,18 @@ class Command(BaseCommand):
             self.stdout.write(self.style.NOTICE('In mode Test'))
         if user_info_len:
             new_created = 0
+            existed = 0
             for user_info in user_info_list:
-                user, created = self.get_or_create_user(
+                created = self.get_or_create_user(
                     username=user_info[0],
-                    password=user_info[1],
-                    first_name=user_info[2],
-                    last_name=user_info[3]
+                    first_name=user_info[1],
+                    last_name=user_info[2]
                 )
                 if created:
                     new_created += 1
-            self.stdout.write(self.style.SUCCESS(f'All {user_info_len}, new created user {new_created};'))
+                else:
+                    existed += 1
+            self.stdout.write(self.style.SUCCESS(f'All {user_info_len}, new created {new_created}, existed {existed};'))
 
         else:
             self.stdout.write(self.style.NOTICE('Nothing do.'))
@@ -71,7 +73,7 @@ class Command(BaseCommand):
         items = []
         for r in sheet.iter_rows(values_only=True):
             item = list(r)
-            item = item[:4]
+            item = item[:3]
             if item[0] == '通行证账号':
                 continue
             items.append(item)
@@ -83,15 +85,19 @@ class Command(BaseCommand):
         password = ''.join(random.choice(chars) for _ in range(length))
         return password
 
-    def get_or_create_user(self, username=None, password=None, company: str = '', is_superuser=False, first_name='',
-                           last_name='') -> UserProfile:
-        if not password:
-            password = self.generate_random_password(8)
-        return UserProfile.objects.get_or_create(
+    def get_or_create_user(self, username=None, company='', is_superuser=False, first_name='',
+                           last_name=''):
+        # if not password:
+        #     password = self.generate_random_password(8)
+        if UserProfile.objects.filter(username=username).first():
+            return False
+
+        _, created_status = UserProfile.objects.get_or_create(
             username=username,
-            password=password,
+
             company=company,
             first_name=first_name,
             last_name=last_name,
             is_active=True,
             is_superuser=is_superuser)
+        return created_status
