@@ -1272,3 +1272,34 @@ class ServerSnapshot(UuidModel):
             return self.server
         except ObjectDoesNotExist:
             return None
+
+
+class EVCloudPermsLog(UuidModel):
+    """
+    EVCloud云主机权限同步记录
+    """
+    class Status(models.TextChoices):
+        OK = 'ok', _('成功')
+        FAILED = 'failed', _('失败')
+        INVALID = 'invalid', _('无效')
+
+    status = models.CharField(verbose_name=_('状态'), max_length=16, choices=Status.choices, default=Status.OK.value)
+    server = models.ForeignKey(
+        verbose_name=_('归属云主机'), to=Server, related_name='+', on_delete=models.SET_NULL,
+        db_constraint=False, db_index=True, null=True, blank=True, default=None)
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'))
+    update_time = models.DateTimeField(verbose_name=_('更新时间'))
+    num = models.IntegerField(verbose_name=_('尝试次数'), default=1)
+    remarks = models.CharField(max_length=255, blank=True, default='', verbose_name=_('备注'))
+
+    class Meta:
+        db_table = 'servers_evcloud_perm_log'
+        ordering = ['-creation_time']
+        verbose_name = _('EVCloud云主机权限同步记录')
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        if self.server:
+            return f'EVCloudPermsLog({self.server.ipv4}, {self.server.image})[{self.get_status_display()}]'
+
+        return f'EVCloudPermsLog({self.id})[{self.get_status_display()}]'

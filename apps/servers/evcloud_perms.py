@@ -1,6 +1,11 @@
+from typing import List
+
+from django.utils import timezone as dj_timezone
+
 from core.adapters import inputs
 from core.request import request_service
-from apps.servers.models import Server, ServiceConfig
+from core.taskqueue import submit_task
+from apps.servers.models import Server, ServiceConfig, EVCloudPermsLog
 from apps.vo.managers import VoMemberManager
 
 
@@ -63,3 +68,50 @@ class EVCloudPermsSynchronizer:
         params = inputs.ServerSharedInput(instance_id=server.instance_id, users=list(perms_map.values()))
         r = request_service(service=service, method='server_shared', params=params)
         return r
+
+    @staticmethod
+    def get_evcloud_servers_of_vo(vo_id):
+        servers = Server.objects.select_related('service', 'user', 'vo').filter(
+            vo_id=vo_id, classification=Server.Classification.VO,
+            service__service_type=ServiceConfig.ServiceType.EVCLOUD.value
+        )
+        return list(servers)
+
+    def task_sync_servers_perm_to_evcloud(self, servers: List[Server]):
+        for server in servers:
+            try:
+                self.check_need_sync_vo_perm(server)
+            except Exception as exc:
+                continue
+
+            try:
+                self.sync_vo_server_perms_to_evcloud(server=server)
+            except Exception as exc:
+                # 同步失败记录
+                self.create_evcloud_perm_log(server=server, remarks=str(exc))
+
+    def do_when_vo_member_change(self, vo_id):
+        servers = self.get_evcloud_servers_of_vo(vo_id=vo_id)
+        if servers:
+            submit_task(self.task_sync_servers_perm_to_evcloud, kwargs={'servers': servers})
+
+    def do_when_evcloud_server_create(self, server: Server):
+        """
+        vo的evcloud云主机创建交付后，需要同步vo组员权限到evcloud云主机的共享用户
+        """
+        try:
+            self.check_need_sync_vo_perm(server)
+        except Exception as exc:
+            return
+
+        submit_task(self.task_sync_servers_perm_to_evcloud, kwargs={'servers': [server]})
+
+    @staticmethod
+    def create_evcloud_perm_log(server: Server, remarks: str = ''):
+        nt = dj_timezone.now()
+        ins = EVCloudPermsLog(
+            server=server, status=EVCloudPermsLog.Status.FAILED.value, num=1,
+            creation_time=nt, update_time=nt, remarks=remarks
+        )
+        ins.save(force_insert=True)
+        return ins

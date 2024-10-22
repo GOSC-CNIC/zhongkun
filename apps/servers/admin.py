@@ -9,7 +9,7 @@ from utils.model import NoDeleteSelectModelAdmin, PayType, BaseModelAdmin
 from apps.servers.forms import VmsProviderForm
 from apps.servers.models import (
     Server, Flavor, ServerArchive, Disk, ResourceActionLog, DiskChangeLog,
-    ServiceConfig, ServicePrivateQuota, ServerSnapshot
+    ServiceConfig, ServicePrivateQuota, ServerSnapshot, EVCloudPermsLog
 )
 from apps.servers.managers import ServiceManager
 from apps.service.odc_manager import OrgDataCenterManager
@@ -584,6 +584,16 @@ class ServerSnapshotAdmin(NoDeleteSelectModelAdmin):
             return gettext('已删除')
 
         return gettext('正常')
+
+
+@admin.register(EVCloudPermsLog)
+class EVCloudPermsLogAdmin(NoDeleteSelectModelAdmin):
+    list_display_links = ('id',)
+    list_display = ('id', 'server', 'status', 'num', 'remarks', 'creation_time', 'update_time')
+    list_select_related = ('server',)
+    list_filter = ('status',)
+    raw_id_fields = ('server',)
+    search_fields = ['remarks', 'server__ipv4']
 
 
 # @admin.register(ServiceShareQuota)
