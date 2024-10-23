@@ -1,13 +1,15 @@
 from urllib import parse
 from decimal import Decimal
+from time import sleep as time_sleep
 
 from django.urls import reverse
 from django.utils import timezone
 
 from utils.model import PayType, OwnerType
-from apps.servers.models import Disk
+from apps.servers.models import Disk, Server, ServiceConfig, EVCloudPermsLog
 from apps.servers.tests.test_disk import create_disk_metadata
-from utils.test import get_or_create_user, MyAPITestCase
+from apps.servers.tests import create_server_metadata
+from utils.test import get_or_create_user, MyAPITransactionTestCase
 from apps.vo.models import VirtualOrganization, VoMember
 from apps.app_wallet.managers.payment import PaymentManager
 from apps.order.managers import OrderManager
@@ -15,7 +17,7 @@ from apps.order.models import Order, ResourceType
 from apps.order.managers.instance_configs import ServerConfig
 
 
-class VoTests(MyAPITestCase):
+class VoTests(MyAPITransactionTestCase):
     def setUp(self):
         user = get_or_create_user(password='password')
         self.client.force_login(user=user)
@@ -23,6 +25,10 @@ class VoTests(MyAPITestCase):
         self.user2_username = 'user2'
         self.user2_password = 'user2password'
         self.user2 = get_or_create_user(username=self.user2_username, password=self.user2_password)
+        self.service1 = ServiceConfig(
+            name='service1', name_en='service1 en', endpoint_url='https:test.com'
+        )
+        self.service1.save(force_insert=True)
 
     @staticmethod
     def create_vo_response(client, name, company, description):
@@ -196,6 +202,13 @@ class VoTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         vo_id = response.data['id']
 
+        server1 = create_server_metadata(
+            service=self.service1, user=self.user, vo_id=vo_id, classification=Server.Classification.VO.value,
+            remarks='admin test', ipv4='159.226.235.66', public_ip=True
+        )
+
+        self.assertEqual(EVCloudPermsLog.objects.count(), 0)
+
         # add members
         response = self.add_members_response(client=self.client, vo_id=vo_id,
                                              usernames=usernames + [owner.username])
@@ -224,6 +237,9 @@ class VoTests(MyAPITestCase):
         self.assertKeysIn(['id', 'user', 'role', 'join_time', 'inviter'], response.data['members'][0])
         self.assertEqual(response.data['owner'], {'id': owner.id, 'username': owner.username})
 
+        time_sleep(1)
+        self.assertEqual(EVCloudPermsLog.objects.count(), 1)
+
         # remove members
         response = self.remove_members_response(client=self.client, vo_id=vo_id,
                                                 usernames=usernames[0:1])
@@ -238,6 +254,9 @@ class VoTests(MyAPITestCase):
         self.assertEqual(response.data['members'][0]['user']['username'], usernames[1])
         self.assert_is_subdict_of(sub={'role': VoMember.Role.MEMBER, 'inviter': owner.username},
                                   d=response.data['members'][0])
+
+        time_sleep(1)
+        self.assertEqual(EVCloudPermsLog.objects.count(), 2)
 
     def test_role_members_actions(self):
         """
@@ -258,6 +277,13 @@ class VoTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         vo_id = response.data['id']
 
+        server1 = create_server_metadata(
+            service=self.service1, user=self.user, vo_id=vo_id, classification=Server.Classification.VO.value,
+            remarks='admin test', ipv4='159.226.235.66', public_ip=True
+        )
+
+        self.assertEqual(EVCloudPermsLog.objects.count(), 0)
+
         # add member user2
         response = self.add_members_response(client=self.client, vo_id=vo_id,
                                              usernames=[self.user2.username])
@@ -270,6 +296,9 @@ class VoTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data['success']), 1)
         test1_member_id = response.data['success'][0]['id']
+
+        time_sleep(1)
+        self.assertEqual(EVCloudPermsLog.objects.count(), 2)
 
         # member role no permission add member
         # login user2
@@ -297,6 +326,9 @@ class VoTests(MyAPITestCase):
         response = self.change_member_role_response(client=self.client, member_id=test1_member_id,
                                                     role=VoMember.Role.LEADER)
         self.assertEqual(response.status_code, 200)
+
+        time_sleep(1)
+        self.assertEqual(EVCloudPermsLog.objects.count(), 2 + 2)
 
         # login leader user
         self.client.logout()
@@ -331,6 +363,9 @@ class VoTests(MyAPITestCase):
                                                 usernames=usernames[1:2])
         self.assertEqual(response.status_code, 204)
 
+        time_sleep(1)
+        self.assertEqual(EVCloudPermsLog.objects.count(), 4 + 2)
+
         # owner remove leader role member test1
         # login owner
         self.client.logout()
@@ -350,6 +385,9 @@ class VoTests(MyAPITestCase):
         response = self.remove_members_response(client=self.client, vo_id=vo_id,
                                                 usernames=[owner.username])
         self.assertErrorResponse(response=response, status_code=403, code='AccessDenied')
+
+        time_sleep(1)
+        self.assertEqual(EVCloudPermsLog.objects.count(), 6 + 1)
 
     def test_vo_statistic(self):
         vo1 = VirtualOrganization(
@@ -460,6 +498,13 @@ class VoTests(MyAPITestCase):
         vo2_member1 = VoMember(vo=vo2, user=user3)
         vo2_member1.save(force_insert=True)
 
+        server1 = create_server_metadata(
+            service=self.service1, user=self.user, vo_id=vo1.id, classification=Server.Classification.VO.value,
+            remarks='admin test', ipv4='159.226.235.66', public_ip=True
+        )
+
+        self.assertEqual(EVCloudPermsLog.objects.count(), 0)
+
         self.client.logout()
         base_url = reverse('vo-api:vo-devolve', kwargs={'id': 'test'})
         response = self.client.post(base_url)
@@ -504,6 +549,9 @@ class VoTests(MyAPITestCase):
         member = VoMember.objects.filter(vo_id=vo1.id, user__username=self.user2.username).first()
         self.assertIsNone(member)
 
+        time_sleep(1)
+        self.assertEqual(EVCloudPermsLog.objects.count(), 1)
+
         query = parse.urlencode(query={'member_id': vo1_member2.id})
         response = self.client.post(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
@@ -537,3 +585,6 @@ class VoTests(MyAPITestCase):
         self.assertEqual(member.role, VoMember.Role.LEADER.value)
         member = VoMember.objects.filter(vo_id=vo2.id, user__username=user3.username).first()
         self.assertIsNone(member)
+
+        time_sleep(1)
+        self.assertEqual(EVCloudPermsLog.objects.count(), 1)

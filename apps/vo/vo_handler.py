@@ -8,6 +8,7 @@ from utils.model import OwnerType
 from core import errors as exceptions
 from apps.api.viewsets import CustomGenericViewSet, serializer_error_msg
 from apps.servers.managers import ServerManager, DiskManager
+from apps.servers.evcloud_perms import EVCloudPermsSynchronizer
 from apps.order.managers import OrderManager
 from apps.app_wallet.models import CashCoupon
 from apps.app_wallet.managers import PaymentManager
@@ -107,6 +108,7 @@ class VoHandler:
         try:
             success_members, failed_usernames = VoManager().add_members(
                 vo_id=vo_id, usernames=usernames, admin_user=request.user)
+            VoHandler.do_after_vo_member_change(vo_id=vo_id)
         except Exception as exc:
             return view.exception_response(exc=exceptions.convert_to_error(exc))
 
@@ -136,6 +138,7 @@ class VoHandler:
         usernames = serializer.validated_data.get('usernames', [])
         try:
             VoManager().remove_members(vo_id=vo_id, usernames=usernames, admin_user=request.user)
+            VoHandler.do_after_vo_member_change(vo_id=vo_id)
         except Exception as exc:
             return view.exception_response(exc=exceptions.convert_to_error(exc))
 
@@ -151,6 +154,7 @@ class VoHandler:
         try:
             member = VoMemberManager().change_member_role(
                 member_id=member_id, role=role, admin_user=request.user)
+            VoHandler.do_after_vo_member_change(vo_id=member.vo_id)
         except exceptions.Error as exc:
             return view.exception_response(exc)
 
@@ -225,7 +229,19 @@ class VoHandler:
                     vo_id=vo_id, username=username, owner=request.user)
             else:
                 raise exceptions.InvalidArgument(message=_('必须指定组员id或者用户名'))
+
+            VoHandler.do_after_vo_member_change(vo_id=vo_id)
         except exceptions.Error as exc:
             return view.exception_response(exc)
 
         return Response(data=vo_serializers.VoSerializer(vo).data)
+
+    @staticmethod
+    def do_after_vo_member_change(vo_id):
+        """
+        当vo组组员变化，或权限变化后，需要同步vo组的权限到EVCloud服务单元云主机
+        """
+        try:
+            EVCloudPermsSynchronizer().do_when_vo_member_change(vo_id=vo_id)
+        except Exception as exc:
+            pass

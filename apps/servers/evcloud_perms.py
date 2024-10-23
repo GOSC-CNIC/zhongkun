@@ -72,7 +72,7 @@ class EVCloudPermsSynchronizer:
     @staticmethod
     def get_evcloud_servers_of_vo(vo_id):
         servers = Server.objects.select_related('service', 'user', 'vo').filter(
-            vo_id=vo_id, classification=Server.Classification.VO,
+            vo_id=vo_id, classification=Server.Classification.VO.value,
             service__service_type=ServiceConfig.ServiceType.EVCLOUD.value
         )
         return list(servers)
