@@ -9,7 +9,8 @@ from core.quota import QuotaAPI
 from core import request as core_request
 from core.taskqueue import server_build_status, Future
 from apps.servers.models import Server, Disk, ServerArchive, DiskChangeLog, ServiceConfig, ServerSnapshot
-from apps.servers.managers import ServerManager, DiskManager, ServiceManager, ServerSnapshotManager
+from apps.servers.managers import ServerManager, DiskManager, ServiceManager
+from apps.servers.evcloud_perms import EVCloudPermsSynchronizer
 from apps.servers import format_who_action_str
 from core.adapters import inputs, outputs
 from utils.model import PayType, OwnerType, ResourceType
@@ -97,6 +98,7 @@ class OrderResourceDeliverer:
     ) -> Tuple[List[Server], List[Future]]:
         if len(servers) == 1:
             s, futures = self.after_deliver_server(service=service, server=servers[0])
+            EVCloudPermsSynchronizer().do_when_evcloud_server_create(servers=servers)
             return servers, futures
 
         futures = []
@@ -105,6 +107,7 @@ class OrderResourceDeliverer:
             if f is not None:
                 futures.append(f)
 
+        EVCloudPermsSynchronizer().do_when_evcloud_server_create(servers=servers)
         return servers, futures
 
     @staticmethod

@@ -1,4 +1,5 @@
 import uuid
+from time import sleep as time_sleep
 from decimal import Decimal
 from datetime import timedelta
 
@@ -13,7 +14,7 @@ from apps.order.managers.instance_configs import ServerConfig, ScanConfig, Serve
 from apps.order.deliver_resource import OrderResourceDeliverer
 from apps.order.tests import create_price
 from utils.test import get_or_create_user, MyAPITransactionTestCase
-from apps.servers.models import ServiceConfig, Server, ServerSnapshot
+from apps.servers.models import ServiceConfig, Server, ServerSnapshot, EVCloudPermsLog
 from apps.vo.models import VirtualOrganization
 from apps.servers.managers import ServicePrivateQuotaManager, ServerSnapshotManager
 from apps.servers.tests import create_server_metadata
@@ -90,7 +91,7 @@ class DeliverTests(MyAPITransactionTestCase):
         )
         self.vo.save(force_insert=True)
         self.service1 = ServiceConfig(
-            name='service1', name_en='service1 en'
+            name='service1', name_en='service1 en', endpoint_url='https:test.com'
         )
         self.service1.save(force_insert=True)
         self.price = create_price()
@@ -124,6 +125,8 @@ class DeliverTests(MyAPITransactionTestCase):
         or_dlver = OrderResourceDeliverer()
         or_dlver._request_create_server = cs_req.request_create_server_error  # 替换创建请求方法
 
+        self.assertEqual(EVCloudPermsLog.objects.count(), 0)
+
         # order unpaid
         with self.assertRaises(errors.OrderUnpaid):
             or_dlver.deliver_order(order1, resource=None)
@@ -140,6 +143,8 @@ class DeliverTests(MyAPITransactionTestCase):
         self.assertIsNone(od1_res1.last_deliver_time)
         self.assertEqual(order1.trading_status, order1.TradingStatus.OPENING.value)
         self.assertEqual(od1_res1.instance_status, od1_res1.InstanceStatus.WAIT.value)
+
+        self.assertEqual(EVCloudPermsLog.objects.count(), 0)
 
         # 资源配额不足
         with self.assertRaises(errors.QuotaShortageError):
@@ -189,6 +194,8 @@ class DeliverTests(MyAPITransactionTestCase):
         self.assertEqual(od1_res1.instance_status, od1_res1.InstanceStatus.FAILED.value)
         self.assertFalse(Server.objects.filter(id=od1_res1.instance_id).exists())
 
+        self.assertEqual(EVCloudPermsLog.objects.count(), 0)
+
         # 请求success
         now_time = dj_timezone.now()
         od1_res1.last_deliver_time = dj_timezone.now() - timedelta(minutes=2)
@@ -209,6 +216,9 @@ class DeliverTests(MyAPITransactionTestCase):
         s = Server.objects.filter(id=od1_res1.instance_id).first()
         self.assertTrue((s.expiration_time - now_time) > timedelta(days=30 * 8))
         self.assertTrue((s.expiration_time - now_time) < timedelta(days=30*8 + 1))
+
+        time_sleep(1)
+        self.assertEqual(EVCloudPermsLog.objects.count(), 1)
 
         with self.assertRaises(errors.OrderTradingCompleted):
             or_dlver.deliver_order(order1, resource=None)
@@ -256,6 +266,9 @@ class DeliverTests(MyAPITransactionTestCase):
         self.assertTrue((s.expiration_time - now_time) > timedelta(days=100))
         self.assertTrue((s.expiration_time - now_time) < timedelta(days=101))
 
+        time_sleep(1)
+        self.assertEqual(EVCloudPermsLog.objects.count(), 2)
+
     def _assert_res(self, res: Resource, instance_status=Resource.InstanceStatus.FAILED.value):
         res.refresh_from_db()
         self.assertIsNotNone(res.last_deliver_time)
@@ -291,6 +304,8 @@ class DeliverTests(MyAPITransactionTestCase):
         )
         or_dlver = OrderResourceDeliverer()
         or_dlver._request_create_server = cs_req.request_create_server_error  # 替换创建请求方法
+
+        self.assertEqual(EVCloudPermsLog.objects.count(), 0)
 
         # order unpaid
         with self.assertRaises(errors.OrderUnpaid):
@@ -354,6 +369,9 @@ class DeliverTests(MyAPITransactionTestCase):
         self._assert_res(res=od1_res2, instance_status=Resource.InstanceStatus.FAILED.value)
         self._assert_res(res=od1_res3, instance_status=Resource.InstanceStatus.FAILED.value)
 
+        time_sleep(1)
+        self.assertEqual(EVCloudPermsLog.objects.count(), 0)
+
         # 请求success
         Resource.objects.filter(id__in=[x.id for x in resource_list]).update(
             last_deliver_time=dj_timezone.now() - timedelta(minutes=2))
@@ -378,6 +396,9 @@ class DeliverTests(MyAPITransactionTestCase):
 
         with self.assertRaises(errors.OrderTradingCompleted):
             or_dlver.deliver_order(order1, resource=None)
+
+        time_sleep(1)
+        self.assertEqual(EVCloudPermsLog.objects.count(), 3)
 
         # ---- 部分交付成功测试 ----
         order2, resource_list2 = OrderManager().create_order(
@@ -428,6 +449,10 @@ class DeliverTests(MyAPITransactionTestCase):
         self.assertEqual(Server.objects.count(), 4)
         self.assertEqual(Server.objects.filter(id__in=[x.instance_id for x in resource_list2]).count(), 1)
         self.assertEqual(Server.objects.filter(id=od1_res4.instance_id).count(), 1)
+
+        # 用户的不同步权限到EVCloud
+        time_sleep(1)
+        self.assertEqual(EVCloudPermsLog.objects.count(), 3)
 
         # 订单动作正在交付中
         order2.set_order_action(Order.OrderAction.DELIVERING.value)
@@ -485,6 +510,9 @@ class DeliverTests(MyAPITransactionTestCase):
         # server 过期时间
         for s in Server.objects.filter(id__in=[x.instance_id for x in resource_list2]).all():
             self.assertIsNone(s.expiration_time)
+
+        time_sleep(1)
+        self.assertEqual(EVCloudPermsLog.objects.count(), 3)
 
         with self.assertRaises(errors.OrderTradingCompleted):
             or_dlver2.deliver_order(order2, resource=None)

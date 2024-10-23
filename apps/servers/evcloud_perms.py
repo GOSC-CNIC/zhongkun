@@ -95,16 +95,22 @@ class EVCloudPermsSynchronizer:
         if servers:
             submit_task(self.task_sync_servers_perm_to_evcloud, kwargs={'servers': servers})
 
-    def do_when_evcloud_server_create(self, server: Server):
+    def do_when_evcloud_server_create(self, servers: List[Server]):
         """
         vo的evcloud云主机创建交付后，需要同步vo组员权限到evcloud云主机的共享用户
         """
-        try:
-            self.check_need_sync_vo_perm(server)
-        except Exception as exc:
+        valid_servers = []
+        for server in servers:
+            try:
+                self.check_need_sync_vo_perm(server)
+                valid_servers.append(server)
+            except Exception as exc:
+                continue
+
+        if not valid_servers:
             return
 
-        submit_task(self.task_sync_servers_perm_to_evcloud, kwargs={'servers': [server]})
+        submit_task(self.task_sync_servers_perm_to_evcloud, kwargs={'servers': valid_servers})
 
     @staticmethod
     def create_evcloud_perm_log(server: Server, remarks: str = ''):
