@@ -442,6 +442,8 @@ CRONTABJOBS = [
     #  'python3 /home/uwsgi/zhongkun/apps/app_alert/scripts/alert_dingtalk_notification.py >> /var/log/zhongkun/task_alert_dingtalk_notification.log'),
     ('task13_netflow_update_element', '0 */1 * * *',
      'python3 /home/uwsgi/zhongkun/apps/app_net_flow/scripts/netflow_update_element.py >> /var/log/zhongkun/netflow_update_element.log'),
+    ('task14_failed_vo_perm_to_evcloud', '*/2 * * * *',
+     'python3 /home/uwsgi/zhongkun/scripts/run_failed_vo_perm_to_evcloud.py >> /var/log/zhongkun/failed_vo_perm_to_evcloud.log'),
 ]
 
 

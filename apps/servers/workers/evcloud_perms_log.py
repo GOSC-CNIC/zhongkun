@@ -9,8 +9,9 @@ from apps.servers.evcloud_perms import EVCloudPermsSynchronizer
 
 class EVCloudPermsWorker:
     def run(self):
+        print(f'{dj_timezone.now()}, Start')
         total, ok_count, failed_count = self.do_work()
-        print(f'End,all={total}, ok: {ok_count}, failed: {failed_count}')
+        print(f'{dj_timezone.now()}, End,all={total}, ok: {ok_count}, failed: {failed_count}')
         try:
             self.set_invalid_records()
         except Exception as exc:

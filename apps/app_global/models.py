@@ -25,6 +25,7 @@ class TimedTaskLock(UuidModel):
         ALERT_EMAIL = 'alert_email', _('告警邮件通知')
         ALERT_DINGTALK = 'alert_dingtalk', _('告警钉钉通知')
         NETFLOW_UPDATE_ELEMENT = 'netflow_update_element', _('流量图表元素更新')
+        VO_SERVER_PERM_EVCLOUD = 'vo_server_perm_evcloud', _('VO云主机权限同步EVCloud')
 
     class Status(models.TextChoices):
         NONE = 'none', _('无')
