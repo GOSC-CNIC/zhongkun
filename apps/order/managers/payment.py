@@ -5,7 +5,7 @@ from django.db import transaction
 
 from core import errors
 from utils.model import OwnerType
-from apps.metering.models import PaymentStatus
+# from apps.metering.models import PaymentStatus
 from apps.order.models import Order
 from apps.app_wallet.managers.payment import PaymentManager
 
@@ -116,7 +116,7 @@ class OrderPaymentManager:
             raise errors.OrderPaid(_('不能支付已支付状态的订单'))
         elif order.status == Order.Status.CANCELLED.value:
             raise errors.OrderCancelled(message=_('不能支付作废状态的订单'))
-        elif order.status != PaymentStatus.UNPAID.value:
+        elif order.status != Order.Status.UNPAID.value:
             raise errors.OrderNotUnpaid(message=_('只允许支付待支付状态的订单'))
 
         if order.trading_status == order.TradingStatus.CLOSED.value:

@@ -140,7 +140,7 @@ class ObjectsService(UuidModel):
             app_service = PayAppService(
                 name=self.name, name_en=self.name_en, app_id=app_id, orgnazition_id=org_id,
                 resources='云主机、云硬盘', status=PayAppService.Status.NORMAL.value,
-                category=PayAppService.Category.VMS_SERVER.value, service_id=self.id,
+                category=PayAppService.Category.VMS_OBJECT.value, service_id=self.id,
                 longitude=self.longitude, latitude=self.latitude,
                 contact_person=self.contact_person, contact_telephone=self.contact_telephone,
                 contact_email=self.contact_email, contact_address=self.contact_address,
