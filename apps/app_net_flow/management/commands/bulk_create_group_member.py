@@ -22,8 +22,8 @@ from apps.app_net_flow.models import MenuModel
 
 class Command(BaseCommand):
     help = """
-    manage.py bulk_create_user --file="/home/x.xlsx"; 
-    Title format: ['通行证账号', '姓', '名']
+    manage.py bulk_create_group_member --file="/home/x.xlsx"; 
+    Title format: ['顶级id', '顶级名称', '一级id','一级名称','二级id','二级名称','用户邮箱账号']
     """
 
     def add_arguments(self, parser):
