@@ -54,8 +54,8 @@ class Command(BaseCommand):
             for user_info in user_info_list:
                 created = self.get_or_create_user(
                     username=user_info[0],
-                    first_name=user_info[1],
-                    last_name=user_info[2]
+                    last_name=user_info[1],     # 姓
+                    first_name=user_info[2]
                 )
                 if created:
                     new_created += 1
