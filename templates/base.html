@@ -47,14 +47,35 @@
 
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav mr-auto">
+                {% if user.is_authenticated %}
                 <li class="nav-item"><a class="nav-link" href="{% url "home" %}"><i class="fa fa-home"></i>{% trans '首页' %}</a></li>
                 {% block navbar %}{% endblock %}
                 {% show_navbars as navbars %}
                     {% for bar in navbars %}
                         <li class="nav-item"><a class="nav-link" href="{{ bar.url }}">{{ bar.name }}</a></li>
                     {% endfor %}
+                {% endif %}
             </ul>
             <ul class="navbar-nav">
+                {% if user.is_authenticated %}
+                    {% if user.is_superuser %}
+                        <li class="nav-item">
+                        <a class="nav-link" href="{% url 'admin:index' %}">{% trans '后台管理' %}</a>
+                        </li>
+                    {% endif %}
+                {% endif %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbar-help-dropdown" role="button"
+                       data-toggle="dropdown"
+                       aria-haspopup="false" aria-expanded="false">{% trans '文档' %}</a>
+                    <div class="dropdown-menu" aria-labelledby="navbar-help-dropdown">
+                        <a class="dropdown-item" href="{% url 'apidocs' %}"
+                           target="view_window">{% trans 'API交互文档' %}</a>
+                        <a class="dropdown-item" href="{% url 'redoc' %}" target="view_window">{% trans 'API文档' %}</a>
+                        <a class="dropdown-item" href="{% url 'docs:docs' %}" target="view_window">{% trans '文档' %}</a>
+                        <a class="dropdown-item" href="{% url 'about' %}">{% trans '关于' %}</a>
+                    </div>
+                </li>
                 <li class="nav-item">
                     {% get_available_languages as LANGUAGES %}
                     {% get_current_language as current_language %}
@@ -74,17 +95,6 @@
                         </div>
                     </div>
                 </li>
-
-                <li class="nav-item dropdown">
-                   <a class="nav-link dropdown-toggle" href="#" id="navbar-help-dropdown" role="button" data-toggle="dropdown"
-                           aria-haspopup="false" aria-expanded="false"><i class="fa fa-question-circle"></i></a>
-                    <div class="dropdown-menu" aria-labelledby="navbar-help-dropdown">
-                        <a class="dropdown-item" href="{% url 'apidocs' %}" target="view_window" >{% trans 'API交互文档' %}</a>
-                        <a class="dropdown-item" href="{% url 'redoc' %}" target="view_window" >{% trans 'API文档' %}</a>
-                        <a class="dropdown-item" href="{% url 'docs:docs' %}" target="view_window">{% trans '文档' %}</a>
-                        <a class="dropdown-item" href="{% url 'about' %}">{% trans '关于' %}</a>
-                    </div>
-                </li>
                 {% if user.is_authenticated %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbar-user-dropdown" role="button" data-toggle="dropdown"
@@ -94,14 +104,10 @@
                         <div class="dropdown-menu" aria-labelledby="navbar-user-dropdown">
                             <a class="dropdown-item" href="{% url 'users:logout' %}?next=/">{% trans '登出' %}</a>
                             <a class="dropdown-item" href="{% url 'users:password' %}">{% trans '修改密码' %}</a>
-                            <div class="dropdown-divider"></div>
-                            {% if user.is_superuser %}
-                                <a class="dropdown-item" href="{% url 'admin:index' %}">{% trans '后台管理' %}</a>
-                            {% endif %}
                         </div>
                     </li>
                 {% else %}
-                    <li class="nav-item"><a class="nav-link" href="{% url 'users:login' %}">{% trans '登录' %}</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'users:local_login' %}">{% trans '登录' %}</a></li>
 {#                    <li class="nav-item"><a class="nav-link" href="{% url 'users:register' %}">{% trans '注册' %}</a></li>#}
                 {% endif %}
             </ul>
