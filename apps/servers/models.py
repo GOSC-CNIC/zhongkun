@@ -643,7 +643,7 @@ class Server(ServerBase):
 
     service = models.ForeignKey(to=ServiceConfig, null=True, on_delete=models.SET_NULL, related_name='server_set',
                                 verbose_name=_('服务单元'))
-    user = models.ForeignKey(to=User, verbose_name=_('创建者'), on_delete=models.SET_NULL, related_name='user_servers',
+    user = models.ForeignKey(to=User, verbose_name=_('使用人'), on_delete=models.SET_NULL, related_name='user_servers',
                              null=True)
     vo = models.ForeignKey(to=VirtualOrganization, null=True, on_delete=models.SET_NULL, default=None, blank=True,
                            related_name='vo_server_set', verbose_name=_('项目组'))
@@ -778,7 +778,7 @@ class ServerArchive(ServerBase):
                                  help_text=_('归档云主机的ID'))
     service = models.ForeignKey(to=ServiceConfig, null=True, on_delete=models.SET_NULL,
                                 related_name='server_archive_set', verbose_name=_('接入的服务配置'))
-    user = models.ForeignKey(to=User, verbose_name=_('创建者'), on_delete=models.SET_NULL,
+    user = models.ForeignKey(to=User, verbose_name=_('使用人'), on_delete=models.SET_NULL,
                              related_name='user_server_archives', null=True)
     vo = models.ForeignKey(to=VirtualOrganization, null=True, on_delete=models.SET_NULL, default=None, blank=True,
                            related_name='vo_server_archive_set', verbose_name=_('项目组'))

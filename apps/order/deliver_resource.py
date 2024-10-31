@@ -242,7 +242,7 @@ class OrderResourceDeliverer:
         who_action = self._format_who_action(order=order)
         # evcloud, 直接指定创建云主机拥有者
         param_owner = None
-        if service.service_type == ServiceConfig.ServiceType.EVCLOUD.value and order.owner_type == OwnerType.USER.value:
+        if service.service_type == ServiceConfig.ServiceType.EVCLOUD.value:
             param_owner = order.username
 
         params = inputs.ServerCreateInput(
