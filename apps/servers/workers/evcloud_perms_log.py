@@ -41,12 +41,7 @@ class EVCloudPermsWorker:
             return None
 
         try:
-            EVCloudPermsSynchronizer.check_need_sync_vo_perm(server=record.server)
-        except Exception as exc:
-            return None
-
-        try:
-            EVCloudPermsSynchronizer().sync_vo_server_perms_to_evcloud(server=record.server)
+            EVCloudPermsSynchronizer().sync_server_perms_to_evcloud(server=record.server)
         except Exception as exc:
             self.update_record(record=record, is_ok=False, remarks=str(exc))
             return False

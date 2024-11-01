@@ -117,7 +117,7 @@ class Command(BaseCommand):
 
     @staticmethod
     def sync_one_server_vo_evcloud(server: Server):
-        EVCloudPermsSynchronizer().sync_vo_server_perms_to_evcloud(server=server)
+        EVCloudPermsSynchronizer().sync_server_perms_to_evcloud(server=server)
 
     @staticmethod
     def is_need_sync_vo_perm(server: Server):

@@ -32,7 +32,7 @@ class EVCloudPermWorkerTests(MyAPITransactionTestCase):
         self.vo = VirtualOrganization(name='test vo', owner=self.user2)
         self.vo.save(force_insert=True)
 
-    def test_list_snapshot(self):
+    def test_task(self):
         service1 = ServiceConfig(
             name='test2', name_en='test2_en', org_data_center=None, endpoint_url='https://test.com'
         )
@@ -69,7 +69,7 @@ class EVCloudPermWorkerTests(MyAPITransactionTestCase):
             server=server1, num=7, creation_time=dj_timezone.now(),
             update_time=dj_timezone.now() - timedelta(hours=1)
         )
-        # 个人server 不会重试
+        # 个人server 会重试
         log7 = create_evcloud_perm_log(
             server=server2, num=1, creation_time=dj_timezone.now(),
             update_time=dj_timezone.now() - timedelta(hours=1)
@@ -78,8 +78,8 @@ class EVCloudPermWorkerTests(MyAPITransactionTestCase):
         self.assertEqual(EVCloudPermsLog.objects.count(), 7)
         total, ok_count, failed_count = EVCloudPermsWorker().run()
         self.assertEqual(total, 4)
-        self.assertEqual(ok_count, 0)  # 没有成功的，1个不重试的,1个个人不重试的
-        self.assertEqual(failed_count, 2)  # 2个重试都失败
+        self.assertEqual(ok_count, 0)  # 没有成功的，1个不重试的
+        self.assertEqual(failed_count, 3)  # 3个重试都失败
         log4.refresh_from_db()
         self.assertEqual(log4.status, EVCloudPermsLog.Status.FAILED.value)
         self.assertEqual(log4.num, 2)
@@ -96,3 +96,7 @@ class EVCloudPermWorkerTests(MyAPITransactionTestCase):
         self.assertGreater(log6.update_time, now_tm)
         log1.refresh_from_db()
         self.assertEqual(log1.status, EVCloudPermsLog.Status.INVALID.value)
+        log7.refresh_from_db()
+        self.assertEqual(log7.status, EVCloudPermsLog.Status.FAILED.value)
+        self.assertEqual(log7.num, 2)
+        self.assertGreater(log7.update_time, now_tm)
