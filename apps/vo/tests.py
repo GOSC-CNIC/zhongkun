@@ -189,7 +189,7 @@ class VoTests(MyAPITransactionTestCase):
         """
         usernames = ['user-test1', 'user-test2']
         get_or_create_user(username=usernames[0], password='password')
-        get_or_create_user(username=usernames[1], password='password')
+        user_test2 = get_or_create_user(username=usernames[1], password='password')
 
         owner = self.user
         data = {
@@ -203,7 +203,7 @@ class VoTests(MyAPITransactionTestCase):
         vo_id = response.data['id']
 
         server1 = create_server_metadata(
-            service=self.service1, user=self.user, vo_id=vo_id, classification=Server.Classification.VO.value,
+            service=self.service1, user=user_test2, vo_id=vo_id, classification=Server.Classification.VO.value,
             remarks='admin test', ipv4='159.226.235.66', public_ip=True
         )
 
@@ -241,6 +241,11 @@ class VoTests(MyAPITransactionTestCase):
         self.assertEqual(EVCloudPermsLog.objects.count(), 1)
 
         # remove members
+        # 移除的组员名下不能有云主机资源
+        response = self.remove_members_response(
+            client=self.client, vo_id=vo_id, usernames=usernames[0:2])
+        self.assertEqual(response.status_code, 409)
+
         response = self.remove_members_response(client=self.client, vo_id=vo_id,
                                                 usernames=usernames[0:1])
         self.assertEqual(response.status_code, 204)

@@ -232,6 +232,11 @@ class VoManager:
                                        user__username__in=usernames).exists():
                 raise errors.AccessDenied(message=_('你没有权限移除组管理员'))
 
+        if Server.objects.filter(
+                vo_id=vo_id, classification=Server.Classification.VO.value, user__username__in=usernames
+        ).exists():
+            raise errors.ConflictError(message=_('要移除的组员名下有云主机存在，请先移交组员名下的云主机资源后重试。'))
+
         try:
             VoMember.objects.filter(vo=vo, user__username__in=usernames).delete()
         except Exception as exc:
