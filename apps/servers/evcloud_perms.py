@@ -116,7 +116,7 @@ class EVCloudPermsSynchronizer:
 
         servers = self.get_evcloud_servers_of_vo(vo_id=vo_id)
         if servers:
-            submit_task(self.task_sync_servers_perm_to_evcloud, kwargs={'servers': servers, 'remarks': remarks})
+            self.do_when_evcloud_servers_change(servers=servers, remarks=remarks)
 
     def do_when_evcloud_server_create(self, servers: List[Server]):
         """
@@ -133,9 +133,15 @@ class EVCloudPermsSynchronizer:
         if not valid_servers:
             return
 
-        submit_task(
+        self.do_when_evcloud_servers_change(servers=valid_servers, remarks='server create')
+
+    def do_when_evcloud_servers_change(self, servers: List[Server], remarks: str = ''):
+        """
+        evcloud云主机变更后，需要同步用户个人或者vo组员权限到evcloud云主机的共享用户
+        """
+        return submit_task(
             self.task_sync_servers_perm_to_evcloud,
-            kwargs={'servers': valid_servers, 'remarks': 'server create'}
+            kwargs={'servers': servers, 'remarks': remarks}
         )
 
     @staticmethod

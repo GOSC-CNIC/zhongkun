@@ -32,6 +32,7 @@ from apps.order.managers import OrderManager, ServerConfig, OrderPaymentManager
 from apps.app_wallet.managers import PaymentManager
 from apps.servers.handlers.disk_handler import DiskHandler
 from apps.users.managers import get_user_by_name
+from apps.servers.evcloud_perms import EVCloudPermsSynchronizer
 
 
 def str_to_true_false(val: str):
@@ -1181,6 +1182,57 @@ class ServerHandler:
             'period': period,
             'pay_type': pay_type
         }
+
+    @staticmethod
+    def handover_server_owner(view: CustomGenericViewSet, request, kwargs):
+        """
+        移交云主机所有权
+        """
+        server_id = kwargs[view.lookup_field]
+        username = request.query_params.get('username', None)
+        vo_id = request.query_params.get('vo_id', None)
+
+        try:
+            if not username and not vo_id:
+                return view.exception_response(
+                    exceptions.InvalidArgument(message=_('需要提交移交给哪个用户，或者那个VO组')))
+
+            if username and vo_id:
+                return view.exception_response(
+                    exceptions.InvalidArgument(message=_('不能同时提交用户和VO组')))
+
+            if username:
+                new_owner = get_user_by_name(username=username)
+                new_owner_type = Server.Classification.PERSONAL.value
+                new_vo = None
+            else:
+                new_vo = VoManager.get_vo_by_id(vo_id=vo_id)
+                new_owner_type = Server.Classification.VO.value
+                new_owner = new_vo.owner
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        try:
+            server = ServerManager().get_manage_perm_server(
+                server_id=server_id, user=request.user, related_fields=['service__org_data_center', 'vo__owner'])
+            server.user = new_owner
+            server.vo = new_vo
+            server.classification = new_owner_type
+            server.save(update_fields=['user', 'vo', 'classification'])
+            ServerHandler.sync_server_perms_to_evcloud(server=server)
+        except exceptions.APIException as exc:
+            return view.exception_response(exc)
+
+        return Response(data={'username': username, 'vo_id': vo_id}, status=200)
+
+    @staticmethod
+    def sync_server_perms_to_evcloud(server: Server):
+        try:
+            EVCloudPermsSynchronizer().do_when_evcloud_servers_change(servers=[server])
+        except Exception as exc:
+            return False
+
+        return True
 
 
 class ServerArchiveHandler:

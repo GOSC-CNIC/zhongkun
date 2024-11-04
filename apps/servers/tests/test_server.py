@@ -1,3 +1,4 @@
+from time import sleep as time_sleep
 from urllib import parse
 from decimal import Decimal
 from datetime import datetime, timedelta, timezone
@@ -7,7 +8,7 @@ from django.utils import timezone as dj_timezone
 from django.conf import settings
 
 from apps.servers.managers import ServicePrivateQuotaManager, ServerSnapshotManager
-from apps.servers.models import ServiceConfig
+from apps.servers.models import ServiceConfig, EVCloudPermsLog
 from apps.servers.models import Flavor, Server, ServerArchive, Disk, ResourceActionLog, ServerSnapshot
 from utils.test import (
     get_or_create_user, get_or_create_service, get_or_create_organization,
@@ -1369,7 +1370,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         self.assertErrorResponse(status_code=500, code='InternalError', response=response)
 
 
-class ServersTests(MyAPITestCase):
+class ServersTests(MyAPITransactionTestCase):
     def setUp(self):
         self.user = get_or_create_user()
         self.client.force_login(self.user)
@@ -1381,12 +1382,9 @@ class ServersTests(MyAPITestCase):
             default_user=self.default_user, default_password=self.default_password,
             ipv4='127.0.0.1', remarks='test miss server', pay_type=PayType.PREPAID.value
         )
-        vo_data = {
-            'name': 'test vo', 'company': '网络中心', 'description': 'unittest'
-        }
-        response = VoTests.create_vo_response(
-            client=self.client, name=vo_data['name'], company=vo_data['company'], description=vo_data['description'])
-        self.vo_id = response.data['id']
+        self.vo1 = VirtualOrganization(name='test vo1', company='网络中心', description='unittest', owner=self.user)
+        self.vo1.save(force_insert=True)
+        self.vo_id = self.vo1.id
         self.vo_server = create_server_metadata(
             service=self.service, user=self.user, vo_id=self.vo_id, ram=2,
             classification=Server.Classification.VO, default_user=self.default_user,
@@ -2780,3 +2778,113 @@ class ServersTests(MyAPITestCase):
         self.assertErrorResponse(status_code=500, code='InternalError', response=response)
         user_server.refresh_from_db()
         self.assertEqual(user_server.situation, Server.Situation.NORMAL.value)
+
+    def test_server_handover_owner(self):
+        user2 = get_or_create_user(username='zhangsan@cnic.cn')
+        vo2 = VirtualOrganization(name='test vo2', company='网络中心', description='unittest', owner=user2)
+        vo2.save(force_insert=True)
+
+        server2 = create_server_metadata(
+            service=self.service, user=user2, vo_id=vo2.id, ram=2,
+            classification=Server.Classification.VO.value, default_user='', default_password='',
+            ipv4='159.0.0.12', remarks='test'
+        )
+
+        self.client.logout()
+        self.client.force_login(self.user)
+
+        url = reverse('servers-api:servers-server-handover-owner', kwargs={'id': 'notfount'})
+        # InvalidArgument
+        response = self.client.post(url)
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        query = parse.urlencode(query={'username': user2.username, 'vo_id': vo2.id})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        query = parse.urlencode(query={'username': '', 'vo_id': ''})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # NotFound
+        query = parse.urlencode(query={'username': user2.username})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=404, code='NotFound', response=response)
+
+        query = parse.urlencode(query={'vo_id': vo2.id})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=404, code='NotFound', response=response)
+
+        # --- server from vo handover to user ---
+        # server2 of vo2，user no permission of vo2
+        url = reverse('servers-api:servers-server-handover-owner', kwargs={'id': server2.id})
+        query = parse.urlencode(query={'username': self.user.username})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+        # 组员没有权限
+        vo2_member_user = VoMember(user=self.user, vo=vo2, role=VoMember.Role.MEMBER.value, inviter='', inviter_id='')
+        vo2_member_user.save(force_insert=True)
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.assertEqual(EVCloudPermsLog.objects.count(), 0)
+        # 组admin有权限
+        vo2_member_user.role = VoMember.Role.LEADER.value
+        vo2_member_user.save(update_fields=['role'])
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        server2.refresh_from_db()
+        self.assertEqual(server2.classification, Server.Classification.PERSONAL.value)
+        self.assertEqual(server2.user_id, self.user.id)
+        self.assertIsNone(server2.vo_id)
+        time_sleep(1)
+        self.assertEqual(EVCloudPermsLog.objects.count(), 1)
+
+        # ---- server from user handover to user ----
+        # user1's server2, to user2
+        url = reverse('servers-api:servers-server-handover-owner', kwargs={'id': server2.id})
+        query = parse.urlencode(query={'username': user2.username})
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        server2.refresh_from_db()
+        self.assertEqual(server2.classification, Server.Classification.PERSONAL.value)
+        self.assertEqual(server2.user_id, user2.id)
+        self.assertIsNone(server2.vo_id)
+        time_sleep(1)
+        self.assertEqual(EVCloudPermsLog.objects.count(), 2)
+
+        # ---- server from user handover to vo ----
+        # user2's server2, to vo1
+        url = reverse('servers-api:servers-server-handover-owner', kwargs={'id': server2.id})
+        query = parse.urlencode(query={'vo_id': self.vo1.id})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.client.logout()
+        self.client.force_login(user2)
+
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        server2.refresh_from_db()
+        self.assertEqual(server2.classification, Server.Classification.VO.value)
+        self.assertEqual(server2.user_id, self.vo1.owner.id)
+        self.assertEqual(server2.vo_id, self.vo1.id)
+
+        # ---- server from vo handover to vo ----
+        # vo1's server2, to vo12
+        url = reverse('servers-api:servers-server-handover-owner', kwargs={'id': server2.id})
+        query = parse.urlencode(query={'vo_id': vo2.id})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.client.logout()
+        self.client.force_login(self.user)
+
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        server2.refresh_from_db()
+        self.assertEqual(server2.classification, Server.Classification.VO.value)
+        self.assertEqual(server2.user_id, vo2.owner.id)
+        self.assertEqual(server2.vo_id, vo2.id)
+        time_sleep(1)
+        self.assertEqual(EVCloudPermsLog.objects.count(), 4)
