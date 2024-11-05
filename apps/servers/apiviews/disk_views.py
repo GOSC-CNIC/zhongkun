@@ -597,6 +597,34 @@ class DisksViewSet(CustomGenericViewSet):
         """
         return DiskHandler.handover_disk_owner(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('vo组云硬盘组内移交使用权'),
+        request_body=no_body,
+        manual_parameters=[
+            openapi.Parameter(
+                name='username',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description=gettext_lazy('用户名，组员或组长')
+            ),
+        ],
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['post'], url_path='handover/inside-vo', detail=True, url_name='disk-handover-inside-vo')
+    def disk_handover_inside_vo(self, request, *args, **kwargs):
+        """
+        vo组云硬盘组内移交使用权
+
+            http code 200 ok:
+            {
+                "username": "xx",
+            }
+        """
+        return DiskHandler.handover_disk_inside_vo(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return disk_serializers.DiskSerializer

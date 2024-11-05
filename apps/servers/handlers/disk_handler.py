@@ -14,7 +14,7 @@ from core import site_configs_manager
 from apps.api.viewsets import CustomGenericViewSet, serializer_error_msg
 from apps.api import request_logger
 from apps.vo.managers import VoManager
-from apps.vo.models import VirtualOrganization
+from apps.vo.models import VirtualOrganization, VoMember
 from core.adapters import inputs
 from utils.model import PayType, OwnerType
 from utils.time import iso_utc_to_datetime
@@ -955,3 +955,47 @@ class DiskHandler:
             return view.exception_response(exc)
 
         return Response(data={'username': username, 'vo_id': vo_id}, status=200)
+
+    @staticmethod
+    def handover_disk_inside_vo(view: CustomGenericViewSet, request, kwargs):
+        """
+        VO组内云硬盘移交使用权
+        """
+        disk_id = kwargs[view.lookup_field]
+        username = request.query_params.get('username', None)
+        auth_user = request.user
+
+        try:
+            if username is None:
+                raise exceptions.InvalidArgument(message=_('需要提交移交给哪个组员'))
+
+            disk = DiskManager().get_disk(disk_id=disk_id, related_fields=['vo__owner'])
+            if disk.classification != Server.Classification.VO.value:
+                raise exceptions.ConflictError(message=_('不是vo组云硬盘，不允许vo组内移交'))
+
+            # 移交给组长
+            if disk.vo.owner.username == username:
+                new_user = disk.vo.owner
+            else:
+                # 移交给组员
+                member = VoMember.objects.filter(vo_id=disk.vo_id, user__username=username).first()
+                if member is None:
+                    raise exceptions.TargetNotExist(message=_('云硬盘所在的vo组内不存在指定的组成员'))
+
+                new_user = member.user
+
+            # 需要用户有云硬盘的组内使用权，或者有vo组管理员权限
+            if disk.user_id and disk.user_id == auth_user.id:
+                pass
+            else:
+                try:
+                    VoManager.check_manager_perm(vo=disk.vo, user=auth_user)
+                except exceptions.Error as exc:
+                    raise exceptions.AccessDenied(message=_('你没有此云硬盘的使用权，也没有此云硬盘所在VO的管理员权限'))
+
+            disk.user = new_user
+            disk.save(update_fields=['user'])
+        except exceptions.APIException as exc:
+            return view.exception_response(exc)
+
+        return Response(data={'username': username}, status=200)
