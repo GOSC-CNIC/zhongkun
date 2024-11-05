@@ -1910,3 +1910,109 @@ class DiskOrderTests(MyAPITransactionTestCase):
         u_m_zb = vo_mt.trade_amount / vo_mt.original_amount
         delta = Decimal.from_float(u_zb) - u_m_zb
         self.assertEqual(int(delta * 1000), 0)
+
+    def test_server_handover_owner(self):
+        user2 = get_or_create_user(username='zhangsan@cnic.cn')
+        vo1 = VirtualOrganization(name='test vo1', company='网络中心', description='unittest1', owner=self.user)
+        vo1.save(force_insert=True)
+        vo2 = VirtualOrganization(name='test vo2', company='网络中心', description='unittest2', owner=user2)
+        vo2.save(force_insert=True)
+
+        disk2 = create_disk_metadata(
+            service_id=self.service.id, azone_id='1', disk_size=66, pay_type=PayType.PREPAID.value,
+            classification=Disk.Classification.VO.value, user_id=user2.id, vo_id=vo2.id,
+            creation_time=timezone.now(), expiration_time=timezone.now() - timedelta(days=1),
+            remarks='disk1 test', server_id=None
+        )
+
+        self.client.logout()
+        self.client.force_login(self.user)
+
+        url = reverse('servers-api:disks-disk-handover-owner', kwargs={'id': 'notfount'})
+        # InvalidArgument
+        response = self.client.post(url)
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        query = parse.urlencode(query={'username': user2.username, 'vo_id': vo2.id})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        query = parse.urlencode(query={'username': '', 'vo_id': ''})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # DiskNotExist
+        query = parse.urlencode(query={'username': user2.username})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=404, code='DiskNotExist', response=response)
+
+        query = parse.urlencode(query={'vo_id': vo2.id})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=404, code='DiskNotExist', response=response)
+
+        # --- disk from vo handover to user ---
+        # disk2 of vo2，user no permission of vo2
+        url = reverse('servers-api:disks-disk-handover-owner', kwargs={'id': disk2.id})
+        query = parse.urlencode(query={'username': self.user.username})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+        # 组员没有权限
+        vo2_member_user = VoMember(user=self.user, vo=vo2, role=VoMember.Role.MEMBER.value, inviter='', inviter_id='')
+        vo2_member_user.save(force_insert=True)
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # 组admin有权限
+        vo2_member_user.role = VoMember.Role.LEADER.value
+        vo2_member_user.save(update_fields=['role'])
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        disk2.refresh_from_db()
+        self.assertEqual(disk2.classification, Disk.Classification.PERSONAL.value)
+        self.assertEqual(disk2.user_id, self.user.id)
+        self.assertIsNone(disk2.vo_id)
+
+        # ---- disk2 from user handover to user ----
+        # user1's disk2, to user2
+        url = reverse('servers-api:disks-disk-handover-owner', kwargs={'id': disk2.id})
+        query = parse.urlencode(query={'username': user2.username})
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        disk2.refresh_from_db()
+        self.assertEqual(disk2.classification, Disk.Classification.PERSONAL.value)
+        self.assertEqual(disk2.user_id, user2.id)
+        self.assertIsNone(disk2.vo_id)
+
+        # ---- disk2 from user handover to vo ----
+        # user2's disk2, to vo1
+        url = reverse('servers-api:disks-disk-handover-owner', kwargs={'id': disk2.id})
+        query = parse.urlencode(query={'vo_id': vo1.id})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.client.logout()
+        self.client.force_login(user2)
+
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        disk2.refresh_from_db()
+        self.assertEqual(disk2.classification, Disk.Classification.VO.value)
+        self.assertEqual(disk2.user_id, vo1.owner.id)
+        self.assertEqual(disk2.vo_id, vo1.id)
+
+        # ---- disk2 from vo handover to vo ----
+        # vo1's disk2, to vo12
+        url = reverse('servers-api:disks-disk-handover-owner', kwargs={'id': disk2.id})
+        query = parse.urlencode(query={'vo_id': vo2.id})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.client.logout()
+        self.client.force_login(self.user)
+
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        disk2.refresh_from_db()
+        self.assertEqual(disk2.classification, Disk.Classification.VO.value)
+        self.assertEqual(disk2.user_id, vo2.owner.id)
+        self.assertEqual(disk2.vo_id, vo2.id)

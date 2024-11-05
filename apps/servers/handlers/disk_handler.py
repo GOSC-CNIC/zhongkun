@@ -26,6 +26,7 @@ from apps.servers.managers import ServiceManager
 from apps.servers.managers import ServerManager, DiskManager, ResourceActionLogManager
 from apps.servers.models import Server, Disk
 from apps.servers import disk_serializers, format_who_action_str
+from apps.users.managers import get_user_by_name
 
 
 class DiskHandler:
@@ -916,3 +917,41 @@ class DiskHandler:
             'period': period,
             'pay_type': pay_type
         }
+
+    @staticmethod
+    def handover_disk_owner(view: CustomGenericViewSet, request, kwargs):
+        """
+        移交云硬盘所有权
+        """
+        disk_id = kwargs[view.lookup_field]
+        username = request.query_params.get('username', None)
+        vo_id = request.query_params.get('vo_id', None)
+
+        try:
+            if not username and not vo_id:
+                raise exceptions.InvalidArgument(message=_('需要提交移交给哪个用户，或者那个VO组'))
+
+            if username and vo_id:
+                raise exceptions.InvalidArgument(message=_('不能同时提交用户和VO组'))
+
+            if username:
+                new_owner = get_user_by_name(username=username)
+                new_owner_type = Disk.Classification.PERSONAL.value
+                new_vo = None
+            else:
+                new_vo = VoManager.get_vo_by_id(vo_id=vo_id)
+                new_owner_type = Disk.Classification.VO.value
+                new_owner = new_vo.owner
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        try:
+            disk = DiskManager().get_manage_perm_disk(disk_id=disk_id, user=request.user)
+            disk.user = new_owner
+            disk.vo = new_vo
+            disk.classification = new_owner_type
+            disk.save(update_fields=['user', 'vo', 'classification'])
+        except exceptions.APIException as exc:
+            return view.exception_response(exc)
+
+        return Response(data={'username': username, 'vo_id': vo_id}, status=200)
