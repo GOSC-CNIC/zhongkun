@@ -418,7 +418,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
         self.assertKeysIn(['id', 'name', 'size', 'service', 'azone_id', 'azone_name', 'creation_time',
                            'remarks', 'task_status', 'expiration_time', 'pay_type', 'classification',
                            'user', 'vo', 'lock', 'deleted', 'server', 'mountpoint', 'attached_time',
-                           'detached_time'], response.data['results'][0])
+                           'detached_time', 'created_user'], response.data['results'][0])
         self.assertKeysIn(['id', 'name', 'name_en'], response.data['results'][0]['service'])
         self.assertKeysIn(['id', 'username'], response.data['results'][0]['user'])
         self.assertEqual(response.data['results'][0]['id'], disk2.id)
@@ -717,7 +717,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
         self.assertKeysIn(['id', 'name', 'size', 'service', 'azone_id', 'azone_name', 'creation_time',
                            'remarks', 'task_status', 'expiration_time', 'pay_type', 'classification',
                            'user', 'vo', 'lock', 'deleted', 'server', 'mountpoint', 'attached_time',
-                           'detached_time'], response.data['results'][0])
+                           'detached_time', 'created_user'], response.data['results'][0])
         self.assertKeysIn(['id', 'name', 'name_en'], response.data['results'][0]['service'])
         self.assertKeysIn(['id', 'username'], response.data['results'][0]['user'])
         self.assertEqual(response.data['results'][0]['id'], disk3_vo.id)

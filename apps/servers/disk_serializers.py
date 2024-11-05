@@ -46,6 +46,7 @@ class DiskSerializer(serializers.Serializer):
     mountpoint = serializers.CharField(label=_('挂载点/设备名'), help_text='例如 "/dev/vdc"')
     attached_time = serializers.DateTimeField(label=_('最后一次挂载时间'))
     detached_time = serializers.DateTimeField(label=_('最后一次卸载时间'))
+    created_user = serializers.CharField(label=_('创建人'), max_length=128)
 
     @staticmethod
     def get_service(obj):

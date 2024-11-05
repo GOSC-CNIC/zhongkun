@@ -194,6 +194,7 @@ class DisksViewSet(CustomGenericViewSet):
                         "id": "3d7cd5fc-d236-11eb-9da9-c8009fe2eb10",
                         "name": "项目组1"
                       },
+                      "created_user": "创建人",
                       "lock": "free",   # 'free': 无锁；'lock-delete': 锁定删除，防止删除；'lock-operation', '锁定所有操作，只允许读'
                       "deleted": false, # true: 已删除；false: 正常；只有管理员可查询到已删除云硬盘；
                       "server": {# 挂载的云主机，未挂载时为 null

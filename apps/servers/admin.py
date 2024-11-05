@@ -107,7 +107,7 @@ class ServerAdmin(NoDeleteSelectModelAdmin, ServerOrgOdcShowMixin):
                     'service', 'azone_id', 'instance_id', 'vcpus', 'ram', 'disk_size', 'ipv4', 'image',
                     'img_sys_type', 'img_sys_arch', 'img_release', 'img_release_version',
                     'creation_time', 'start_time', 'user', 'task_status', 'center_quota',
-                    'pay_type', 'classification', 'vo', 'lock', 'situation', 'situation_time',
+                    'pay_type', 'classification', 'vo', 'created_user', 'lock', 'situation', 'situation_time',
                     'default_user', 'show_default_password', 'expiration_time', 'remarks')
     search_fields = ['id', 'name', 'image', 'ipv4', 'remarks']
     list_filter = [ServerODCFilter, ServerServiceFilter, 'classification', 'public_ip']
@@ -157,7 +157,7 @@ class ServerArchiveAdmin(NoDeleteSelectModelAdmin, ServerOrgOdcShowMixin):
                     'vcpus', 'ram', 'disk_size', 'ipv4', 'image',
                     'img_sys_type', 'img_sys_arch', 'img_release', 'img_release_version',
                     'creation_time', 'user', 'task_status', 'pay_type', 'classification', 'vo',
-                    'center_quota',
+                    'created_user', 'center_quota',
                     'start_time', 'deleted_time', 'archive_user', 'archive_type', 'remarks')
     search_fields = ['id', 'name', 'image', 'ipv4', 'remarks']
     list_filter = ['archive_type', ServerServiceFilter, 'classification']
@@ -191,7 +191,8 @@ class DiskAdmin(NoDeleteSelectModelAdmin, ServerOrgOdcShowMixin):
     list_display = ('id', ServerOrgOdcShowMixin.SHOW_ORG_NAME, ServerOrgOdcShowMixin.SHOW_ODC_NAME,
                     'service', 'azone_id', 'azone_name', 'size', 'instance_id', 'quota_type',
                     'creation_time', 'task_status', 'expiration_time', 'start_time', 'pay_type',
-                    'classification', 'user', 'vo', 'lock', 'show_deleted', 'deleted_time', 'deleted_user',
+                    'classification', 'user', 'vo', 'created_user', 'lock',
+                    'show_deleted', 'deleted_time', 'deleted_user',
                     'server', 'mountpoint', 'attached_time', 'detached_time', 'remarks')
     search_fields = ['id', 'instance_id', 'server__id', 'remarks', 'user__username']
     list_filter = [ServerODCFilter, ServerServiceFilter, 'classification', 'deleted']

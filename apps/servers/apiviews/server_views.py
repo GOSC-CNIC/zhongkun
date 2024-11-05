@@ -177,7 +177,8 @@ class ServersViewSet(CustomGenericViewSet):
                     "id": "1",
                     "username": "shun"
                   },
-                  "lock": "free"    # 'free': 无锁；'lock-delete': 锁定删除，防止删除；'lock-operation', '锁定所有操作，只允许读'
+                  "lock": "free",    # 'free': 无锁；'lock-delete': 锁定删除，防止删除；'lock-operation', '锁定所有操作，只允许读'
+                  "created_user": "创建人"
                 }
               ]
             }
@@ -251,7 +252,8 @@ class ServersViewSet(CustomGenericViewSet):
                     "id": "1",
                     "username": "shun"
                   },
-                  "lock": "free"    # 'free': 无锁；'lock-delete': 锁定删除，防止删除；'lock-operation', '锁定所有操作，只允许读'
+                  "lock": "free",    # 'free': 无锁；'lock-delete': 锁定删除，防止删除；'lock-operation', '锁定所有操作，只允许读'
+                  "created_user": "创建人"
                 }
               ]
             }

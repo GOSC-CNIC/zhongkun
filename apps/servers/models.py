@@ -553,6 +553,7 @@ class ServerBase(models.Model):
     )
     situation_time = models.DateTimeField(
         verbose_name=_('管控情况时间'), null=True, blank=True, default=None, help_text=_('过期欠费管控开始时间'))
+    created_user = models.CharField(verbose_name=_('创建人'), max_length=128, blank=True, default='')
 
     class Meta:
         abstract = True
@@ -849,6 +850,7 @@ class ServerArchive(ServerBase):
         a.network_id = server.network_id
         a.situation = server.situation
         a.situation_time = server.situation_time
+        a.created_user = server.created_user
 
         if commit:
             a.save(force_insert=True)
@@ -970,6 +972,7 @@ class Disk(DiskBase):
     deleted = models.BooleanField(verbose_name=_('删除状态'), default=False, help_text=_('选中表示已删除'))
     deleted_time = models.DateTimeField(verbose_name=_('删除时间'), null=True, blank=True, default=None)
     deleted_user = models.CharField(verbose_name=_('删除人'), max_length=128, blank=True, default='')
+    created_user = models.CharField(verbose_name=_('创建人'), max_length=128, blank=True, default='')
 
     class Meta:
         db_table = 'servers_disk'

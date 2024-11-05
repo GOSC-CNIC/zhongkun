@@ -95,6 +95,7 @@ class ServerBaseSerializer(serializers.Serializer):
     img_release = serializers.CharField(max_length=32, label=_('镜像系统发行版'))
     img_release_version = serializers.CharField(max_length=32, label=_('镜像系统发行版版本'))
     instance_id = serializers.CharField(max_length=128, label=_('云主机实例ID'), help_text=_('各接入服务中云主机的ID'))
+    created_user = serializers.CharField(label=_('创建人'), max_length=128)
 
     @staticmethod
     def get_default_password(obj):

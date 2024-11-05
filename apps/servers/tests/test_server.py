@@ -1594,7 +1594,7 @@ class ServersTests(MyAPITransactionTestCase):
                            "remarks", "service", 'img_sys_type', 'img_sys_arch', 'img_release', 'img_release_version',
                            "center_quota", "classification", "vo_id", "user", 'vo',
                            "image_id", "image_desc", "default_user", "default_password", 'instance_id',
-                           "lock", "pay_type"], response.data['servers'][0])
+                           "lock", "pay_type", 'created_user'], response.data['servers'][0])
         self.assertEqual(response.data['servers'][0]['ram_gib'], 1)
         self.assertEqual(response.data['servers'][0]['ram'], 1)
         self.assertKeysIn([
@@ -1723,7 +1723,7 @@ class ServersTests(MyAPITransactionTestCase):
                            "remarks", "service", 'img_sys_type', 'img_sys_arch', 'img_release', 'img_release_version',
                            "center_quota", "classification", "vo_id", "user", 'vo',
                            "image_id", "image_desc", "default_user", "default_password", 'instance_id',
-                           "lock", "pay_type"], response.data['servers'][0])
+                           "lock", "pay_type", 'created_user'], response.data['servers'][0])
         self.assertKeysIn(["id", "name"], response.data['servers'][0]['vo'])
         self.assertEqual(response.data['servers'][0]['ram_gib'], 2)
         self.assertEqual(response.data['servers'][0]['ram'], 2)
@@ -1765,7 +1765,7 @@ class ServersTests(MyAPITransactionTestCase):
         self.assertKeysIn(['server'], response.data)
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4", "ram_gib",
                            "public_ip", "image", "creation_time", "remarks",
-                           "service",
+                           "service", 'created_user',
                            "center_quota", "classification", "vo_id", "user",
                            "image_id", "image_desc", "default_user", "default_password",
                            "lock", "pay_type"], response.data['server'])
@@ -1903,7 +1903,7 @@ class ServersTests(MyAPITransactionTestCase):
                            "remarks", "service", 'img_sys_type', 'img_sys_arch', 'img_release', 'img_release_version',
                            "center_quota", "classification", "vo_id", "user",
                            "image_id", "image_desc", "default_user", "default_password", 'instance_id',
-                           "lock", "pay_type"], response.data['servers'][0])
+                           "lock", "pay_type", 'created_user'], response.data['servers'][0])
         self.assert_is_subdict_of(sub={
             'classification': Server.Classification.PERSONAL,
             'service': {
@@ -2337,7 +2337,7 @@ class ServersTests(MyAPITransactionTestCase):
                            "service", 'instance_id',
                            "center_quota", "classification", "vo_id", "user",
                            "image_id", "image_desc", "default_user", "default_password",
-                           "lock", "pay_type"], response.data['servers'][0])
+                           "lock", "pay_type", 'created_user'], response.data['servers'][0])
         vo_server = self.vo_server
         self.assert_is_subdict_of(sub={
             'classification': Server.Classification.VO,
@@ -2480,7 +2480,7 @@ class ServersTests(MyAPITransactionTestCase):
                            "public_ip", "image", "creation_time",
                            "remarks", "service", 'img_sys_type', 'img_sys_arch', 'img_release', 'img_release_version',
                            "center_quota", "deleted_time", "classification", "vo_id", 'instance_id',
-                           "pay_type", "server_id"], obj)
+                           "pay_type", "server_id", 'created_user'], obj)
         self.assertEqual(obj['ram_gib'], 1)
         self.assertEqual(obj['ram'], 1)
         self.assertKeysIn(["id", "name", "name_en", "service_type"], obj['service'])

@@ -303,6 +303,7 @@ class OrderResourceDeliverer:
             disk_size=0,
             network_id=config.vm_network_id,
             pay_type=order.pay_type,
+            created_user=order.username,
             **kwargs
         )
         if out_server.default_password:
@@ -715,6 +716,7 @@ class OrderResourceDeliverer:
             deleted=False,
             server=None,
             mountpoint='',
+            created_user=order.username,
             **kwargs
         )
         try:
