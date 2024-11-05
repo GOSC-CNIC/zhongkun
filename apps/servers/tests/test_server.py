@@ -2888,3 +2888,115 @@ class ServersTests(MyAPITransactionTestCase):
         self.assertEqual(server2.vo_id, vo2.id)
         time_sleep(1)
         self.assertEqual(EVCloudPermsLog.objects.count(), 4)
+
+    def test_server_handover_inside_vo(self):
+        user2 = get_or_create_user(username='zhangsan@cnic.cn')
+        user3 = get_or_create_user(username='lisi@cnic.cn')
+        vo2 = VirtualOrganization(name='test vo2', company='网络中心', description='unittest', owner=user2)
+        vo2.save(force_insert=True)
+        vo2_member_user = VoMember(user=self.user, vo=vo2, role=VoMember.Role.MEMBER.value, inviter='', inviter_id='')
+        vo2_member_user.save(force_insert=True)
+        vo2_member_user3 = VoMember(user=user3, vo=vo2, role=VoMember.Role.MEMBER.value, inviter='', inviter_id='')
+        vo2_member_user3.save(force_insert=True)
+
+        server2 = create_server_metadata(
+            service=self.service, user=user2, vo_id=vo2.id, ram=2,
+            classification=Server.Classification.PERSONAL.value, default_user='', default_password='',
+            ipv4='159.0.0.12', remarks='test'
+        )
+
+        self.client.logout()
+        self.client.force_login(self.user)
+
+        url = reverse('servers-api:servers-server-handover-inside-vo', kwargs={'id': 'notfount'})
+        # InvalidArgument
+        response = self.client.post(url)
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # server NotFound
+        query = parse.urlencode(query={'username': user2.username})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=404, code='NotFound', response=response)
+        # not vo server
+        url = reverse('servers-api:servers-server-handover-inside-vo', kwargs={'id': server2.id})
+        query = parse.urlencode(query={'username': 'notexists'})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+
+        server2.classification = Server.Classification.VO.value
+        server2.save(update_fields=['classification'])
+
+        # user not found
+        query = parse.urlencode(query={'username': 'notexists'})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+
+        # user1 no permission handover
+        url = reverse('servers-api:servers-server-handover-inside-vo', kwargs={'id': server2.id})
+        query = parse.urlencode(query={'username': user3.username})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # --- server from user2 to user3 ---
+        # user2 no permission of (vo2 and server2)
+        self.client.logout()
+        self.client.force_login(user2)
+
+        self.assertEqual(EVCloudPermsLog.objects.count(), 0)
+        url = reverse('servers-api:servers-server-handover-inside-vo', kwargs={'id': server2.id})
+        query = parse.urlencode(query={'username': user3.username})
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        server2.refresh_from_db()
+        self.assertEqual(server2.classification, Server.Classification.VO.value)
+        self.assertEqual(server2.vo_id, vo2.id)
+        self.assertEqual(server2.user_id, user3.id)
+        time_sleep(1)
+        self.assertEqual(EVCloudPermsLog.objects.count(), 1)
+
+        # --- server from user3 to user1 --- vo admin handover
+        # user2 is owner of vo2
+        url = reverse('servers-api:servers-server-handover-inside-vo', kwargs={'id': server2.id})
+        query = parse.urlencode(query={'username': self.user.username})
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        server2.refresh_from_db()
+        self.assertEqual(server2.classification, Server.Classification.VO.value)
+        self.assertEqual(server2.vo_id, vo2.id)
+        self.assertEqual(server2.user_id, self.user.id)
+
+        # --- server from user1 to user3 --- member to member
+        # user1 no permission of server2
+        self.client.logout()
+        self.client.force_login(self.user)
+        url = reverse('servers-api:servers-server-handover-inside-vo', kwargs={'id': server2.id})
+        query = parse.urlencode(query={'username': user3.username})
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        server2.refresh_from_db()
+        self.assertEqual(server2.classification, Server.Classification.VO.value)
+        self.assertEqual(server2.vo_id, vo2.id)
+        self.assertEqual(server2.user_id, user3.id)
+        time_sleep(1)
+        self.assertEqual(EVCloudPermsLog.objects.count(), 3)
+
+        # --- server from user3 to user2 --- member to vo2 owner
+        # user1 no permission of server2 now
+        url = reverse('servers-api:servers-server-handover-inside-vo', kwargs={'id': server2.id})
+        query = parse.urlencode(query={'username': user2.username})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # vo admin
+        vo2_member_user.role = VoMember.Role.LEADER.value
+        vo2_member_user.save(update_fields=['role'])
+
+        query = parse.urlencode(query={'username': user2.username})
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        server2.refresh_from_db()
+        self.assertEqual(server2.classification, Server.Classification.VO.value)
+        self.assertEqual(server2.vo_id, vo2.id)
+        self.assertEqual(server2.user_id, user2.id)
+        time_sleep(1)
+        self.assertEqual(EVCloudPermsLog.objects.count(), 4)

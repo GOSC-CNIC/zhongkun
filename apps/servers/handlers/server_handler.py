@@ -21,7 +21,7 @@ from apps.api import paginations
 from apps.api.viewsets import CustomGenericViewSet, serializer_error_msg
 from apps.api import request_logger
 from apps.vo.managers import VoManager
-from apps.vo.models import VirtualOrganization
+from apps.vo.models import VirtualOrganization, VoMember
 from core.adapters import inputs
 from core.adapters.client import get_service_client
 from utils.model import PayType, OwnerType
@@ -1194,12 +1194,10 @@ class ServerHandler:
 
         try:
             if not username and not vo_id:
-                return view.exception_response(
-                    exceptions.InvalidArgument(message=_('需要提交移交给哪个用户，或者那个VO组')))
+                raise exceptions.InvalidArgument(message=_('需要提交移交给哪个用户，或者那个VO组'))
 
             if username and vo_id:
-                return view.exception_response(
-                    exceptions.InvalidArgument(message=_('不能同时提交用户和VO组')))
+                raise exceptions.InvalidArgument(message=_('不能同时提交用户和VO组'))
 
             if username:
                 new_owner = get_user_by_name(username=username)
@@ -1224,6 +1222,51 @@ class ServerHandler:
             return view.exception_response(exc)
 
         return Response(data={'username': username, 'vo_id': vo_id}, status=200)
+
+    @staticmethod
+    def handover_server_inside_vo(view: CustomGenericViewSet, request, kwargs):
+        """
+        VO组内云主机移交使用权
+        """
+        server_id = kwargs[view.lookup_field]
+        username = request.query_params.get('username', None)
+        auth_user = request.user
+
+        try:
+            if username is None:
+                raise exceptions.InvalidArgument(message=_('需要提交移交给哪个组员'))
+
+            server = ServerManager().get_server(server_id=server_id, related_fields=['vo__owner'])
+            if server.classification != Server.Classification.VO.value:
+                raise exceptions.ConflictError(message=_('不是vo组云主机，不允许vo组内移交'))
+
+            # 移交给组长
+            if server.vo.owner.username == username:
+                new_user = server.vo.owner
+            else:
+                # 移交给组员
+                member = VoMember.objects.filter(vo_id=server.vo_id, user__username=username).first()
+                if member is None:
+                    raise exceptions.TargetNotExist(message=_('云主机所在的vo组内不存在指定的组成员'))
+
+                new_user = member.user
+
+            # 需要用户有云主机的组内使用权，或者有vo组管理员权限
+            if server.user_id and server.user_id == auth_user.id:
+                pass
+            else:
+                try:
+                    VoManager.check_manager_perm(vo=server.vo, user=auth_user)
+                except exceptions.Error as exc:
+                    raise exceptions.AccessDenied(message=_('你没有此云主机的使用权，也没有此云主机所在VO的管理员权限'))
+
+            server.user = new_user
+            server.save(update_fields=['user'])
+            ServerHandler.sync_server_perms_to_evcloud(server=server)
+        except exceptions.APIException as exc:
+            return view.exception_response(exc)
+
+        return Response(data={'username': username}, status=200)
 
     @staticmethod
     def sync_server_perms_to_evcloud(server: Server):
