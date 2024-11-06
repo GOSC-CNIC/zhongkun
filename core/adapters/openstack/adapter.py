@@ -602,3 +602,14 @@ class OpenStackAdapter(BaseAdapter):
             return outputs.QuotaOutput(ok=True, quota=quota)
         except Exception as e:
             return outputs.QuotaOutput(ok=False, error=exceptions.Error(str(e)), quota=outputs.Quota())
+
+    def resource_statistics(self) -> outputs.ResourceStatisticsOutput:
+        """
+        资源统计
+        """
+        try:
+            conn = self._get_openstack_connect()
+            servers = list(conn.compute.servers(details=False, all_projects=True, vm_state='ACTIVE'))
+            return outputs.ResourceStatisticsOutput(ok=True, server_count=len(servers))
+        except Exception as e:
+            return outputs.ResourceStatisticsOutput(ok=False, error=exceptions.Error(str(e)), server_count=0)

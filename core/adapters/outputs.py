@@ -663,3 +663,9 @@ class ServerOwnerChangeOutput(OutputBase):
 
 class ServerSharedOutput(OutputBase):
     pass
+
+
+class ResourceStatisticsOutput(OutputBase):
+    def __init__(self, server_count: int, **kwargs):
+        self.server_count = server_count
+        super().__init__(**kwargs)

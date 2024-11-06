@@ -233,3 +233,9 @@ class BaseAdapter:
         云主机共享用户和权限更新替换，主要适用于EVCloud
         """
         raise NotImplementedError('`server_shared()` must be implemented.')
+
+    def resource_statistics(self) -> outputs.ResourceStatisticsOutput:
+        """
+        资源统计
+        """
+        raise NotImplementedError('`resource_statistics()` must be implemented.')

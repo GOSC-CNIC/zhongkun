@@ -884,3 +884,17 @@ class EVCloudAdapter(BaseAdapter):
             return outputs.ServerSharedOutput(ok=False, error=e)
 
         return outputs.ServerSharedOutput(ok=True, error=None)
+
+    def resource_statistics(self) -> outputs.ResourceStatisticsOutput:
+        """
+        资源统计
+        """
+        url = self.api_builder.resource_statistics_url()
+        try:
+            headers = self.get_auth_header()
+            r = self.do_request(method='get', ok_status_codes=[200, 201], url=url, headers=headers)
+            data = r.json()
+            server_count = data['quota']['vm_created']
+            return outputs.ResourceStatisticsOutput(ok=True, error=None, server_count=server_count)
+        except exceptions.Error as e:
+            return outputs.ResourceStatisticsOutput(ok=False, error=e, server_count=0)

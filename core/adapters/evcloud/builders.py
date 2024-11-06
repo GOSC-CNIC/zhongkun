@@ -186,3 +186,7 @@ class APIBuilder:
     def vm_share_user_replace_url(self, vm_uuid: str, query=None):
         return self.build_url(
             path=f'api/{self.api_version}/share/vm/{vm_uuid}/user/replace', query=query, trailing_slash=False)
+
+    def resource_statistics_url(self, query=None):
+        return self.build_url(
+            path=f'api/{self.api_version}/compute/quota/center', query=query, trailing_slash=False)

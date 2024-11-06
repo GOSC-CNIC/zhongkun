@@ -230,6 +230,13 @@ class OneServiceClient:
         """
         return self.adapter.server_shared(params=params)
 
+    @adapter_method_not_support(action='resource statistics')
+    def resource_statistics(self) -> outputs.ResourceStatisticsOutput:
+        """
+        资源统计
+        """
+        return self.adapter.resource_statistics()
+
 
 class VPNClient:
     def __init__(self, endpoint_url, api_version='v3', auth=None):
