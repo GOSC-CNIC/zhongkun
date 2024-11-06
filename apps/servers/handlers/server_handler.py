@@ -33,6 +33,7 @@ from apps.app_wallet.managers import PaymentManager
 from apps.servers.handlers.disk_handler import DiskHandler
 from apps.users.managers import get_user_by_name
 from apps.servers.evcloud_perms import EVCloudPermsSynchronizer
+from apps.servers.tasks import update_services_server_count
 
 
 def str_to_true_false(val: str):
@@ -973,6 +974,7 @@ class ServerHandler:
         server.id = server_id
         ResourceActionLogManager.add_delete_log_for_resource(res=server, user=user, raise_error=False)
         OrderManager.set_resource_server_deleted(instance_id=server_id, raise_exc=False)
+        update_services_server_count(service=server.service, update_ago_minutes=10)
         return True
 
     @staticmethod

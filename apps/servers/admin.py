@@ -4,6 +4,7 @@ from django.utils.translation import get_language, gettext, gettext_lazy as _
 from django.utils.html import format_html
 from django.db import transaction
 from django import forms
+from django.contrib.admin import helpers
 
 from utils.model import NoDeleteSelectModelAdmin, PayType, BaseModelAdmin
 from apps.servers.forms import VmsProviderForm
@@ -12,6 +13,7 @@ from apps.servers.models import (
     ServiceConfig, ServicePrivateQuota, ServerSnapshot, EVCloudPermsLog
 )
 from apps.servers.managers import ServiceManager
+from apps.servers.tasks import update_services_server_count
 from apps.service.odc_manager import OrgDataCenterManager
 from apps.service.models import OrgDataCenter
 
@@ -290,10 +292,10 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
                     'only_admin_visible', 'region_id', 'service_type', 'version', 'version_update_time',
                     'endpoint_url', 'username', 'password', 'raw_password',
                     'add_time', 'status', 'need_vpn', 'disk_available',
-                    'vpn_endpoint_url', 'vpn_password',
+                    'vpn_endpoint_url', 'vpn_password', 'server_managed', 'server_total', 'server_update_time',
                     'pay_app_service_id', 'longitude', 'latitude', 'remarks', 'monitor_task_id')
     search_fields = ['name', 'name_en', 'endpoint_url', 'remarks']
-    list_filter = ['service_type', 'disk_available', ServiceOrgFilter]
+    list_filter = ['service_type', 'disk_available', ServiceOrgFilter, 'status']
     list_select_related = ('org_data_center', 'org_data_center__organization')
     raw_id_fields = ('org_data_center',)
     list_editable = ('sort_weight',)
@@ -320,7 +322,7 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
         (_('监控任务'), {'fields': ('monitor_task_id', 'create_monitor_task')}),
     )
 
-    actions = ['encrypt_password', 'encrypt_vpn_password', 'update_service_version']
+    actions = ['encrypt_password', 'encrypt_vpn_password', 'update_service_version', 'update_server_count_stats']
 
     @admin.action(description=_("加密用户密码"))
     def encrypt_password(self, request, queryset):
@@ -505,8 +507,23 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
 
     def changelist_view(self, request, extra_context=None):
         request.in_custom_admin_changelist = True
+
+        if request.method == "POST":
+            action = self.get_actions(request)[request.POST['action']][0]
+            act_not_need_selected = getattr(action, 'act_not_need_selected', False)
+            if act_not_need_selected:
+                post = request.POST.copy()
+                post.setlist(helpers.ACTION_CHECKBOX_NAME, [0])
+                request.POST = post
+
         respone = super(ServiceConfigAdmin, self).changelist_view(request=request, extra_context=extra_context)
         return respone
+
+    @admin.action(description=_('更新服务单元云主机数信息'))
+    def update_server_count_stats(self, request, queryset):
+        update_services_server_count(update_ago_minutes=0)
+
+    update_server_count_stats.act_not_need_selected = True
 
 
 @admin.register(ServicePrivateQuota)

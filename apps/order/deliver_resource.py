@@ -12,6 +12,7 @@ from apps.servers.models import Server, Disk, ServerArchive, DiskChangeLog, Serv
 from apps.servers.managers import ServerManager, DiskManager, ServiceManager
 from apps.servers.evcloud_perms import EVCloudPermsSynchronizer
 from apps.servers import format_who_action_str
+from apps.servers.tasks import update_services_server_count
 from core.adapters import inputs, outputs
 from utils.model import PayType, OwnerType, ResourceType
 from apps.order.models import Order, Resource
@@ -99,6 +100,7 @@ class OrderResourceDeliverer:
         if len(servers) == 1:
             s, futures = self.after_deliver_server(service=service, server=servers[0])
             EVCloudPermsSynchronizer().do_when_evcloud_server_create(servers=servers)
+            update_services_server_count(service=service, update_ago_minutes=10)
             return servers, futures
 
         futures = []
@@ -108,6 +110,7 @@ class OrderResourceDeliverer:
                 futures.append(f)
 
         EVCloudPermsSynchronizer().do_when_evcloud_server_create(servers=servers)
+        update_services_server_count(service=service, update_ago_minutes=10)
         return servers, futures
 
     @staticmethod

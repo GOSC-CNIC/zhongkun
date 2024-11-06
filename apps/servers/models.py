@@ -108,6 +108,9 @@ class ServiceConfig(BaseService):
         help_text=_('记录为服务单元创建的站点监控任务的ID'))
     version = models.CharField(max_length=32, blank=True, default='', verbose_name=_('版本号'), help_text=_('服务当前的版本'))
     version_update_time = models.DateTimeField(verbose_name=_('版本号更新时间'), null=True, blank=True, default=None)
+    server_managed = models.IntegerField(verbose_name=_('本服务在管云主机数'), default=0, help_text=_('服务单元在本服务中管理的云主机数'))
+    server_total = models.IntegerField(verbose_name=_('服务单元云主机总数'), default=0, help_text=_('服务单元中总的云主机数'))
+    server_update_time = models.DateTimeField(verbose_name=_('云主机数更新时间'), null=True, blank=True, default=None)
 
     class Meta:
         db_table = 'service_serviceconfig'
