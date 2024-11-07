@@ -13,41 +13,41 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='server',
             name='img_release',
-            field=models.CharField(default='', max_length=32, verbose_name='镜像系统发行版'),
+            field=models.CharField(blank=True, default='', max_length=32, verbose_name='镜像系统发行版'),
         ),
         migrations.AddField(
             model_name='server',
             name='img_release_version',
-            field=models.CharField(default='', max_length=32, verbose_name='镜像系统发行版版本'),
+            field=models.CharField(blank=True, default='', max_length=32, verbose_name='镜像系统发行版版本'),
         ),
         migrations.AddField(
             model_name='server',
             name='img_sys_arch',
-            field=models.CharField(default='', max_length=32, verbose_name='镜像系统架构'),
+            field=models.CharField(blank=True, default='', max_length=32, verbose_name='镜像系统架构'),
         ),
         migrations.AddField(
             model_name='server',
             name='img_sys_type',
-            field=models.CharField(default='', max_length=32, verbose_name='镜像系统类型'),
+            field=models.CharField(blank=True, default='', max_length=32, verbose_name='镜像系统类型'),
         ),
         migrations.AddField(
             model_name='serverarchive',
             name='img_release',
-            field=models.CharField(default='', max_length=32, verbose_name='镜像系统发行版'),
+            field=models.CharField(blank=True, default='', max_length=32, verbose_name='镜像系统发行版'),
         ),
         migrations.AddField(
             model_name='serverarchive',
             name='img_release_version',
-            field=models.CharField(default='', max_length=32, verbose_name='镜像系统发行版版本'),
+            field=models.CharField(blank=True, default='', max_length=32, verbose_name='镜像系统发行版版本'),
         ),
         migrations.AddField(
             model_name='serverarchive',
             name='img_sys_arch',
-            field=models.CharField(default='', max_length=32, verbose_name='镜像系统架构'),
+            field=models.CharField(blank=True, default='', max_length=32, verbose_name='镜像系统架构'),
         ),
         migrations.AddField(
             model_name='serverarchive',
             name='img_sys_type',
-            field=models.CharField(default='', max_length=32, verbose_name='镜像系统类型'),
+            field=models.CharField(blank=True, default='', max_length=32, verbose_name='镜像系统类型'),
         ),
     ]

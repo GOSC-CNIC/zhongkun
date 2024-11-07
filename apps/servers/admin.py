@@ -5,7 +5,9 @@ from django.utils.html import format_html
 from django.db import transaction
 from django import forms
 from django.contrib.admin import helpers
+from django.core.exceptions import ValidationError
 
+from core import request as core_request
 from utils.model import NoDeleteSelectModelAdmin, PayType, BaseModelAdmin
 from apps.servers.forms import VmsProviderForm
 from apps.servers.models import (
@@ -56,6 +58,21 @@ class ServerAdminForm(forms.ModelForm):
             self.instance.raw_default_password = change_password
 
         return super().save(commit=commit)
+
+    def clean(self):
+        cleaned_data = self.cleaned_data
+        service = cleaned_data['service']
+        instance_id = cleaned_data['instance_id']
+        if not service:
+            raise ValidationError(message={'service': gettext('必须选择服务单元')})
+
+        if not instance_id:
+            raise ValidationError(message={'instance_id': gettext('必须填写服务单元中云主机ID')})
+
+        qs = Server.objects.filter(service_id=service.id, instance_id=instance_id)
+        ins = self.instance
+        if qs.exclude(id=ins.id).exists():
+            raise ValidationError(message={'instance_id': gettext('已存在此服务单元云主机ID')})
 
 
 class ServerODCFilter(SimpleListFilter):
@@ -120,13 +137,40 @@ class ServerAdmin(NoDeleteSelectModelAdmin, ServerOrgOdcShowMixin):
     fieldsets = [
         (_('基础信息'), {'fields': ('service', 'azone_id', 'instance_id', 'remarks', 'center_quota')}),
         (_('配置信息'), {'fields': (
-            'vcpus', 'ram', 'disk_size', 'ipv4', 'public_ip', 'image', 'img_sys_type',
-            'img_sys_arch', 'img_release', 'img_release_version',)}),
+            'vcpus', 'ram', 'disk_size', 'ipv4', 'public_ip', 'image_id', 'image', 'img_sys_type',
+            'img_sys_arch', 'img_release', 'img_release_version', 'image_desc')}),
         (_('默认登录密码'), {'fields': ('default_user', 'default_password', 'change_password')}),
         (_('创建和归属信息'), {'fields': ('creation_time', 'task_status', 'classification', 'user', 'vo')}),
         (_('计量和管控信息'), {'fields': (
             'pay_type', 'start_time', 'expiration_time', 'lock', 'situation', 'situation_time')}),
     ]
+    actions = ['update_server_info',]
+
+    @admin.action(description=_("从服务单元更新云主机的基本信息"))
+    def update_server_info(self, request, queryset):
+        """
+        从服务单元更新云主机的基本信息
+        """
+        count = 0
+        failed_count = 0
+        msg = ''
+        for server in queryset:
+            try:
+                core_request.update_server_detail(server=server)
+                count += 1
+            except Exception as exc:
+                msg = str(exc)
+                failed_count += 1
+
+        if count > 0:
+            self.message_user(
+                request,
+                gettext("成功更新云主机数量%(count)s，失败%(failed)s") % {'count': count, 'failed': failed_count},
+                level=messages.SUCCESS)
+        elif failed_count:
+            self.message_user(request, gettext("更新云主机全部失败") + msg, level=messages.WARNING)
+        else:
+            self.message_user(request, gettext("没有更新任何云主机"), level=messages.SUCCESS)
 
     @admin.display(
         description=_('默认登录密码')

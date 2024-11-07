@@ -191,6 +191,11 @@ def update_server_detail(server: Server, task_status: int = None):
             server.ipv4 = ipv4
             update_fields.append('ipv4')
 
+        image_id = out_server.image.id
+        if image_id and server.image_id != image_id:
+            server.image_id = image_id
+            update_fields.append('image_id')
+
         image = out_server.image.name
         if image:
             server.image = image
@@ -269,9 +274,9 @@ def _update_image_info(server: Server):
         update_fields.append('img_sys_arch')
 
     if image.system_type and image.system_type != server.img_sys_type:
-        if not server.img_sys_type or server.img_sys_type == Server.SysType.UNKNOWN.value:
-            server.img_sys_type = cut_str(image.system_type, length=32)
-            update_fields.append('img_sys_type')
+        # if not server.img_sys_type or server.img_sys_type == Server.SysType.UNKNOWN.value:
+        server.img_sys_type = cut_str(image.system_type, length=32)
+        update_fields.append('img_sys_type')
 
     if image.version and image.version != server.img_release_version:
         server.img_release_version = cut_str(image.version, length=32)
