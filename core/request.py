@@ -383,7 +383,11 @@ def update_disk_detail(disk: Disk, task_status: int = None):
     """
     # 尝试获取详细信息
     out_disk: outputs.DetailDisk = adapter_detail_disk(disk)
+    return do_update_disk_detail(disk=disk, detail_disk=out_disk, task_status=task_status)
 
+
+def do_update_disk_detail(disk: Disk, detail_disk: outputs.DetailDisk, task_status: int = None):
+    out_disk = detail_disk
     try:
         update_fields = []
 

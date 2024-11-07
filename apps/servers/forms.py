@@ -1,8 +1,11 @@
 from django import forms
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext, gettext_lazy as _
 from django.forms.widgets import PasswordInput
 from django.forms.utils import ErrorList
+from django.core.exceptions import ValidationError
 from django_json_widget.widgets import JSONEditorWidget
+
+from apps.servers.models import Disk
 
 
 class JSONEditorAllowEmptyWidget(JSONEditorWidget):
@@ -65,3 +68,20 @@ class VmsProviderForm(forms.ModelForm):
             self.instance.set_vpn_password(change_vpn_password)
 
         return super().save(commit=commit)
+
+
+class DiskAdminForm(forms.ModelForm):
+    def clean(self):
+        cleaned_data = self.cleaned_data
+        service = cleaned_data['service']
+        instance_id = cleaned_data['instance_id']
+        if not service:
+            raise ValidationError(message={'service': gettext('必须选择服务单元')})
+
+        if not instance_id:
+            raise ValidationError(message={'instance_id': gettext('必须填写服务单元中云硬盘ID')})
+
+        qs = Disk.objects.filter(service_id=service.id, instance_id=instance_id)
+        ins = self.instance
+        if qs.exclude(id=ins.id).exists():
+            raise ValidationError(message={'instance_id': gettext('已存在此服务单元云硬盘ID')})

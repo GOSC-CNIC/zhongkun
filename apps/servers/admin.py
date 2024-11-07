@@ -9,7 +9,7 @@ from django.core.exceptions import ValidationError
 
 from core import request as core_request
 from utils.model import NoDeleteSelectModelAdmin, PayType, BaseModelAdmin
-from apps.servers.forms import VmsProviderForm
+from apps.servers.forms import VmsProviderForm, DiskAdminForm
 from apps.servers.models import (
     Server, Flavor, ServerArchive, Disk, ResourceActionLog, DiskChangeLog,
     ServiceConfig, ServicePrivateQuota, ServerSnapshot, EVCloudPermsLog
@@ -233,6 +233,7 @@ class FlavorAdmin(BaseModelAdmin, ServerOrgOdcShowMixin):
 
 @admin.register(Disk)
 class DiskAdmin(NoDeleteSelectModelAdmin, ServerOrgOdcShowMixin):
+    form = DiskAdminForm
     list_display_links = ('id',)
     list_display = ('id', ServerOrgOdcShowMixin.SHOW_ORG_NAME, ServerOrgOdcShowMixin.SHOW_ODC_NAME,
                     'service', 'azone_id', 'azone_name', 'size', 'instance_id', 'quota_type',
@@ -253,6 +254,44 @@ class DiskAdmin(NoDeleteSelectModelAdmin, ServerOrgOdcShowMixin):
         (_('挂载信息'), {'fields': ('server', 'mountpoint', 'attached_time', 'detached_time')}),
         (_('锁、删除状态'), {'fields': ('lock', 'deleted', 'deleted_time', 'deleted_user')}),
     ]
+
+    actions = ['update_disk_info', ]
+
+    @admin.action(description=_("从服务单元更新云硬盘的基本信息"))
+    def update_disk_info(self, request, queryset):
+        """
+        从服务单元更新云硬盘的基本信息
+        """
+        count = 0
+        failed_count = 0
+        msg = ''
+        for disk in queryset:
+            try:
+                detail_disk = core_request.adapter_detail_disk(disk=disk)
+                core_request.do_update_disk_detail(disk=disk, detail_disk=detail_disk)
+                # disk挂载云主机
+                if detail_disk.instance_id and detail_disk.device:
+                    server = Server.objects.filter(
+                        service_id=disk.service_id, instance_id=detail_disk.instance_id).first()
+                    if server:
+                        disk.server = server
+                        disk.mountpoint = detail_disk.device
+                        disk.save(update_fields=['server', 'mountpoint'])
+
+                count += 1
+            except Exception as exc:
+                msg = str(exc)
+                failed_count += 1
+
+        if count > 0:
+            self.message_user(
+                request,
+                gettext("成功更新云硬盘数量%(count)s，失败%(failed)s") % {'count': count, 'failed': failed_count},
+                level=messages.SUCCESS)
+        elif failed_count:
+            self.message_user(request, gettext("更新云硬盘全部失败") + msg, level=messages.WARNING)
+        else:
+            self.message_user(request, gettext("没有更新任何云硬盘"), level=messages.SUCCESS)
 
     @admin.display(
         description=_('删除状态')
