@@ -73,6 +73,7 @@
                            target="view_window">{% trans 'API交互文档' %}</a>
                         <a class="dropdown-item" href="{% url 'redoc' %}" target="view_window">{% trans 'API文档' %}</a>
                         <a class="dropdown-item" href="{% url 'docs:docs' %}" target="view_window">{% trans '文档' %}</a>
+                        <div class="dropdown-divider"></div>
                         <a class="dropdown-item" href="{% url 'about' %}">{% trans '关于' %}</a>
                     </div>
                 </li>
@@ -82,16 +83,14 @@
                     <form action="{% url 'set_language' %}" method="post" id="id-language-switcher" hidden>
                         {% csrf_token %}
                     </form>
-                    <div class="nav-link">
-                        <div class="input-group">
-                            <div class="input-group-prepend">
-                                <label class="input-group-text border-0 bg-dark text-white" for="language-switcher"><i class="fas fa-globe"></i></label>
-                            </div>
-                            <select class="border-0 bg-dark text-white" id="language-switcher">
-                                {% for code, name in LANGUAGES %}
-                                    <option class="language-switcher-item" {% if current_language == code %}selected{% endif %} value="{{ code }}">{{ name }}</option>
-                                {% endfor %}
-                            </select>
+                    <div class="nav-item dropdown" id="navbar-language-dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbar-lang-dropdown-btn" role="button"
+                           data-toggle="dropdown"
+                           aria-haspopup="false" aria-expanded="false"><i class="fas fa-globe"></i> {{ current_language | language_name_local }}</a>
+                        <div class="dropdown-menu" aria-labelledby="navbar-lang-dropdown-btn">
+                            {% for code, name in LANGUAGES %}
+                                <button class="language-switcher-item dropdown-item {% if current_language == code %}active{% endif %}" value="{{ code }}">{{ name }}</button>
+                            {% endfor %}
                         </div>
                     </div>
                 </li>
@@ -125,7 +124,7 @@
     <script type="text/javascript" src="{% static 'fontawesome-free/js/all.min.js' %}"></script>
     {% verbatim %}
     <script>
-        $("#language-switcher").on("change", function () {
+        $(".language-switcher-item").on("click", function () {
             let langValue = $(this).val();
             let form = $("#id-language-switcher");
             let langInput = document.createElement("input");
