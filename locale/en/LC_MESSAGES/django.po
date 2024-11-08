@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-08-19 02:11+0000\n"
+"POT-Creation-Date: 2024-11-07 09:01+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -324,11 +324,12 @@ msgstr "ID"
 #: apps/report/models.py:141 apps/report/models.py:183
 #: apps/report/models.py:219 apps/report/models.py:261
 #: apps/report/serializers.py:16 apps/report/serializers.py:51
-#: apps/report/serializers.py:73 apps/servers/models.py:69
-#: apps/servers/serializers.py:260 apps/service/serializers.py:95
-#: apps/storage/models.py:43 apps/storage/serializers.py:89
-#: apps/users/admin.py:49 apps/users/templates/registration/login.html:28
-#: apps/vo/vo_serializers.py:31 apps/vpn/templates/vpn.html:54
+#: apps/report/serializers.py:73 apps/servers/models.py:67
+#: apps/servers/serializers.py:186 apps/servers/serializers.py:266
+#: apps/service/serializers.py:95 apps/storage/models.py:43
+#: apps/storage/serializers.py:89 apps/users/admin.py:49
+#: apps/users/templates/registration/login.html:23 apps/vo/vo_serializers.py:31
+#: apps/vpn/templates/vpn.html:54
 msgid "用户名"
 msgstr "Username"
 
@@ -1171,8 +1172,12 @@ msgstr "Alert dingtalk notification"
 msgid "流量图表元素更新"
 msgstr "Flow chart elements updated"
 
-#: apps/app_global/models.py:30 apps/order/models.py:57
-#: apps/service/templatetags/services.py:55 apps/storage/models.py:307
+#: apps/app_global/models.py:28
+msgid "VO云主机权限同步EVCloud"
+msgstr "VO server permissions are synchronized to EVCloud"
+
+#: apps/app_global/models.py:31 apps/order/models.py:57
+#: apps/service/templatetags/services.py:63 apps/storage/models.py:307
 msgid "无"
 msgstr "None"
 
@@ -1260,7 +1265,7 @@ msgstr "AAI Auth，Client Secret Key"
 
 #: apps/app_global/models.py:69
 msgid "AAI JWT认证公钥"
-msgstr ""
+msgstr "AAI JWT authentication public key"
 
 #: apps/app_global/models.py:70
 msgid "prometheus服务地址"
@@ -1392,7 +1397,11 @@ msgstr ""
 msgid "无效的定时任务锁标识"
 msgstr "Invalid timed task lock identifier"
 
-#: apps/app_global/task_locks.py:226
+#: apps/app_global/task_locks.py:166
+msgid "锁定时间未过期"
+msgstr "The lock time has not expired"
+
+#: apps/app_global/task_locks.py:245
 msgid "锁过期时间必须大于当前时间"
 msgstr "The lock expiration time must be greater than the current time"
 
@@ -1836,7 +1845,8 @@ msgstr "List IPv6 address segment change records"
 
 #: apps/app_net_ipam/api_viewsets/ip_record_views.py:168
 msgid "查询包含ip的地址段的记录"
-msgstr "Query records of the address network segment containing this IP address"
+msgstr ""
+"Query records of the address network segment containing this IP address"
 
 #: apps/app_net_ipam/api_viewsets/ipv4_views.py:22
 msgid "列举IP地址段"
@@ -1977,6 +1987,30 @@ msgstr "Modify IPv4 supernet address range"
 msgid "删除ipv4超网地址段"
 msgstr "Delete IPv4 supernet address range"
 
+#: apps/app_net_ipam/api_viewsets/ipv4_views.py:885
+msgid "把ipv4超网入库ipv4地址库"
+msgstr "Store the IPv4 supernet into the IPv4 address library"
+
+#: apps/app_net_ipam/api_viewsets/ipv4_views.py:931
+msgid "添加外部ipv4地址段"
+msgstr "Add external IPv4 address range"
+
+#: apps/app_net_ipam/api_viewsets/ipv4_views.py:973
+msgid "列举外部ipv4地址段"
+msgstr "List external IPv4 address ranges"
+
+#: apps/app_net_ipam/api_viewsets/ipv4_views.py:994
+msgid "关键字查询，搜索名称、机构、国家、城市和备注"
+msgstr "Keyword search, search for name, institution, country, city, and notes."
+
+#: apps/app_net_ipam/api_viewsets/ipv4_views.py:1045
+msgid "修改外部IPv4地址段"
+msgstr "modify external IPv4 address range"
+
+#: apps/app_net_ipam/api_viewsets/ipv4_views.py:1088
+msgid "删除外部ipv4地址段"
+msgstr "Delete external IPv4 address range"
+
 #: apps/app_net_ipam/api_viewsets/ipv6_views.py:22
 msgid "列举IPv6地址段"
 msgstr "List IPv6 address ranges"
@@ -2050,29 +2084,9 @@ msgstr "Ensure that the length of the value is equal to %(limit_value)d"
 msgid "你没有网络IP管理功能的管理员权限"
 msgstr "You do not have administrator privileges for network IP management"
 
-#: apps/app_net_ipam/handlers/ipv4_handlers.py:58
-#: apps/app_net_ipam/handlers/ipv6_handlers.py:59
-msgid "指定的AS编码无效，必须是一个正整数"
-msgstr "The specified AS number is invalid and must be a positive integer"
-
-#: apps/app_net_ipam/handlers/ipv4_handlers.py:64
-#: apps/app_net_ipam/handlers/ipv6_handlers.py:65
-msgid "指定的ip地址格式无效"
-msgstr "The IP address format is invalid"
-
-#: apps/app_net_ipam/handlers/ipv4_handlers.py:68
-#: apps/app_net_ipam/handlers/ipv6_handlers.py:69
-msgid "状态查询是管理员参数，只允许以管理员身份查询时使用"
-msgstr ""
-"Status query is an administrator parameter that can only be used when "
-"querying as an administrator"
-
-#: apps/app_net_ipam/handlers/ipv4_handlers.py:71
-#: apps/app_net_ipam/handlers/ipv6_handlers.py:72
-msgid "指定的状态参数值无效"
-msgstr "The specified state parameter value is invalid"
-
-#: apps/app_net_ipam/handlers/ipv4_handlers.py:113
+#: apps/app_net_ipam/handlers/external_ip_handlers.py:44
+#: apps/app_net_ipam/handlers/ipv4_handlers.py:114
+#: apps/app_net_ipam/handlers/ipv4_handlers.py:592
 #: apps/app_net_ipam/handlers/ipv6_handlers.py:114
 msgid "起始IP地址无效。"
 msgstr "The start IP address is invalid."
@@ -2101,7 +2115,34 @@ msgstr "The start IP address is invalid"
 msgid "结束IP地址无效"
 msgstr "The end IP address is invalid"
 
-#: apps/app_net_ipam/handlers/ipv4_handlers.py:163
+#: apps/app_net_ipam/handlers/external_ip_handlers.py:137
+#: apps/app_net_ipam/handlers/ipv4_handlers.py:59
+#: apps/app_net_ipam/handlers/ipv4_handlers.py:662
+#: apps/app_net_ipam/handlers/ipv6_handlers.py:59
+msgid "指定的AS编码无效，必须是一个正整数"
+msgstr "The specified AS number is invalid and must be a positive integer"
+
+#: apps/app_net_ipam/handlers/external_ip_handlers.py:143
+#: apps/app_net_ipam/handlers/ipv4_handlers.py:65
+#: apps/app_net_ipam/handlers/ipv4_handlers.py:668
+#: apps/app_net_ipam/handlers/ipv6_handlers.py:65
+msgid "指定的ip地址格式无效"
+msgstr "The IP address format is invalid"
+
+#: apps/app_net_ipam/handlers/ipv4_handlers.py:69
+#: apps/app_net_ipam/handlers/ipv6_handlers.py:69
+msgid "状态查询是管理员参数，只允许以管理员身份查询时使用"
+msgstr ""
+"Status query is an administrator parameter that can only be used when "
+"querying as an administrator"
+
+#: apps/app_net_ipam/handlers/ipv4_handlers.py:72
+#: apps/app_net_ipam/handlers/ipv4_handlers.py:672
+#: apps/app_net_ipam/handlers/ipv6_handlers.py:72
+msgid "指定的状态参数值无效"
+msgstr "The specified state parameter value is invalid"
+
+#: apps/app_net_ipam/handlers/ipv4_handlers.py:164
 #: apps/app_net_ipam/handlers/ipv6_handlers.py:164
 msgid "只允许修改“未分配”和“预留”状态的IP地址段"
 msgstr ""
@@ -2223,6 +2264,10 @@ msgstr "You do not have management permissions for this IP address"
 #: apps/app_net_ipam/handlers/ipv4_handlers.py:541
 msgid "必须指定一个分配的IP地址段id"
 msgstr "An IP address range ID must be specified"
+
+#: apps/app_net_ipam/handlers/ipv4_handlers.py:732
+msgid "超网地址段不是“未入库”状态"
+msgstr "The supernet address range is not in the 'out warehouse' status."
 
 #: apps/app_net_ipam/handlers/ipv6_handlers.py:120
 msgid "子网前缀长度无效。"
@@ -2434,6 +2479,11 @@ msgstr ""
 msgid "IP地址超网段不存在"
 msgstr "The IP address supernet range does not exist"
 
+#: apps/app_net_ipam/managers/ipv4_mgrs.py:1389
+#: apps/app_net_ipam/managers/ipv4_mgrs.py:1398
+msgid "外部IP地址段不存在"
+msgstr "The IP address range does not exist"
+
 #: apps/app_net_ipam/managers/ipv6_mgrs.py:135
 #: apps/app_net_ipam/managers/ipv6_mgrs.py:142
 #: apps/app_net_ipam/managers/ipv6_mgrs.py:221
@@ -2455,16 +2505,18 @@ msgid "值必须是一个IPv6地址段对象或者是一个id"
 msgstr "The value must be an IPv6 address range object or an ID"
 
 #: apps/app_net_ipam/managers/ipv6_mgrs.py:614
+#, python-format
 msgid "子网起始地址(%(subaddr)s)与要拆分的超网起始地址(%(superaddr)s)不一致。"
 msgstr ""
 "The subnet starting address (%(subaddr)s) is inconsistent with the starting "
 "address of the supernet to be split (%(superaddr)s)."
 
 #: apps/app_net_ipam/managers/ipv6_mgrs.py:621
+#, python-format
 msgid "子网结束地址(%(subaddr)s)与要拆分的超网结束地址(%(superaddr)s)不一致。"
 msgstr ""
-"The subnet end address (%(subaddr)d) is inconsistent with the subnet end "
-"address (%(superaddr)d) to be split."
+"The subnet end address (%(subaddr)s) is inconsistent with the subnet end "
+"address (%(superaddr)s) to be split."
 
 #: apps/app_net_ipam/managers/ipv6_mgrs.py:633
 msgid "子网掩码长度不得大于128。"
@@ -2578,6 +2630,7 @@ msgid "子网掩码长度"
 msgstr "Subnet mask"
 
 #: apps/app_net_ipam/models.py:249
+#, python-brace-format
 msgid "起始地址({start_address})无效"
 msgstr ""
 "The end address must be greater than or equal to the start address "
@@ -2715,7 +2768,20 @@ msgstr "Total IPs"
 msgid "IPv4超网段"
 msgstr "IPv4 Supernet"
 
-#: apps/app_net_ipam/models.py:502 apps/app_net_ipam/models.py:645
+#: apps/app_net_ipam/models.py:502 apps/app_net_ipam/serializers.py:257
+msgid "国家"
+msgstr "Country"
+
+#: apps/app_net_ipam/models.py:503 apps/app_net_ipam/serializers.py:258
+#: apps/service/models.py:51
+msgid "城市"
+msgstr "City"
+
+#: apps/app_net_ipam/models.py:512
+msgid "IPv4外部地址段"
+msgstr "IPv4 external address range"
+
+#: apps/app_net_ipam/models.py:527 apps/app_net_ipam/models.py:670
 #: apps/app_net_ipam/serializers.py:129 apps/app_net_ipam/serializers.py:173
 msgid "前缀长度"
 msgstr "Prefix"
@@ -6622,6 +6688,10 @@ msgstr "List the daily settlement statement for site monitoring"
 msgid "站点监控日结算单详情"
 msgstr "Details of daily settlement statement for site monitoring"
 
+#: apps/metering/apiviews/settlement_views.py:41
+msgid "查询云主机最近一次的结算信息"
+msgstr "Retrieve the latest settlement information of the server."
+
 #: apps/metering/apiviews/storage_metering_views.py:22
 msgid "列举对象存储用量计费账单"
 msgstr "List the metering and billing statements for object storage services"
@@ -10326,7 +10396,19 @@ msgstr ""
 "If you want to change the default login password, please enter the new "
 "password here, or leave it blank if you don't want to change it."
 
-#: apps/servers/admin.py:47 apps/servers/admin.py:126
+#: apps/servers/admin.py:67 apps/servers/forms.py:79
+msgid "必须选择服务单元"
+msgstr "Service unit must be submitted"
+
+#: apps/servers/admin.py:70
+msgid "必须填写服务单元中云主机ID"
+msgstr "The server ID in the service unit must be filled in"
+
+#: apps/servers/admin.py:75
+msgid "已存在此服务单元云主机ID"
+msgstr "This service unit server ID already exists"
+
+#: apps/servers/admin.py:138 apps/servers/admin.py:251
 msgid "基础信息"
 msgstr "Basic"
 
@@ -10346,7 +10428,24 @@ msgstr "Creator and Owner"
 msgid "计量和管控信息"
 msgstr "Metering and control"
 
-#: apps/servers/admin.py:128
+#: apps/servers/admin.py:149
+msgid "从服务单元更新云主机的基本信息"
+msgstr "Update basic information of servers from service unit"
+
+#: apps/servers/admin.py:168
+#, python-format
+msgid "成功更新云主机数量%(count)s，失败%(failed)s"
+msgstr "Successfully updated the number of servers %(count)s, failed %(failed)s"
+
+#: apps/servers/admin.py:171
+msgid "更新云主机全部失败"
+msgstr "Failed to update all servers"
+
+#: apps/servers/admin.py:173
+msgid "没有更新任何云主机"
+msgstr "No servers have been updated"
+
+#: apps/servers/admin.py:253
 msgid "计量信息"
 msgstr "Metering"
 
@@ -10358,9 +10457,26 @@ msgstr "Mount"
 msgid "锁、删除状态"
 msgstr "Lock, Delete Status"
 
-#: apps/servers/admin.py:134 apps/servers/admin.py:503
-#: apps/servers/disk_serializers.py:44 apps/servers/models.py:972
-#: apps/servers/models.py:1226
+#: apps/servers/admin.py:260
+msgid "从服务单元更新云硬盘的基本信息"
+msgstr "Update basic information of cloud disk from service unit"
+
+#: apps/servers/admin.py:289
+#, python-format
+msgid "成功更新云硬盘数量%(count)s，失败%(failed)s"
+msgstr "Successfully updated cloud disk count %(count)s, failed %(failed)s"
+
+#: apps/servers/admin.py:292
+msgid "更新云硬盘全部失败"
+msgstr "Failed to update all cloud disks"
+
+#: apps/servers/admin.py:294
+msgid "没有更新任何云硬盘"
+msgstr "No cloud disk has been updated"
+
+#: apps/servers/admin.py:297 apps/servers/admin.py:682
+#: apps/servers/disk_serializers.py:44 apps/servers/models.py:975
+#: apps/servers/models.py:1230
 msgid "删除状态"
 msgstr "Delete Status"
 
@@ -10482,7 +10598,11 @@ msgstr ""
 "Administrators who do not need to be removed because they are data center "
 "administrators"
 
-#: apps/servers/admin.py:444
+#: apps/servers/admin.py:605
+msgid "更新服务单元云主机数信息"
+msgstr "Update the number of servers in the service unit"
+
+#: apps/servers/admin.py:623
 msgid "已用配额统计更新"
 msgstr "Statistical update of used quotas"
 
@@ -10618,6 +10738,29 @@ msgid "包年包月续费时长（月），按量转包月时必须指定"
 msgstr ""
 "Length of prepaid renewal (months), which must be specified for postpaid to "
 "prepaid conversion."
+
+#: apps/servers/apiviews/disk_views.py:563
+msgid "个人或vo组管理员移交云硬盘所有权"
+msgstr "Personal or VO group administrator hand over ownership of cloud disk"
+
+#: apps/servers/apiviews/disk_views.py:571
+#: apps/servers/apiviews/server_views.py:951
+msgid "移交给此用户个人"
+msgstr "Hand over to this user personally"
+
+#: apps/servers/apiviews/disk_views.py:578
+#: apps/servers/apiviews/server_views.py:958
+msgid "移交给此vo组"
+msgstr "Hand over to this VO"
+
+#: apps/servers/apiviews/disk_views.py:602
+msgid "vo组云硬盘组内移交使用权"
+msgstr "Hand over the usage rights of the VO group's cloud disk within the group."
+
+#: apps/servers/apiviews/disk_views.py:610
+#: apps/servers/apiviews/server_views.py:990
+msgid "用户名，组员或组长"
+msgstr "Username, VO member or VO leader."
 
 #: apps/servers/apiviews/flavor_views.py:24
 msgid "列举配置样式flavor"
@@ -10779,7 +10922,15 @@ msgstr "Lock and unlock the cloud server"
 msgid "管理员关机挂起欠费、过期的云服务器"
 msgstr "Administrators shut down, suspend overdue or expired cloud servers"
 
-#: apps/servers/apiviews/server_views.py:950
+#: apps/servers/apiviews/server_views.py:943
+msgid "个人或vo组管理员移交云服务器所有权"
+msgstr "Personal or VO group administrators hand over ownership of server."
+
+#: apps/servers/apiviews/server_views.py:982
+msgid "vo组云服务器组内移交使用权"
+msgstr "Hand over the usage rights of the VO group's server within the group."
+
+#: apps/servers/apiviews/server_views.py:1027
 msgid "列举用户虚拟服务器归档记录"
 msgstr "List user server archive records"
 
@@ -11042,11 +11193,20 @@ msgid ""
 "选中后会自动为服务单元创建或更新站点监控任务，当取消选中时会尝试删除对应监控"
 "任务"
 msgstr ""
-"After selection, site monitoring tasks will be automatically created or updated for the service unit."
-"When unselected, an attempt will be made to delete the created monitoring task"
+"After selection, site monitoring tasks will be automatically created or "
+"updated for the service unit.When unselected, an attempt will be made to "
+"delete the created monitoring task"
 
-#: apps/servers/handlers/disk_handler.py:33
-#: apps/servers/handlers/server_handler.py:49
+#: apps/servers/forms.py:82
+msgid "必须填写服务单元中云硬盘ID"
+msgstr "Must fill in the cloud disk ID in the service unit"
+
+#: apps/servers/forms.py:87
+msgid "已存在此服务单元云硬盘ID"
+msgstr "This service unit cloud disk ID already exists"
+
+#: apps/servers/handlers/disk_handler.py:34
+#: apps/servers/handlers/server_handler.py:54
 msgid "过期"
 msgstr "Expiration"
 
@@ -11366,6 +11526,33 @@ msgstr "To convert to prepaid type, a renewal period must be given"
 msgid "指定续费时长无效"
 msgstr "The given renewal period is invalid"
 
+#: apps/servers/handlers/disk_handler.py:932
+#: apps/servers/handlers/server_handler.py:1199
+msgid "需要提交移交给哪个用户，或者那个VO组"
+msgstr "Which user or VO group needs to submit the handover to."
+
+#: apps/servers/handlers/disk_handler.py:935
+#: apps/servers/handlers/server_handler.py:1202
+msgid "不能同时提交用户和VO组"
+msgstr "Cannot submit VO and username simultaneously"
+
+#: apps/servers/handlers/disk_handler.py:970
+#: apps/servers/handlers/server_handler.py:1239
+msgid "需要提交移交给哪个组员"
+msgstr "Which VO member needs to submit for handover to"
+
+#: apps/servers/handlers/disk_handler.py:974
+msgid "不是vo组云硬盘，不允许vo组内移交"
+msgstr "Not a cloud disk for the VO group, Hand over within the VO group is not allowed"
+
+#: apps/servers/handlers/disk_handler.py:983
+msgid "云硬盘所在的vo组内不存在指定的组成员"
+msgstr "The group member does not exist in the vo group where the cloud disk is located"
+
+#: apps/servers/handlers/disk_handler.py:994
+msgid "你没有此云硬盘的使用权，也没有此云硬盘所在VO的管理员权限"
+msgstr "You do not have the right to use this cloud disk, nor do you have administrator privileges on the VO where this cloud disk is located."
+
 #: apps/servers/handlers/flavor_handler.py:22
 #: apps/servers/handlers/server_handler.py:44
 msgid "值无效，必须为true或者false"
@@ -11554,7 +11741,9 @@ msgstr "Cannot submit VO member ID and username simultaneously"
 
 #: apps/servers/handlers/server_handler.py:428
 msgid "只有以管理员身份请求时需要提交用户名或者vo组"
-msgstr "Only when requesting as an administrator, it is necessary to submit a username or VO group"
+msgstr ""
+"Only when requesting as an administrator, it is necessary to submit a "
+"username or VO group"
 
 #: apps/servers/handlers/server_handler.py:432
 msgid "无效的配置规格flavor id"
@@ -11706,6 +11895,20 @@ msgstr ""
 #: apps/servers/handlers/server_handler.py:1043
 msgid "必须是按量计费方式的服务器实例才可以转为包年包月计费方式。"
 msgstr "Only postpaid server instances can be converted to prepaid type."
+
+#: apps/servers/handlers/server_handler.py:1243
+msgid "不是vo组云主机，不允许vo组内移交"
+msgstr "Server that are not part of the VO group are not allowed to be hand over within the group."
+
+#: apps/servers/handlers/server_handler.py:1252
+msgid "云主机所在的vo组内不存在指定的组成员"
+msgstr "The group member does not exist in the VO group where the cloud host is located"
+
+#: apps/servers/handlers/server_handler.py:1263
+msgid "你没有此云主机的使用权，也没有此云主机所在VO的管理员权限"
+msgstr ""
+"You do not have the right to use this cloud host, "
+"nor do you have administrator privileges on the VO where this cloud host is located."
 
 #: apps/servers/handlers/service_handlers.py:24
 msgid "你没有此服务的管理权限"
@@ -12085,7 +12288,27 @@ msgstr "Service version"
 msgid "版本号更新时间"
 msgstr "Version update time"
 
-#: apps/servers/models.py:117
+#: apps/servers/models.py:111
+msgid "本服务在管云主机数"
+msgstr "Manage Server"
+
+#: apps/servers/models.py:111
+msgid "服务单元在本服务中管理的云主机数"
+msgstr "The number of servers managed by the service unit in this service"
+
+#: apps/servers/models.py:112
+msgid "服务单元云主机总数"
+msgstr "Number in service unit"
+
+#: apps/servers/models.py:112
+msgid "服务单元中总的云主机数"
+msgstr "The total number of servers in the service unit"
+
+#: apps/servers/models.py:113
+msgid "云主机数更新时间"
+msgstr "Server number update"
+
+#: apps/servers/models.py:118
 msgid "云主机服务单元接入配置"
 msgstr "Server service unit configuration"
 
@@ -12318,9 +12541,9 @@ msgstr "Delete Lock"
 msgid "锁定所有操作，只允许读"
 msgstr "Lock all operations and only allow reading"
 
-#: apps/servers/models.py:647 apps/servers/models.py:782
-msgid "接入的服务配置"
-msgstr "Service unit"
+#: apps/servers/models.py:650 apps/servers/models.py:785
+msgid "使用人"
+msgstr "User"
 
 #: apps/servers/models.py:653
 msgid "加锁锁定云主机，防止误操作"
@@ -12349,7 +12572,11 @@ msgstr "Rebuild modification"
 msgid "归档云主机的ID"
 msgstr "server id"
 
-#: apps/servers/models.py:787
+#: apps/servers/models.py:784
+msgid "接入的服务配置"
+msgstr "Service unit"
+
+#: apps/servers/models.py:789
 msgid "删除归档时间"
 msgstr "Archive time"
 
@@ -12548,6 +12775,18 @@ msgstr "System release"
 msgid "云主机快照"
 msgstr "Server snapshot"
 
+#: apps/servers/models.py:1290
+msgid "无效"
+msgstr "Invalid"
+
+#: apps/servers/models.py:1298
+msgid "尝试次数"
+msgstr "try number"
+
+#: apps/servers/models.py:1304
+msgid "EVCloud云主机权限同步记录"
+msgstr "EVCloud server permission sync record"
+
 #: apps/servers/serializers.py:11 apps/storage/serializers.py:6
 msgid "服务单元ID"
 msgstr "Service Unit ID"
@@ -12604,7 +12843,9 @@ msgstr ""
 
 #: apps/servers/serializers.py:174
 msgid "通过vo_id指定为vo组创建云服务器，不能和“username”一起提交"
-msgstr "Create a cloud server for the vo group using 'vo_id', which cannot be submitted together with 'username'"
+msgstr ""
+"Create a cloud server for the vo group using 'vo_id', which cannot be "
+"submitted together with 'username'"
 
 #: apps/servers/serializers.py:176 apps/servers/serializers.py:425
 #: apps/servers/serializers.py:432
@@ -12882,10 +13123,6 @@ msgstr "Country"
 #: apps/service/models.py:50
 msgid "省份"
 msgstr "Province"
-
-#: apps/service/models.py:51
-msgid "城市"
-msgstr "City"
 
 #: apps/service/models.py:52
 msgid "邮政编码"
@@ -13316,10 +13553,6 @@ msgstr "Stats time"
 #: apps/users/templates/email_detail.html:12
 msgid "标签"
 msgstr "Tag"
-
-#: apps/storage/models.py:343 apps/storage/models.py:393
-msgid "所属服务"
-msgstr "Serive unit"
 
 #: apps/storage/models.py:388
 msgid "存储桶删除前原始id"
@@ -14001,15 +14234,6 @@ msgstr "Local login"
 msgid "登录"
 msgstr "Login"
 
-#: apps/users/templates/registration/login.html:45
-msgid "暂不允许个人注册，请联系管理员"
-msgstr ""
-"Individual registration is not allowed. Please contact the administrator."
-
-#: apps/users/templates/registration/login.html:45
-msgid "注册"
-msgstr "Sign up"
-
 #: apps/users/templates/signin.html:16
 msgid "科技云通行证账户登录"
 msgstr "CSTCloud Passport Account Login"
@@ -14078,6 +14302,12 @@ msgid "你没有权限移除组管理员"
 msgstr "You do not have permission to remove group administrators"
 
 #: apps/vo/managers.py:238
+msgid "要移除的组员名下有云主机存在，请先移交组员名下的云主机资源后重试。"
+msgstr ""
+"There are servers under the name of the VO member to be removed. "
+"Please hand over the VO member's servers first and try again."
+
+#: apps/vo/managers.py:243
 msgid "组长移除组员错误,"
 msgstr "An error occurred when the team leader removed a team member,"
 
@@ -14244,17 +14474,29 @@ msgstr "Transfer the leader's authority of VO to a member of a group"
 msgid "组员用户名"
 msgstr "Member username"
 
-#: apps/vo/vo_handler.py:149
+#: apps/vo/vo_handler.py:141
+msgid "移除组员"
+msgstr "Remove VO members"
+
+#: apps/vo/vo_handler.py:152
 msgid "\"role\"的值无效"
 msgstr "The value of 'role' is invalid"
 
-#: apps/vo/vo_handler.py:214 apps/vo/vo_handler.py:227
+#: apps/vo/vo_handler.py:157
+msgid "组员角色变更"
+msgstr "Change of team member roles"
+
+#: apps/vo/vo_handler.py:218 apps/vo/vo_handler.py:231
 msgid "必须指定组员id或者用户名"
 msgstr "Must submit VO member ID or username"
 
 #: apps/vo/vo_handler.py:217
 msgid "不能同时指定组员id和用户名"
 msgstr "Cannot submit VO member ID and username simultaneously"
+
+#: apps/vo/vo_handler.py:233
+msgid "移交VO组"
+msgstr "Hnad over VO group"
 
 #: apps/vo/vo_serializers.py:7
 msgid "组ID"
@@ -14462,7 +14704,15 @@ msgstr "Historical versions:"
 msgid "关于我们"
 msgstr "About Us"
 
-#: templates/base.html:82
+#: templates/base.html:63
+msgid "后台管理"
+msgstr "Admin"
+
+#: templates/base.html:70 templates/base.html:75
+msgid "文档"
+msgstr "Document"
+
+#: templates/base.html:73
 msgid "API交互文档"
 msgstr "API Interaction"
 
@@ -14470,17 +14720,9 @@ msgstr "API Interaction"
 msgid "API文档"
 msgstr "API Document"
 
-#: templates/base.html:84
-msgid "文档"
-msgstr "Document"
-
-#: templates/base.html:95
+#: templates/base.html:104
 msgid "登出"
 msgstr "Logout"
-
-#: templates/base.html:99
-msgid "后台管理"
-msgstr "Admin"
 
 #: templates/sidebar.html:15
 msgid "机构/数据中心"
@@ -14544,6 +14786,3 @@ msgstr "Resource quota voucher"
 #: utils/validators.py:16
 msgid "值必须是一个有效的JSON字符串。"
 msgstr "The value must be a valid JSON string."
-
-#~ msgid "链路ID"
-#~ msgstr "Link ID"
