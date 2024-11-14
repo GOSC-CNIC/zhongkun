@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy, gettext as _
+from django.utils.html import format_html
 from django.contrib import messages
 from django.contrib.admin.filters import SimpleListFilter
 from django.db import transaction
@@ -7,10 +8,12 @@ from django.forms import ModelForm
 from django_json_widget.widgets import JSONEditorWidget
 
 from utils.model import NoDeleteSelectModelAdmin, BaseModelAdmin
-from .odc_manager import OrgDataCenterManager
+from apps.service.odc_manager import OrgDataCenterManager
 from apps.service.models import (
-    DataCenter, Contacts, OrgDataCenter, OrgDataCenterAdminUser
+    DataCenter, Contacts, OrgDataCenter, OrgDataCenterAdminUser, KunYuanService
 )
+from apps.service.forms import KunYuanServiceForm
+from apps.service.managers.kunyuan import KunYuanServiceManager
 
 
 class ODCModelForm(ModelForm):
@@ -252,3 +255,70 @@ class OrgDataCenterAdminUserAdmin(BaseModelAdmin):
                 msg = _('从钱包结算单元[{services}]移除管理员[{users}]').format(
                     users=user.username, services='、 '.join(services))
                 messages.add_message(request=request, level=messages.SUCCESS, message=msg)
+
+
+class KunYuanServiceOrgFilter(SimpleListFilter):
+    title = gettext_lazy("机构")
+    parameter_name = 'org_id'
+
+    def lookups(self, request, model_admin):
+        r = KunYuanService.objects.select_related('org_data_center__organization').order_by('sort_weight').values_list(
+            'org_data_center__organization_id', 'org_data_center__organization__name'
+        )
+        d = {i[0]: i[1] for i in r}
+        return [(k, v) for k, v in d.items()]
+
+    def queryset(self, request, queryset):
+        org_id = request.GET.get(self.parameter_name)
+        if org_id:
+            return queryset.filter(org_data_center__organization_id=org_id)
+
+
+@admin.register(KunYuanService)
+class KunYuanServiceAdmin(BaseModelAdmin):
+    form = KunYuanServiceForm
+    list_display_links = ('id',)
+    list_display = ('id', 'name', 'name_en', 'org_data_center', 'organization_name', 'sort_weight',
+                    'version', 'version_update_time',
+                    'endpoint_url', 'username', 'password', 'raw_password',
+                    'creation_time', 'status', 'longitude', 'latitude', 'remarks')
+    search_fields = ['name', 'name_en', 'endpoint_url', 'remarks']
+    list_filter = [KunYuanServiceOrgFilter, 'status']
+    list_select_related = ('org_data_center', 'org_data_center__organization')
+    raw_id_fields = ('org_data_center',)
+    list_editable = ('sort_weight',)
+
+    readonly_fields = ('password',)
+
+    actions = ['update_service_version']
+
+    @admin.action(description=gettext_lazy("更新服务版本信息"))
+    def update_service_version(self, request, queryset):
+        count = 0
+        for service in queryset:
+            if service.status != KunYuanService.Status.ENABLE.value:
+                continue
+
+            ok = KunYuanServiceManager.update_service_version(service=service)
+            if ok is True:
+                count += 1
+
+        if count > 0:
+            self.message_user(request, _("更新版本数量:") + str(count), level=messages.SUCCESS)
+        else:
+            self.message_user(request, _("没有更新任何服务单元版本"), level=messages.SUCCESS)
+
+    @admin.display(description=gettext_lazy("机构"))
+    def organization_name(self, obj):
+        if not obj.org_data_center or not obj.org_data_center.organization:
+            return ''
+
+        return obj.org_data_center.organization.name
+
+    @admin.display(description=gettext_lazy("原始密码"))
+    def raw_password(self, obj):
+        passwd = obj.raw_password()
+        if not passwd:
+            return passwd
+
+        return format_html(f'<div title="{passwd}">******</div>')

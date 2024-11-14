@@ -268,3 +268,67 @@ class OrgDataCenterAdminUser(models.Model):
 
     def __str__(self):
         return f'{self.userprofile.username}[{self.get_role_display()}]'
+
+
+class KunYuanService(UuidModel):
+    """
+    坤元服务
+    """
+    class Status(models.TextChoices):
+        ENABLE = 'enable', _('服务中')
+        DISABLE = 'disable', _('停止服务')
+        DELETED = 'deleted', _('删除')
+
+    org_data_center = models.ForeignKey(
+        to=OrgDataCenter, null=True, on_delete=models.SET_NULL, related_name='+', verbose_name=_('数据中心'),
+        db_constraint=False, blank=True, default=None)
+    name = models.CharField(max_length=255, verbose_name=_('服务名称'))
+    name_en = models.CharField(verbose_name=_('服务英文名称'), max_length=255, default='')
+    endpoint_url = models.CharField(
+        max_length=255, verbose_name=_('服务地址url'), help_text='http(s)://{hostname}:{port}/')
+    username = models.CharField(
+        max_length=128, verbose_name=_('用户名'), blank=True, default='', help_text=_('用于此服务认证的用户名'))
+    password = models.CharField(
+        max_length=255, verbose_name=_('密码'), blank=True, default='')
+    creation_time = models.DateTimeField(auto_now_add=True, verbose_name=_('创建时间'))
+    status = models.CharField(
+        verbose_name=_('服务状态'), max_length=32, choices=Status.choices, default=Status.ENABLE.value)
+    remarks = models.CharField(max_length=255, default='', blank=True, verbose_name=_('备注'))
+    longitude = models.FloatField(verbose_name=_('经度'), blank=True, default=0)
+    latitude = models.FloatField(verbose_name=_('纬度'), blank=True, default=0)
+    sort_weight = models.IntegerField(verbose_name=_('排序值'), default=0, help_text=_('值越小排序越靠前'))
+    version = models.CharField(
+        max_length=32, blank=True, default='', verbose_name=_('版本号'), help_text=_('服务当前的版本'))
+    version_update_time = models.DateTimeField(verbose_name=_('版本号更新时间'), null=True, blank=True, default=None)
+
+    class Meta:
+        db_table = 'service_kunyuan'
+        ordering = ['sort_weight']
+        verbose_name = _('坤元服务单元')
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        # 网址验证
+        try:
+            http_url_validator(self.endpoint_url)
+        except ValidationError:
+            raise ValidationError(message={'endpoint_url': gettext('不是一个有效的网址')})
+
+    def raw_password(self):
+        """
+        :return:
+            str     # success
+            None    # failed, invalid encrypted password
+        """
+        encryptor = get_encryptor()
+        try:
+            return encryptor.decrypt(self.password)
+        except encryptor.InvalidEncrypted as e:
+            return None
+
+    def set_password(self, raw_password: str):
+        encryptor = get_encryptor()
+        self.password = encryptor.encrypt(raw_password)
