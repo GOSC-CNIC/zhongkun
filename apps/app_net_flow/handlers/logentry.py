@@ -6,6 +6,7 @@ from django.contrib.admin.models import CHANGE
 from django.contrib.admin.models import DELETION
 from django.forms.models import model_to_dict
 from django.contrib.admin.options import get_content_type_for_model
+from django.db.models import Model
 
 
 class NetflowLogEntry:
@@ -17,6 +18,14 @@ class NetflowLogEntry:
         for k, v in item.items():
             if isinstance(v, datetime.date):
                 temp[k] = str(v)
+            if isinstance(v, Model):
+                temp[k] = model_to_dict(v)
+            if isinstance(v, list):
+                temp_sub_item = []
+                for sv in v:
+                    if isinstance(sv, Model):
+                        temp_sub_item.append(model_to_dict(sv))
+                temp[k] = temp_sub_item
         item.update(temp)
         return item
 
@@ -38,7 +47,6 @@ class NetflowLogEntry:
         for k, v in old_dict.items():
             if new_dict[k] != v:
                 key_list.append(k)
-
         message = [{"changed": {"fields": key_list}}, old_dict, new_dict]
         return NetflowLogEntryModel.objects.log_action(
             user_id=request.user.pk,

@@ -53,6 +53,7 @@ from django.http import QueryDict
 from apps.app_net_flow.permission import PermissionManager
 from apps.app_net_flow.handlers.logentry import NetflowLogEntry
 from apps.app_alert.utils.errors import GroupMemberExistedError
+from apps.app_alert.utils.errors import InvalidArgument
 
 
 # Create your views here.
@@ -291,6 +292,20 @@ class Menu2ChartListGenericAPIView(GenericAPIView, CreateModelMixin):
             page = self.get_queryset().filter(id__in=page)
         serializer = self.get_serializer(page, many=True)
         return self.get_paginated_response(serializer.data)
+
+    def filter_queryset(self, queryset):
+        perm = PermissionManager(request=self.request)
+        has_permission_group_list = list()
+        for group in perm.get_child_nodes('root'):  # 当前分组以及所有下级分组:
+            if perm.is_global_super_admin_or_ops_admin() or perm.has_group_permission(group):
+                has_permission_group_list.append(group)
+        queryset = queryset.filter(menu__id__in=has_permission_group_list).values_list('id', flat=True)
+        for q in queryset:
+            pass
+
+        for backend in list(self.filter_backends):
+            queryset = backend().filter_queryset(self.request, queryset, self)
+        return queryset
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('添加组内元素'),

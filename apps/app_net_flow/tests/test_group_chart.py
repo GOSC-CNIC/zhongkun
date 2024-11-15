@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.urls import reverse
 from .test_administrator import GlobalAdministratorTests
+from apps.app_net_flow.models import Menu2Member
 
 
 class NetflowGroupChartListTests(GlobalAdministratorTests):
@@ -34,6 +35,10 @@ class NetflowGroupChartListTests(GlobalAdministratorTests):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['count', "next", 'previous', 'results'], response.data)
         self.assertEqual(response.data["results"], [])
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', "next", 'previous', 'results'], response.data)
+        self.assertEqual(response.data["results"], [])
 
     def test_group_user(self):
         """
@@ -62,7 +67,24 @@ class NetflowGroupChartListTests(GlobalAdministratorTests):
         self.assertTrue(item.get('admin_remark') is None)
         self.assertTrue(item.get('device_ip') is None)
         self.assertTrue(item.get('port_name') is None)
-
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', "next", 'previous', 'results'], response.data)
+        data = response.data
+        self.assertTrue(data.get('count') == 3)
+        self.assertTrue(data.get('next') is None)
+        self.assertTrue(data.get('previous') is None)
+        self.assertTrue(response.data['results'])
+        results = data.get('results')
+        self.assertKeysIn([
+            'id', "instance_name", 'global_title', 'global_remark', 'remark', 'sort_weight', 'if_alias',
+            'if_address', 'device_ip', 'port_name', 'class_uuid', 'band_width'
+        ], results[0])
+        item = results[0]
+        self.assertFalse(item.get('remark') is None)
+        self.assertTrue(item.get('admin_remark') is None)
+        self.assertTrue(item.get('device_ip') is None)
+        self.assertTrue(item.get('port_name') is None)
         url = f'{base_url}?menu={self.first_level_menu1.id}'
         self.client.force_login(self.group_user1)
         response = self.client.get(url)
@@ -136,6 +158,57 @@ class NetflowGroupChartListTests(GlobalAdministratorTests):
         self.assertTrue(data.get('next') is None)
         self.assertTrue(data.get('previous') is None)
         self.assertTrue(data.get('results') == [])
+
+        self.client.force_login(self.user1)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', "next", 'previous', 'results'], response.data)
+        data = response.data
+        self.assertTrue(data.get('count') == 0)
+        self.assertTrue(data.get('next') is None)
+        self.assertTrue(data.get('previous') is None)
+        self.assertTrue(data.get('results') == [])
+
+        # 添加组员
+        self.member1 = Menu2Member.objects.create(
+            menu=self.second_level_menu2,
+            member=self.user1,
+            role=Menu2Member.Roles.ORDINARY.value,
+            inviter="test@cnic.cn",
+        )
+
+        self.client.force_login(self.user1)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', "next", 'previous', 'results'], response.data)
+        data = response.data
+        self.assertTrue(data.get('count') == 0)
+        self.assertTrue(data.get('next') is None)
+        self.assertTrue(data.get('previous') is None)
+        self.assertTrue(data.get('results') == [])
+
+        # 添加组员
+        self.member1 = Menu2Member.objects.create(
+            menu=self.second_level_menu1,
+            member=self.user1,
+            role=Menu2Member.Roles.ORDINARY.value,
+            inviter="test@cnic.cn",
+        )
+
+        self.client.force_login(self.user1)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', "next", 'previous', 'results'], response.data)
+        data = response.data
+        self.assertTrue(data.get('count') == 3)
+        self.assertTrue(data.get('next') is None)
+        self.assertTrue(data.get('previous') is None)
+        self.assertTrue(response.data['results'])
+
+        # 查询指定分组的元素
+        url = f'{base_url}?exact_menu={self.first_level_menu2.id}'
+        self.client.force_login(self.user1)
+        response = self.client.get(url)
 
     def test_group_admin_user(self):
         """
@@ -239,6 +312,48 @@ class NetflowGroupChartListTests(GlobalAdministratorTests):
         self.assertTrue(data.get('previous') is None)
         self.assertTrue(data.get('results') == [])
 
+        self.client.force_login(self.group_admin2)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', "next", 'previous', 'results'], response.data)
+        data = response.data
+        self.assertTrue(data.get('count') == 0)
+        self.assertTrue(data.get('next') is None)
+        self.assertTrue(data.get('previous') is None)
+        self.assertTrue(data.get('results') == [])
+
+        # 添加组员
+        self.member1 = Menu2Member.objects.create(
+            menu=self.second_level_menu1,
+            member=self.group_admin2,
+            role=Menu2Member.Roles.ORDINARY.value,
+            inviter="test@cnic.cn",
+        )
+
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', "next", 'previous', 'results'], response.data)
+        data = response.data
+        self.assertTrue(data.get('count') == 3)
+        self.assertTrue(data.get('next') is None)
+        self.assertTrue(data.get('previous') is None)
+        self.assertTrue(response.data['results'])
+
+        # 查询指定分组的元素
+        url = f'{base_url}?exact_menu={self.first_level_menu2.id}'
+        self.client.force_login(self.group_admin1)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 403)
+        url = f'{base_url}?exact_menu={self.second_level_menu1.id}'
+        self.client.force_login(self.group_admin1)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        data = response.data
+        self.assertTrue(data.get('count') == 3)
+        self.assertTrue(data.get('next') is None)
+        self.assertTrue(data.get('previous') is None)
+        self.assertTrue(response.data['results'])
+
     def test_obs_user(self):
         """
         查询组内元素列表
@@ -341,6 +456,27 @@ class NetflowGroupChartListTests(GlobalAdministratorTests):
         self.assertTrue(data.get('previous') is None)
         self.assertTrue(data.get('results') == [])
 
+        self.client.force_login(self.obs_user)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', "next", 'previous', 'results'], response.data)
+        data = response.data
+        self.assertTrue(data.get('count') == 4)
+        self.assertTrue(data.get('next') is None)
+        self.assertTrue(data.get('previous') is None)
+        self.assertTrue(response.data['results'])
+
+        # 查询指定分组的元素
+        url = f'{base_url}?exact_menu={self.first_level_menu2.id}'
+        self.client.force_login(self.obs_user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', "next", 'previous', 'results'], response.data)
+        data = response.data
+        self.assertTrue(data.get('count') == 1)
+        self.assertTrue(data.get('next') is None)
+        self.assertTrue(data.get('previous') is None)
+
     def test_super_user(self):
         """
         查询组内元素列表
@@ -442,6 +578,27 @@ class NetflowGroupChartListTests(GlobalAdministratorTests):
         self.assertTrue(data.get('next') is None)
         self.assertTrue(data.get('previous') is None)
         self.assertTrue(data.get('results') == [])
+
+        self.client.force_login(self.super_user)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', "next", 'previous', 'results'], response.data)
+        data = response.data
+        self.assertTrue(data.get('count') == 4)
+        self.assertTrue(data.get('next') is None)
+        self.assertTrue(data.get('previous') is None)
+        self.assertTrue(response.data['results'])
+
+        # 查询指定分组的元素
+        url = f'{base_url}?exact_menu={self.first_level_menu2.id}'
+        self.client.force_login(self.super_user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', "next", 'previous', 'results'], response.data)
+        data = response.data
+        self.assertTrue(data.get('count') == 1)
+        self.assertTrue(data.get('next') is None)
+        self.assertTrue(data.get('previous') is None)
 
 
 class NetflowGroupChartCreateTests(GlobalAdministratorTests):

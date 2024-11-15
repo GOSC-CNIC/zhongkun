@@ -9,6 +9,7 @@ from apps.app_net_flow.models import MenuModel
 from apps.app_net_flow.models import GlobalAdminModel
 from apps.app_net_flow.permission import PermissionManager
 from apps.app_alert.utils.errors import InvalidArgument
+from rest_framework.exceptions import PermissionDenied
 
 
 class ChartFilter(django_filters.FilterSet):
@@ -36,6 +37,7 @@ class ChartFilter(django_filters.FilterSet):
 class Menu2ChartFilter(django_filters.FilterSet):
     menu = django_filters.CharFilter(field_name="menu", method="menu_filter")
     exact_menu = django_filters.CharFilter(field_name="menu", method="exact_menu_filter")
+    instance_name = django_filters.CharFilter(field_name="chart", method="instance_name_filter")
 
     class Meta:
         model = Menu2Chart
@@ -59,18 +61,26 @@ class Menu2ChartFilter(django_filters.FilterSet):
             if perm.is_global_super_admin_or_ops_admin() or perm.has_group_permission(group):
                 has_permission_group_list.append(group)
         queryset = queryset.filter(menu__id__in=has_permission_group_list).values_list('id', flat=True)
-        for o in queryset:
-            pass
         return queryset
 
     def exact_menu_filter(self, queryset, field_name, value):
         """
-        查询当前组内的流量元素对象
+        查询当前组内的流量元素对象（不包含下级）
         """
+        perm = PermissionManager(request=self.request)
         target_group = MenuModel.objects.filter(id=value).first()
         if target_group is None:
-            raise InvalidArgument(f"invalid group: `{value}`")
-        return queryset.filter(menu__id=value)
+            raise InvalidArgument(f"无效的组ID: {value}")
+        if perm.is_global_super_admin_or_ops_admin() or perm.has_group_admin_permission(target_group.id):
+            return queryset.filter(menu__id=value)
+        raise PermissionDenied()
+
+    def instance_name_filter(self, queryset, field_name, value):
+        """
+        instance_name 模糊查询
+        """
+        queryset = queryset.filter(chart__instance_name__icontains=value).values_list('id', flat=True)
+        return queryset
 
 
 class GlobalAdminFilter(django_filters.FilterSet):
