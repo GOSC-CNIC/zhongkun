@@ -78,3 +78,34 @@ class KunYuanServiceTests(MyAPITransactionTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)
         self.assertEqual(response.data['results'][0]['id'], kunyuan1.id)
+
+    def test_version(self):
+        kunyuan1 = KunYuanService(
+            name='name1', name_en='name en 1', endpoint_url='https://test1.com', username='user1',
+            status=KunYuanService.Status.ENABLE.value, remarks='test1', longitude=0, latitude=0,
+            sort_weight=-1, version='v1.1.1', version_update_time=None, org_data_center=None
+        )
+        kunyuan1.set_password('pd1')
+        kunyuan1.save(force_insert=True)
+
+        url = reverse('service-api:kunyuan-service-version', kwargs={'id': kunyuan1.id})
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
+
+        self.client.force_login(self.user1)
+
+        url = reverse('service-api:kunyuan-service-version', kwargs={'id': 'test'})
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+
+        # 请求坤元服务失败
+        url = reverse('service-api:kunyuan-service-version', kwargs={'id': kunyuan1.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 500)
+
+        # 更新时间在1分钟内，直接返回
+        kunyuan1.version_update_time = dj_timezone.now()
+        kunyuan1.save(update_fields=['version_update_time'])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["version", "version_update_time"], response.data)

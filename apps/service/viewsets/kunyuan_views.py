@@ -1,7 +1,7 @@
 from django.utils.translation import gettext_lazy, gettext as _
 from django.utils.functional import lazy
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.serializers import Serializer
+from rest_framework.serializers import Serializer, DateTimeField as DRFDateTimeField
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from drf_yasg.utils import swagger_auto_schema
@@ -13,6 +13,7 @@ from apps.api.viewsets import NormalGenericViewSet
 
 from apps.service.models import KunYuanService
 from apps.service import serializers
+from apps.service.managers.kunyuan import KunYuanServiceManager
 
 
 class KunYuanServiceViewSet(NormalGenericViewSet):
@@ -90,6 +91,50 @@ class KunYuanServiceViewSet(NormalGenericViewSet):
             return self.get_paginated_response(serializer.data)
         except Exception as exc:
             return self.exception_response(exc=exc)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询坤元服务版本'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='status',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=lazy(str, str)(KunYuanService.Status.choices)
+            ),
+        ],
+        responses={
+            200: ''''''
+        }
+    )
+    @action(methods=['GET'], detail=True, url_path='version', url_name='version')
+    def query_version(self, request, *args, **kwargs):
+        """
+        查询坤元服务版本
+
+            * 实时去查询坤元服务，查询失败会返回错误信息
+
+            http code 200:
+            {
+                "version": "v3.2.0",
+                "version_update_time": "2024-11-14T08:21:42.824645Z"
+            }
+        """
+        try:
+            service = KunYuanService.objects.filter(id=kwargs[self.lookup_field]).first()
+            if service is None:
+                raise errors.TargetNotExist(message=_('坤元服务不存在'))
+
+            r = KunYuanServiceManager.update_service_version(service=service)
+            if r is not True:
+                raise r
+        except Exception as exc:
+            return self.exception_response(exc=exc)
+
+        return Response(data={
+            'version': service.version,
+            'version_update_time': DRFDateTimeField().to_representation(service.version_update_time)
+        }, status=200)
 
     def get_serializer_class(self):
         if self.action == 'list':
