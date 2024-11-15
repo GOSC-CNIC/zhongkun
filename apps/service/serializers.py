@@ -116,3 +116,38 @@ class ContactSerializer(serializers.Serializer):
     creation_time = serializers.DateTimeField(label='创建时间')
     update_time = serializers.DateTimeField(label='更新时间')
     remarks = serializers.CharField(max_length=255, label='备注')
+
+
+class KunYuanODCSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    name = serializers.CharField()
+    name_en = serializers.CharField()
+    longitude = serializers.FloatField()
+    latitude = serializers.FloatField()
+    sort_weight = serializers.IntegerField()
+    organization = serializers.SerializerMethodField(method_name='get_organization')
+
+    @staticmethod
+    def get_organization(obj):
+        organization = obj.organization
+        if organization is None:
+            return None
+
+        return {'id': organization.id, 'name': organization.name, 'name_en': organization.name_en}
+
+
+class KunYuanServiceSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    name = serializers.CharField(max_length=255)
+    name_en = serializers.CharField(max_length=255)
+    endpoint_url = serializers.CharField(max_length=255)
+    username = serializers.CharField(max_length=128)
+    creation_time = serializers.DateTimeField()
+    status = serializers.CharField(max_length=32)
+    remarks = serializers.CharField(max_length=255)
+    longitude = serializers.FloatField(label=_('经度'))
+    latitude = serializers.FloatField(label=_('纬度'))
+    sort_weight = serializers.IntegerField(label=_('排序值'), help_text=_('值越小排序越靠前'))
+    version = serializers.CharField(max_length=32, label=_('版本号'))
+    version_update_time = serializers.DateTimeField(label=_('版本号更新时间'))
+    org_data_center = KunYuanODCSerializer(allow_null=True)
