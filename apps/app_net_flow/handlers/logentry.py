@@ -15,17 +15,13 @@ class NetflowLogEntry:
         item = model_to_dict(obj)
         item["id"] = obj.id
         temp = dict()
-        for k, v in item.items():
+        for k, v in item.copy().items():
             if isinstance(v, datetime.date):
                 temp[k] = str(v)
             if isinstance(v, Model):
                 temp[k] = model_to_dict(v)
             if isinstance(v, list):
-                temp_sub_item = []
-                for sv in v:
-                    if isinstance(sv, Model):
-                        temp_sub_item.append(model_to_dict(sv))
-                temp[k] = temp_sub_item
+                item.pop(k)
         item.update(temp)
         return item
 
