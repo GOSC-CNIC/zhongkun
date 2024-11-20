@@ -592,12 +592,15 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
         request.in_custom_admin_changelist = True
 
         if request.method == "POST":
-            action = self.get_actions(request)[request.POST['action']][0]
-            act_not_need_selected = getattr(action, 'act_not_need_selected', False)
-            if act_not_need_selected:
-                post = request.POST.copy()
-                post.setlist(helpers.ACTION_CHECKBOX_NAME, [0])
-                request.POST = post
+            act_name = request.POST['action']
+            if act_name:
+                actions = self.get_actions(request)
+                action = actions[act_name][0]
+                act_not_need_selected = getattr(action, 'act_not_need_selected', False)
+                if act_not_need_selected:
+                    post = request.POST.copy()
+                    post.setlist(helpers.ACTION_CHECKBOX_NAME, [0])
+                    request.POST = post
 
         respone = super(ServiceConfigAdmin, self).changelist_view(request=request, extra_context=extra_context)
         return respone
