@@ -57,12 +57,12 @@ TEST_CASE = {
     },
     'LOG_SITE': {
         'PROVIDER': {
-            'endpoint_url': 'http://159.226.91.149:3100',
+            'endpoint_url': 'https://aiopsloki.cstcloud.cn/',
             'username': '',
             'password': ''
         },
         'JOB_SITE': {
-            'job_tag': 'obs'
+            'job_tag': 'aiops.cstcloud.cn_log'
         }
     }
 }
