@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from urllib3.util.url import parse_url
 
 import atexit
-from pyVim.connect import SmartConnectNoSSL, Disconnect
+from pyVim.connect import SmartConnect, Disconnect
 from pyVmomi import vim
 from pyVim.task import WaitForTask
 
@@ -37,7 +37,6 @@ class VmwareAdapter(BaseAdapter):
         """
         username = params.username
         password = params.password
-        port = 443
         if self.url.port:
             port = self.url.port
         elif self.url.scheme == 'https':
@@ -46,12 +45,12 @@ class VmwareAdapter(BaseAdapter):
             port = 80
 
         try:
-            service_instance = SmartConnectNoSSL(protocol=self.url.scheme,
-                                                 host=self.url.host,
-                                                 port=port,
-                                                 user=username,
-                                                 pwd=password
-                                                 )
+            service_instance = SmartConnect(
+                protocol=self.url.scheme,
+                host=self.url.host, port=port,
+                user=username, pwd=password,
+                disableSslCertValidation=True
+            )
             atexit.register(Disconnect, service_instance)
             expire = (datetime.utcnow() + timedelta(hours=1)).timestamp()
             auth = outputs.AuthenticateOutput(style='token', token='', header=None, query=None,
