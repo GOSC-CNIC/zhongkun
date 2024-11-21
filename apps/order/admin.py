@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext
 
 from utils.model import BaseModelAdmin
+from apps.servers.admin import ServerServiceFilter
 from .models import Order, Resource, Price, Period, OrderRefund
 
 
@@ -78,7 +79,8 @@ class PeriodAdmin(BaseModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'period', 'enable', 'service', 'creation_time')
     ordering = ('service', 'period',)
-    list_filter = ['service']
+    raw_id_fields = ('service',)
+    list_filter = [ServerServiceFilter]
 
 
 @admin.register(OrderRefund)

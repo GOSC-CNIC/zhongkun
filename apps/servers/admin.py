@@ -130,7 +130,7 @@ class ServerAdmin(NoDeleteSelectModelAdmin, ServerOrgOdcShowMixin):
                     'default_user', 'show_default_password', 'expiration_time', 'remarks')
     search_fields = ['id', 'name', 'image', 'ipv4', 'remarks']
     list_filter = [ServerODCFilter, ServerServiceFilter, 'classification', 'public_ip']
-    raw_id_fields = ('user', )
+    raw_id_fields = ('user', 'service')
     list_select_related = ('service__org_data_center__organization', 'user', 'vo')
     readonly_fields = ['default_password']
 
@@ -227,6 +227,7 @@ class FlavorAdmin(BaseModelAdmin, ServerOrgOdcShowMixin):
     list_display = ('id', 'vcpus', 'ram', 'enable', 'service',
                     ServerOrgOdcShowMixin.SHOW_ORG_NAME, ServerOrgOdcShowMixin.SHOW_ODC_NAME, 'creation_time')
     ordering = ('vcpus', 'ram')
+    raw_id_fields = ('service',)
     list_filter = [ServerServiceFilter]
     list_select_related = ('service__org_data_center__organization',)
 
@@ -243,7 +244,7 @@ class DiskAdmin(NoDeleteSelectModelAdmin, ServerOrgOdcShowMixin):
                     'server', 'mountpoint', 'attached_time', 'detached_time', 'remarks')
     search_fields = ['id', 'instance_id', 'server__id', 'remarks', 'user__username']
     list_filter = [ServerODCFilter, ServerServiceFilter, 'classification', 'deleted']
-    raw_id_fields = ('user', 'vo', 'server')
+    raw_id_fields = ('user', 'vo', 'server', 'service')
     list_select_related = ('service__org_data_center__organization', 'user', 'vo', 'server')
     readonly_fields = ['deleted_user']
 
@@ -336,7 +337,7 @@ class DiskChangeLogAdmin(NoDeleteSelectModelAdmin):
                     'classification', 'user', 'vo', 'remarks')
     search_fields = ['disk_id', 'instance_id', 'remarks', 'user__username', 'change_user']
     list_filter = ['log_type', ServerServiceFilter, 'classification']
-    raw_id_fields = ('user', 'vo',)
+    raw_id_fields = ('user', 'vo', 'service')
     list_select_related = ('service', 'user', 'vo')
     readonly_fields = ['change_user']
 
@@ -620,6 +621,7 @@ class ServicePrivateQuotaAdmin(BaseModelAdmin, ServerOrgOdcShowMixin):
                     'disk_size_used', 'private_ip_total', 'private_ip_used', 'public_ip_total', 'public_ip_used',
                     'enable', 'creation_time')
     list_select_related = ('service__org_data_center__organization',)
+    raw_id_fields = ('service',)
     list_filter = (ServerODCFilter, ServerServiceFilter)
     actions = ['quota_used_update']
 
@@ -679,7 +681,7 @@ class ServerSnapshotAdmin(NoDeleteSelectModelAdmin):
                     'classification', 'user', 'vo', 'server', 'show_deleted', 'deleted_time', 'deleted_user')
     list_select_related = ('user', 'vo', 'service', 'server')
     list_filter = (ServerServiceFilter, 'deleted')
-    raw_id_fields = ('user', 'vo', 'server')
+    raw_id_fields = ('user', 'vo', 'server', 'service')
     search_fields = ['remarks', 'system_name']
 
     @admin.display(description=_('删除状态'))

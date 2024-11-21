@@ -278,7 +278,7 @@ class BucketAdmin(NoDeleteSelectModelAdmin, StorageOrgOdcShowMixin):
                     'task_status', 'situation', 'situation_time', 'storage_size', 'object_count',
                     'stats_time', 'tag')
     list_select_related = ('service__org_data_center__organization', 'user')
-    raw_id_fields = ('user',)
+    raw_id_fields = ('user', 'service')
     list_filter = [BucketServiceFilter, 'situation', 'task_status', 'tag']
     search_fields = ['name', 'user__username', 'id']
 
@@ -306,7 +306,7 @@ class BucketArchiveAdmin(BaseModelAdmin, StorageOrgOdcShowMixin):
                     'task_status', 'situation', 'situation_time', 'storage_size', 'object_count',
                     'stats_time', 'tag')
     list_select_related = ('service__org_data_center__organization', 'user')
-    raw_id_fields = ('user',)
+    raw_id_fields = ('user', 'service')
     search_fields = ['name', 'user__username', 'original_id']
     list_filter = [BucketServiceFilter, 'situation', 'task_status', 'tag']
 
