@@ -126,6 +126,18 @@ class ServiceConfig(BaseService):
         super().save(force_insert=force_insert, force_update=force_update,
                      using=using, update_fields=update_fields)
 
+    def _name_with_odc_name(self):
+        if self.org_data_center:
+            return f'{self.org_data_center.name}【{self.name}】'
+
+        return self.name
+
+    def _name_en_with_odc_name(self):
+        if self.org_data_center:
+            return f'{self.org_data_center.name_en}[{self.name_en}]'
+
+        return self.name_en
+
     def sync_to_pay_app_service(self):
         """
         当name修改时，同步变更到 对应的钱包的pay app service
@@ -135,12 +147,14 @@ class ServiceConfig(BaseService):
             app_service = PayAppService.objects.filter(id=self.pay_app_service_id).first()
             if app_service:
                 update_fields = []
-                if app_service.name != self.name:
-                    app_service.name = self.name
+                name = self._name_with_odc_name()
+                if app_service.name != name:
+                    app_service.name = name
                     update_fields.append('name')
 
-                if app_service.name_en != self.name_en:
-                    app_service.name_en = self.name_en
+                name_en = self._name_en_with_odc_name()
+                if app_service.name_en != name_en:
+                    app_service.name_en = name_en
                     update_fields.append('name_en')
 
                 org_id = self.org_data_center.organization_id if self.org_data_center else None
@@ -175,9 +189,11 @@ class ServiceConfig(BaseService):
 
         # 新注册
         org_id = self.org_data_center.organization_id if self.org_data_center else None
+        name = self._name_with_odc_name()
+        name_en = self._name_en_with_odc_name()
         with transaction.atomic():
             app_service = PayAppService(
-                name=self.name, name_en=self.name_en, app_id=app_id, orgnazition_id=org_id,
+                name=name, name_en=name_en, app_id=app_id, orgnazition_id=org_id,
                 resources='云主机、云硬盘', status=PayAppService.Status.NORMAL.value,
                 category=PayAppService.Category.VMS_SERVER.value, service_id=self.id,
                 longitude=self.longitude, latitude=self.latitude,
