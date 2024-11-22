@@ -12,7 +12,8 @@ def do_get_services():
     cache_key = 'tag_get_services'
     d = cache.get(cache_key)
     if d is None:
-        qs = ServiceConfig.objects.filter(status=ServiceConfig.Status.ENABLE).values('id', 'name')
+        qs = ServiceConfig.objects.filter(status=ServiceConfig.Status.ENABLE).values(
+            'id', 'name', 'org_data_center__name', 'org_data_center__organization__name')
         d = list(qs)
         cache.set(cache_key, d, timeout=120)
 

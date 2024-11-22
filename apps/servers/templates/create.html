@@ -22,7 +22,8 @@
                             <select name="service_id" class="form-control" id="id-service">
                                 {% get_services as services %}
                                 {% for s in services %}
-                                    <option value="{{ s.id }}" {% if s.id == service_id %}selected{% endif %}>{{ s.name }}</option>
+                                    <option value="{{ s.id }}" {% if s.id == service_id %}selected{% endif %}>
+                                        {{ s.org_data_center__organization__name }} / {{ s.org_data_center__name }} / {{ s.name }}</option>
                                 {% endfor %}
                             </select>
                         </div>
