@@ -111,12 +111,12 @@ class EasyOPS(object):
 
         text = resp.text
         text = json.loads(text)
-        data = text.get('data')
-        legends = data.get('legends')
-        if 'ifHCInOctets_max' in legends and 'ifHCOutOctets_max' in legends:
-            text['data']["legends"].remove('ifHCInOctets_max')
-            text['data']["legends"].remove('ifHCOutOctets_max')
-            for item in text['data']["data"]:
-                item['values'].pop(-1)
-                item['values'].pop(-1)
+        # data = text.get('data')
+        # legends = data.get('legends')
+        # if 'ifHCInOctets_max' in legends and 'ifHCOutOctets_max' in legends:
+        #     text['data']["legends"].remove('ifHCInOctets_max')
+        #     text['data']["legends"].remove('ifHCOutOctets_max')
+        #     for item in text['data']["data"]:
+        #         item['values'].pop(-1)
+        #         item['values'].pop(-1)
         return text
