@@ -10,7 +10,8 @@ def create_server_metadata(
         classification=Server.Classification.PERSONAL, ipv4: str = '',
         expiration_time=None, public_ip: bool = False, remarks: str = '',
         pay_type: str = PayType.POSTPAID.value, vcpus: int = 2, ram: int = 1024,
-        disk_size: int = 100, azone_id: str = '', img_release: str = '', img_release_version: str = ''
+        disk_size: int = 100, azone_id: str = '', img_release: str = '', img_release_version: str = '',
+        creation_time=None
 ):
     server = Server(service=service,
                     instance_id='test',
@@ -29,7 +30,7 @@ def create_server_metadata(
                     image_desc='image desc',
                     default_user=default_user,
                     pay_type=pay_type,
-                    creation_time=dj_timezone.now(),
+                    creation_time=creation_time if creation_time else dj_timezone.now(),
                     azone_id=azone_id,
                     img_release=img_release,
                     img_release_version=img_release_version

@@ -1,7 +1,9 @@
 from django.urls import path, include
 from rest_framework.routers import SimpleRouter
 
-from .apiviews import flavor_views, views, disk_views, server_views, service_views, snapshot_views, price_views
+from .apiviews import (
+    flavor_views, views, disk_views, server_views, service_views, snapshot_views, price_views, stats_views
+)
 
 
 app_name = 'servers'
@@ -26,6 +28,7 @@ no_slash_router.register(r'vms/service/s-quota', service_views.ServiveShareQuota
 no_slash_router.register(r'app_servers/snapshot', snapshot_views.ServerSnapshotViewSet, basename='server-snapshot')
 no_slash_router.register(r'app_servers/describe-price/snapshot', price_views.SnapshotPriceViewSet,
                          basename='snapshot-describe-price')
+no_slash_router.register(r'app_servers/stats', stats_views.StatsViewSet, basename='stats')
 
 
 urlpatterns = [
