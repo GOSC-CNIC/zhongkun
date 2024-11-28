@@ -39,6 +39,7 @@ class ChartModel(UuidModel):
     remark = models.TextField(null=True, blank=True, default='', verbose_name=_('备注'))
     creation = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
     modification = models.DateTimeField(verbose_name=_('修改时间'), auto_now=True)
+    is_reverse = models.BooleanField(default=False, verbose_name=_('上传流量和下载流量是否反转'))
 
     def __str__(self):
         return f'{self.instance_name} | {self.if_alias} | {self.device_ip} | {self.port_name}'
@@ -331,7 +332,6 @@ class NetflowLogEntryModel(UuidModel):
             return change_message or gettext("No fields changed.")
         else:
             return self.change_message
-
 
 # class RoleModel(UuidModel):
 #     """

@@ -8,6 +8,7 @@ urlpatterns = [
     re_path('^menu/(?P<pk>[a-z0-9]+)/$', views.MenuDetailGenericAPIView.as_view(), name='menu-detail'),
     re_path('^chart/traffic/$', views.TrafficAPIView.as_view()),
     re_path('^port/$', views.PortListGenericAPIView.as_view(), name='port-list'),
+    re_path('^port/(?P<pk>[a-z0-9]+)/$', views.PortDetailGenericAPIView.as_view(), name='port-detail'),
     re_path('^chart/$', views.Menu2ChartListGenericAPIView.as_view(), name='chart-list'),
     re_path('^chart/(?P<pk>[a-z0-9]+)/$', views.Menu2ChartDetailGenericAPIView.as_view(), name='chart-detail'),
     re_path('^group/member/$', views.Menu2MemberListGenericAPIView.as_view(), name='member-list'),

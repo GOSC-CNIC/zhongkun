@@ -191,13 +191,14 @@ class ChartAdmin(BaseModelAdmin):
         'if_address',
         'device_ip',
         'port_name',
+        'is_reverse',
         'class_uuid',
         'band_width',
         'sort_weight',
 
     ]
     list_display_links = ('id',)
-    search_fields = ('id', 'instance_name', 'if_alias', 'device_ip', 'port_name')  # 搜索字段
+    search_fields = ('id', 'instance_name', 'if_alias', 'device_ip', 'is_reverse','port_name')  # 搜索字段
 
 
 @admin.register(Menu2Chart)

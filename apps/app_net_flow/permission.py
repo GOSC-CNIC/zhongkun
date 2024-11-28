@@ -369,6 +369,10 @@ class PortListCustomPermission(BasePermission):
             return True
 
 
+class PortDetailCustomPermission(PortListCustomPermission):
+    pass
+
+
 class TrafficCustomPermission(BasePermission):
     def has_permission(self, request, view):
         NetFlowAPIIPRestrictor().check_restricted(request=request)

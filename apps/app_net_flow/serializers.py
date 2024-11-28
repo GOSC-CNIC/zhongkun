@@ -106,6 +106,7 @@ class Menu2ChartListSerializer(serializers.ModelSerializer):
         self.perm = PermissionManager(request=self.context.get('request'))
 
     instance_name = serializers.SerializerMethodField(read_only=True)
+    port_id = serializers.SerializerMethodField(read_only=True)
     global_title = serializers.SerializerMethodField(read_only=True)
     global_remark = serializers.SerializerMethodField(read_only=True)
     admin_remark = serializers.SerializerMethodField(read_only=True)
@@ -115,6 +116,7 @@ class Menu2ChartListSerializer(serializers.ModelSerializer):
     port_name = serializers.SerializerMethodField(read_only=True)
     class_uuid = serializers.SerializerMethodField(read_only=True)
     band_width = serializers.SerializerMethodField(read_only=True)
+    is_reverse = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Menu2Chart
@@ -124,11 +126,13 @@ class Menu2ChartListSerializer(serializers.ModelSerializer):
         }
         fields = [
             "id",
+            "port_id",
             "instance_name",
             "global_title",
             "global_remark",
             "remark",
             "admin_remark",
+            "is_reverse",
             "sort_weight",
             "if_alias",
             "if_address",
@@ -142,6 +146,9 @@ class Menu2ChartListSerializer(serializers.ModelSerializer):
 
     def get_global_title(self, obj):
         return obj.chart.title
+
+    def get_is_reverse(self, obj):
+        return obj.chart.is_reverse
 
     def get_global_remark(self, obj):
         return obj.chart.remark
@@ -181,6 +188,9 @@ class Menu2ChartListSerializer(serializers.ModelSerializer):
 
     def get_band_width(self, obj):
         return obj.chart.band_width
+
+    def get_port_id(self, obj):
+        return obj.chart.id
 
 
 class Menu2ChartCreateSerializer(serializers.ModelSerializer):
