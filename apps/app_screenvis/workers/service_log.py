@@ -6,6 +6,7 @@ import requests
 from django.utils import timezone as dj_timezone
 
 from apps.app_screenvis.models import ServerService, ObjectService, BaseService, ServerServiceLog, ObjectServiceLog
+from apps.app_screenvis.utils import screen_logger
 
 
 class BaseSynchronizer:
@@ -51,6 +52,7 @@ class BaseSynchronizer:
             ret = self.sync_unit_logs(unit=unit)
             if ret:
                 err_units.append(unit)
+                screen_logger.error(f'服务单元（{unit.name}）操作日志同步错误，{ret}')
 
         return units, err_units
 

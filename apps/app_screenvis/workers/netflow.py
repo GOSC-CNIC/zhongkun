@@ -6,7 +6,7 @@ from collections import namedtuple
 from django.utils import timezone as dj_timezone
 
 from apps.app_screenvis.models import MetricMonitorUnit, HostNetflow
-from apps.app_screenvis.utils import build_metric_provider, MetricProvider
+from apps.app_screenvis.utils import build_metric_provider, MetricProvider, screen_logger
 from apps.app_screenvis.backends import MetricQueryAPI
 
 
@@ -77,6 +77,8 @@ class HostNetflowWorker:
                     obj = HostNetflow(timestamp=now_timestamp, unit_id=unit_id, flow_in=flow_in, flow_out=flow_out)
                     obj.enforce_id()    # 生成填充id，批量插入不调用save方法
                     objs.append(obj)
+                else:
+                    screen_logger.error(f'主机单元(id={unit_id})网络流量时序数据查询失败，{r_values}')
             else:
                 print(r)
                 continue
@@ -85,7 +87,7 @@ class HostNetflowWorker:
             try:
                 objs = HostNetflow.objects.bulk_create(objs=objs, batch_size=200)
             except Exception as exc:
-                pass
+                screen_logger.error(f'主机单元网络流量时序数据插入数据库时错误')
 
         return ok_unit_ids, objs
 
@@ -161,14 +163,17 @@ class HostNetflowWorker:
         ret = []
         for unit in units:
             last_objs = self.get_unit_last_objs(unit_id=unit.id, limit=3)
+            # 最多补前24小时内数据
+            min_start_ts = now_timestamp - 60 * 60 * 24
             # 需补前24小时内数据
             if len(last_objs) < 3:
-                fill_start_ts = now_timestamp - 60 * 60 * 24
+                fill_start_ts = min_start_ts
                 need_fill = True
             else:
                 need_fill, fill_start_ts = self.get_fill_start_ts(
                     objs=last_objs, cycle_minutes=self.cycle_minutes, now_ts=now_timestamp)
                 fill_start_ts += cycle_seconds  # 下一个周期时间戳开始
+                fill_start_ts = max(fill_start_ts, min_start_ts)
 
             if not need_fill:
                 continue
@@ -205,6 +210,9 @@ class HostNetflowWorker:
                     if objs:
                         objs = HostNetflow.objects.bulk_create(objs)
                         fill_count = len(objs)
+                else:
+                    screen_logger.error(
+                        f'数据补漏[ts {start_ts} - {end_ts}]，主机单元({unit.name})网络流量时序数据查询失败，{r_values}')
             else:
                 print(r)
                 continue

@@ -3,8 +3,11 @@ from collections import namedtuple
 from django.utils.translation import gettext as _
 
 from core import errors
+from core.loggers import config_script_logger
 from apps.app_screenvis.configs_manager import screen_configs
 
+
+screen_logger = config_script_logger(name='screenvis-logger', filename='screenvis.log')
 
 MetricProvider = namedtuple('MetricProvider', ['endpoint_url', 'username', 'password'])
 LokiProvider = namedtuple('LokiProvider', ['endpoint_url', 'username', 'password'])

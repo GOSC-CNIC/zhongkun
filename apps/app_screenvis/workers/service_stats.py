@@ -9,6 +9,7 @@ from apps.app_screenvis.models import (
     ServerService, BaseService, ServerServiceTimedStats, VPNTimedStats,
     ObjectService, ObjectServiceTimedStats
 )
+from apps.app_screenvis.utils import screen_logger
 
 
 class BaseServiceStatsWorker:
@@ -143,7 +144,7 @@ class ServerServiceStatsWorker(BaseServiceStatsWorker):
 
         try:
             for err in unit_err_map.values():
-                print(err)
+                screen_logger.error(msg=str(err))
         except Exception as exc:
             pass
 
@@ -271,7 +272,7 @@ class ObjectServiceStatsWorker(BaseServiceStatsWorker):
 
         try:
             for err in unit_err_map.values():
-                print(err)
+                screen_logger.error(msg=str(err))
         except Exception as exc:
             pass
 
