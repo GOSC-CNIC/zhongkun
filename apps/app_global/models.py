@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 
 from utils.model import UuidModel
 from utils.iprestrict import convert_iprange
+from apps.users.models import UserProfile
 from .prometheus_configs_default_template import prometheus_blackbox_http_default, prometheus_blackbox_tcp_default, \
     prometheus_exporter_node_default, prometheus_base_default, prometheus_exporter_ceph_default, prometheus_exporter_tidb_default
 
@@ -163,3 +164,29 @@ class IPAccessWhiteList(models.Model):
                 'ip_value': _('功能模块"{module_name}"已存在相同的IP白名单({value})').format(
                     module_name=self.get_module_name_display(), value=self.ip_value
                 )})
+
+
+class Announcement(UuidModel):
+    class Status(models.TextChoices):
+        DRAFT = 'draft', _('草稿')
+        PUBLISH = 'publish', _('发布')
+        REVOKED = 'revoked', _('撤销')
+
+    name = models.CharField(verbose_name=_('标题'), max_length=128)
+    name_en = models.CharField(verbose_name=_('英文标题'), max_length=128)
+    status = models.CharField(verbose_name=_('状态'), max_length=16, choices=Status.choices, default=Status.DRAFT.value)
+    content = models.TextField(verbose_name=_('内容'))
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+    update_time = models.DateTimeField(verbose_name=_('更新时间'), auto_now=True)
+    expire_time = models.DateTimeField(verbose_name=_('过期时间'), null=True, blank=True, default=None)
+    publisher = models.ForeignKey(
+        to=UserProfile, db_constraint=False, verbose_name=_('发布人'), on_delete=models.DO_NOTHING, related_name='+')
+
+    class Meta:
+        db_table = 'global_announcement'
+        ordering = ['-creation_time']
+        verbose_name = _('站内公告')
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return f'{self.name}({self.get_status_display()})'

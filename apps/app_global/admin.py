@@ -3,7 +3,7 @@ from django.utils.translation import gettext, gettext_lazy
 from django.utils import timezone as dj_timezone
 
 from utils.model import NoDeleteSelectModelAdmin, BaseModelAdmin
-from apps.app_global.models import TimedTaskLock, GlobalConfig, IPAccessWhiteList
+from apps.app_global.models import TimedTaskLock, GlobalConfig, IPAccessWhiteList, Announcement
 from apps.app_global.configs_manager import global_configs
 
 
@@ -81,3 +81,12 @@ class IPAccessWhiteListAdmin(BaseModelAdmin):
     list_display_links = ['id', 'ip_value']
     list_filter = ('module_name',)
     search_fields = ('ip_value', 'remark')
+
+
+@admin.register(Announcement)
+class AnnouncementAdmin(BaseModelAdmin):
+    list_display = ['id', 'name', 'name_en', 'status', 'publisher', 'creation_time', 'update_time', 'expire_time']
+    list_display_links = ['id', 'name']
+    list_filter = ('status',)
+    search_fields = ('name', 'name_en')
+    raw_id_fields = ('publisher',)
