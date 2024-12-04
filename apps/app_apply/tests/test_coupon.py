@@ -124,6 +124,16 @@ class CouponApplyTests(MyAPITestCase):
             owner_type=OwnerType.USER.value, creation_time=datetime(year=2024, month=3, day=11, tzinfo=utc),
             status=CouponApply.Status.PENDING.value, contact_info='apply8'
         )
+        apply9 = CouponApplyManager.create_apply(
+            service_type=CouponApply.ServiceType.SERVER.value, odc=self.odc2,
+            service_id='service_id2', service_name='service_name2', service_name_en='service_name_en2',
+            pay_service_id='pay_service_id2', face_value=Decimal('5000.12'),
+            expiration_time=datetime(year=2023, month=12, day=15, tzinfo=utc), apply_desc='申请原因9',
+            user_id=self.user1.id, username=self.user1.username, vo_id='', vo_name='',
+            owner_type=OwnerType.USER.value, creation_time=datetime(year=2022, month=4, day=26, tzinfo=utc),
+            status=CouponApply.Status.PASS.value, approver='approver1', approved_amount=Decimal('5000'),
+            contact_info='apply9', deleted=True
+        )
 
         # user1 list
         base_url = reverse('apply-api:coupon-list')
@@ -140,7 +150,8 @@ class CouponApplyTests(MyAPITestCase):
             'id', 'service_type', 'odc', 'service_id', 'service_name', 'service_name_en',
             'face_value', 'expiration_time', 'apply_desc', 'creation_time', 'update_time',
             'user_id', 'username', 'vo_id', 'vo_name', 'owner_type', 'order_id', 'contact_info',
-            'status', 'approver', 'approved_amount', 'reject_reason', 'coupon_id'], r.data['results'][0])
+            'status', 'approver', 'approved_amount', 'reject_reason', 'coupon_id', 'deleted', 'delete_user'
+        ], r.data['results'][0])
         self.assertEqual(r.data['results'][0]['id'], apply8.id)
 
         # vo
@@ -243,20 +254,27 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(r.data['results'][1]['id'], apply3.id)
         self.assertEqual(r.data['results'][2]['id'], apply2.id)
         self.assertEqual(r.data['results'][3]['id'], apply1.id)
+        self.assertKeysIn([
+            'id', 'service_type', 'odc', 'service_id', 'service_name', 'service_name_en',
+            'face_value', 'expiration_time', 'apply_desc', 'creation_time', 'update_time',
+            'user_id', 'username', 'vo_id', 'vo_name', 'owner_type', 'order_id', 'contact_info',
+            'status', 'approver', 'approved_amount', 'reject_reason', 'coupon_id', 'deleted', 'delete_user'
+        ], r.data['results'][0])
 
         # odc1 odc2 admin
         self.odc2.add_admin_user(self.user1)
         query = parse.urlencode(query={'as-admin': ''})
         r = self.client.get(f'{base_url}?{query}')
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.data["count"], 6)
-        self.assertEqual(len(r.data['results']), 6)
+        self.assertEqual(r.data["count"], 7)
+        self.assertEqual(len(r.data['results']), 7)
         self.assertEqual(r.data['results'][0]['id'], apply6.id)
         self.assertEqual(r.data['results'][1]['id'], apply5.id)
         self.assertEqual(r.data['results'][2]['id'], apply4.id)
         self.assertEqual(r.data['results'][3]['id'], apply3.id)
         self.assertEqual(r.data['results'][4]['id'], apply2.id)
         self.assertEqual(r.data['results'][5]['id'], apply1.id)
+        self.assertEqual(r.data['results'][6]['id'], apply9.id)
 
         query = parse.urlencode(query={
             'as-admin': '', 'time_start': '2023-01-01T00:00:00Z', 'time_end': '2023-10-01T00:00:00Z'})
@@ -280,8 +298,8 @@ class CouponApplyTests(MyAPITestCase):
         query = parse.urlencode(query={'as-admin': ''})
         r = self.client.get(f'{base_url}?{query}')
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.data["count"], 8)
-        self.assertEqual(len(r.data['results']), 8)
+        self.assertEqual(r.data["count"], 9)
+        self.assertEqual(len(r.data['results']), 9)
         self.assertEqual(r.data['results'][0]['id'], apply8.id)
         self.assertEqual(r.data['results'][1]['id'], apply7.id)
 

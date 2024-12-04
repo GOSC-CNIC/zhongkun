@@ -119,7 +119,9 @@ class CouponApplyViewSet(NormalGenericViewSet):
                         "reject_reason": "",    # 审批拒绝时，拒绝原因
                         "approved_amount": "0.00",  # 审批通过的实际资源券金额
                         "coupon_id": "",
-                        "order_id": "xxx"       # 申请关联的订单id，为此订单申请资源券，可能null
+                        "order_id": "xxx",       # 申请关联的订单id，为此订单申请资源券，可能null
+                        "deleted": false,
+                        "delete_user": "xx"
                     }
                 ]
             }

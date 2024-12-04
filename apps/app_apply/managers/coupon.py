@@ -159,7 +159,7 @@ class CouponApplyManager:
         """
         queryset = self.filter_apply_queryset(
                 service_type=service_type, status=status, start_time=start_time, end_time=end_time,
-                vo_id=vo_id, user_id=user_id, is_deleted=False
+                vo_id=vo_id, user_id=user_id, is_deleted=None
             )
 
         if admin_user.is_federal_admin():
@@ -179,7 +179,7 @@ class CouponApplyManager:
             end_time: datetime = None,
             user_id: str = None,
             vo_id: str = None,
-            is_deleted: bool = False
+            is_deleted: bool = None
     ):
         if user_id and vo_id:
             raise errors.Error(_('查询条件不能同时包含"user_id"和"vo_id"'))

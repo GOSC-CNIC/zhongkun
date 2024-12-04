@@ -29,6 +29,8 @@ class CouponApplyBaseSerializer(serializers.Serializer):
     reject_reason = serializers.CharField(label=_('拒绝原因'), max_length=255)
     approved_amount = serializers.DecimalField(label=_('审批通过金额'), max_digits=10, decimal_places=2)
     coupon_id = serializers.CharField(label=_('资源券id'), max_length=36)
+    deleted = serializers.BooleanField(label=_('删除'))
+    delete_user = serializers.CharField(label=_('删除人'), max_length=128)
 
     @staticmethod
     def get_odc(obj):
