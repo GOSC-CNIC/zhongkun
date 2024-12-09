@@ -1,9 +1,9 @@
 ## 关于ZhongKun
 
 
-## 环境搭建(CentOS)
+## 环境搭建(CentOS10)
 ### 1 安装python和Git
-请自行安装python3.9和Git。
+请自行安装python3.12和Git。
 使用Git拉取代码： 
 ```
 git clone https://gitee.com/cstcloud-cnic/zhongkun.git
