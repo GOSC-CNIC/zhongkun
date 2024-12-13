@@ -248,8 +248,8 @@ class PaymentManagerTests(TransactionTestCase):
         )
         coupon1_user.save(force_insert=True)
 
-        # 有效, service
-        coupon2_user = CashCoupon(
+        # 有效, service, order1
+        coupon2_user_order1 = CashCoupon(
             face_value=Decimal('25'),
             balance=Decimal('25'),
             effective_time=now_time - timedelta(days=2),
@@ -257,9 +257,11 @@ class PaymentManagerTests(TransactionTestCase):
             app_service_id=self.service.pay_app_service_id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.USER.value,
-            user_id=self.user.id, vo_id=None
+            user_id=self.user.id, vo_id=None,
+            use_scope=CashCoupon.UseScope.ORDER.value,
+            order_id=order1.id
         )
-        coupon2_user.save(force_insert=True)
+        coupon2_user_order1.save(force_insert=True)
 
         # 有效，只适用于service2
         coupon3_user = CashCoupon(
@@ -326,6 +328,21 @@ class PaymentManagerTests(TransactionTestCase):
         )
         coupon7_user.save(force_insert=True)
 
+        # 有效, service, order2
+        coupon8_user_order2 = CashCoupon(
+            face_value=Decimal('35'),
+            balance=Decimal('35'),
+            effective_time=now_time - timedelta(days=2),
+            expiration_time=now_time + timedelta(days=10),
+            app_service_id=self.service.pay_app_service_id,
+            status=CashCoupon.Status.AVAILABLE.value,
+            owner_type=OwnerType.USER.value,
+            user_id=self.user.id, vo_id=None,
+            use_scope=CashCoupon.UseScope.ORDER.value,
+            order_id=order2.id
+        )
+        coupon8_user_order2.save(force_insert=True)
+
         app_id = self.app.id
         # 指定不存在的券
         with self.assertRaises(errors.Error) as cm:
@@ -387,6 +404,18 @@ class PaymentManagerTests(TransactionTestCase):
             )
         self.assertEqual(cm.exception.code, 'CouponNotApplicable')
 
+        # 指定不适用订单的券
+        with self.assertRaises(errors.Error) as cm:
+            pay_mgr.pay_order(
+                order=order1, app_id=app_id, subject='云服务器计费',
+                executor=self.user.username, remark='',
+                coupon_ids=[
+                    coupon8_user_order2.id
+                ], only_coupon=False,
+                required_enough_balance=True
+            )
+        self.assertEqual(cm.exception.code, 'CouponNotApplicable')
+
         # 指定余额为0的券
         with self.assertRaises(errors.Error) as cm:
             pay_mgr.pay_order(
@@ -399,13 +428,13 @@ class PaymentManagerTests(TransactionTestCase):
             )
         self.assertEqual(cm.exception.code, 'CouponNoBalance')
 
-        # 只用指定券支付，券余额50（20 + 30），订单金额 100
+        # 只用指定券支付，券余额45（20 + 25），订单金额 100
         with self.assertRaises(errors.Error) as cm:
             pay_mgr.pay_order(
                 order=order1, app_id=app_id, subject='云服务器计费',
                 executor=self.user.username, remark='',
                 coupon_ids=[
-                    coupon1_user.id, coupon2_user.id
+                    coupon1_user.id, coupon2_user_order1.id
                 ], only_coupon=True,
                 required_enough_balance=True
             )
@@ -416,7 +445,7 @@ class PaymentManagerTests(TransactionTestCase):
             order=order1, app_id=app_id, subject='云服务器计费',
             executor=self.user.username, remark='',
             coupon_ids=[
-                coupon1_user.id, coupon2_user.id
+                coupon1_user.id, coupon2_user_order1.id
             ], only_coupon=False,
             required_enough_balance=True
         )
@@ -427,8 +456,8 @@ class PaymentManagerTests(TransactionTestCase):
         # 券的扣费确认
         coupon1_user.refresh_from_db()
         self.assertEqual(coupon1_user.balance, Decimal('0'))
-        coupon2_user.refresh_from_db()
-        self.assertEqual(coupon2_user.balance, Decimal('0'))
+        coupon2_user_order1.refresh_from_db()
+        self.assertEqual(coupon2_user_order1.balance, Decimal('0'))
 
         order1.refresh_from_db()
         self.assertEqual(order1.status, Order.Status.PAID.value)
@@ -461,7 +490,7 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(cc_historys[0].amounts, Decimal('-20'))
         self.assertEqual(cc_historys[0].after_payment, Decimal('0'))
         self.assertEqual(cc_historys[1].payment_history_id, pay_history1.id)
-        self.assertEqual(cc_historys[1].cash_coupon_id, coupon2_user.id)
+        self.assertEqual(cc_historys[1].cash_coupon_id, coupon2_user_order1.id)
         self.assertEqual(cc_historys[1].before_payment, Decimal('25'))
         self.assertEqual(cc_historys[1].amounts, Decimal('-25'))
         self.assertEqual(cc_historys[1].after_payment, Decimal('0'))
@@ -619,7 +648,7 @@ class PaymentManagerTests(TransactionTestCase):
         coupon1_vo.save(force_insert=True)
 
         # 有效, service
-        coupon2_vo = CashCoupon(
+        coupon2_vo_order1 = CashCoupon(
             face_value=Decimal('25'),
             balance=Decimal('25'),
             effective_time=now_time - timedelta(days=2),
@@ -627,9 +656,11 @@ class PaymentManagerTests(TransactionTestCase):
             app_service_id=self.service.pay_app_service_id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.VO.value,
-            user_id=None, vo_id=self.vo.id
+            user_id=None, vo_id=self.vo.id,
+            use_scope=CashCoupon.UseScope.ORDER.value,
+            order_id=order1.id
         )
-        coupon2_vo.save(force_insert=True)
+        coupon2_vo_order1.save(force_insert=True)
 
         # 有效，只适用于service2
         coupon3_vo = CashCoupon(
@@ -696,6 +727,21 @@ class PaymentManagerTests(TransactionTestCase):
         )
         coupon7_user.save(force_insert=True)
 
+        # 有效, service, order2
+        coupon8_vo_order2 = CashCoupon(
+            face_value=Decimal('33'),
+            balance=Decimal('33'),
+            effective_time=now_time - timedelta(days=2),
+            expiration_time=now_time + timedelta(days=10),
+            app_service_id=self.service.pay_app_service_id,
+            status=CashCoupon.Status.AVAILABLE.value,
+            owner_type=OwnerType.VO.value,
+            user_id=None, vo_id=self.vo.id,
+            use_scope=CashCoupon.UseScope.ORDER.value,
+            order_id=order2.id
+        )
+        coupon8_vo_order2.save(force_insert=True)
+
         app_id = self.app.id
         # 指定不存在的券
         with self.assertRaises(errors.Error) as cm:
@@ -757,6 +803,18 @@ class PaymentManagerTests(TransactionTestCase):
             )
         self.assertEqual(cm.exception.code, 'CouponNotApplicable')
 
+        # 指定不适用订单的券
+        with self.assertRaises(errors.Error) as cm:
+            pay_mgr.pay_order(
+                order=order1, app_id=app_id, subject='资源订单',
+                executor=self.user.username, remark='',
+                coupon_ids=[
+                    coupon8_vo_order2.id
+                ], only_coupon=False,
+                required_enough_balance=True
+            )
+        self.assertEqual(cm.exception.code, 'CouponNotApplicable')
+
         # 指定余额为0的券
         with self.assertRaises(errors.Error) as cm:
             pay_mgr.pay_order(
@@ -769,13 +827,13 @@ class PaymentManagerTests(TransactionTestCase):
             )
         self.assertEqual(cm.exception.code, 'CouponNoBalance')
 
-        # 只用指定券支付，券余额50（20 + 30），订单金额 100
+        # 只用指定券支付，券余额45（20 + 25），订单金额 100
         with self.assertRaises(errors.Error) as cm:
             pay_mgr.pay_order(
                 order=order1, app_id=app_id, subject='资源订单',
                 executor=self.user.username, remark='',
                 coupon_ids=[
-                    coupon1_vo.id, coupon2_vo.id
+                    coupon1_vo.id, coupon2_vo_order1.id
                 ], only_coupon=True,
                 required_enough_balance=True
             )
@@ -786,7 +844,7 @@ class PaymentManagerTests(TransactionTestCase):
             order=order1, app_id=app_id, subject='资源订单',
             executor=self.user.username, remark='',
             coupon_ids=[
-                coupon1_vo.id, coupon2_vo.id
+                coupon1_vo.id, coupon2_vo_order1.id
             ], only_coupon=False,
             required_enough_balance=True
         )
@@ -797,8 +855,8 @@ class PaymentManagerTests(TransactionTestCase):
         # 券的扣费确认
         coupon1_vo.refresh_from_db()
         self.assertEqual(coupon1_vo.balance, Decimal('0'))
-        coupon2_vo.refresh_from_db()
-        self.assertEqual(coupon2_vo.balance, Decimal('0'))
+        coupon2_vo_order1.refresh_from_db()
+        self.assertEqual(coupon2_vo_order1.balance, Decimal('0'))
 
         order1.refresh_from_db()
         self.assertEqual(order1.status, Order.Status.PAID.value)
@@ -835,7 +893,7 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(cc_historys[0].after_payment, Decimal('0'))
         self.assertEqual(cc_historys[1].payment_history_id, pay_history1.id)
         self.assertIsNone(cc_historys[1].refund_history_id)
-        self.assertEqual(cc_historys[1].cash_coupon_id, coupon2_vo.id)
+        self.assertEqual(cc_historys[1].cash_coupon_id, coupon2_vo_order1.id)
         self.assertEqual(cc_historys[1].before_payment, Decimal('25'))
         self.assertEqual(cc_historys[1].amounts, Decimal('-25'))
         self.assertEqual(cc_historys[1].after_payment, Decimal('0'))

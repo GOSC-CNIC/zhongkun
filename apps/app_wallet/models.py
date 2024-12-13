@@ -227,6 +227,10 @@ class CashCoupon(CashCouponBase):
         CANCELLED = 'cancelled', _('作废')
         DELETED = 'deleted', _('删除')
 
+    class UseScope(models.TextChoices):
+        SERVICE_UNIT = 'service', _('服务单元')
+        ORDER = 'order', _('指定订单')
+
     id = models.CharField(verbose_name=_('编码'), max_length=32, primary_key=True, editable=False)
     app_service = models.ForeignKey(
         verbose_name=_('适用服务'), to=PayAppService, on_delete=models.SET_NULL, related_name='+',
@@ -251,6 +255,10 @@ class CashCoupon(CashCouponBase):
     balance_notice_time = models.DateTimeField(verbose_name=_('余额不足通知时间'), null=True, blank=True, default=None)
     expire_notice_time = models.DateTimeField(verbose_name=_('过期通知时间'), null=True, blank=True, default=None)
     remark = models.CharField(verbose_name=_('备注'), max_length=255, blank=True, default='')
+    use_scope = models.CharField(
+        verbose_name=_('使用范围'), max_length=16, choices=UseScope.choices, default=UseScope.SERVICE_UNIT.value)
+    order_id = models.CharField(
+        verbose_name=_('订单编号'), max_length=64, blank=True, default='', help_text=_('适用范围为指定订单时，指定订单编号'))
 
     class Meta:
         verbose_name = _('资源券')
@@ -327,8 +335,10 @@ class CashCoupon(CashCouponBase):
             expiration_time: datetime,
             coupon_num: int,
             issuer: str,
+            use_scope: str,
+            order_id: str = '',
             activity_id: str = None,
-            remark: str = ''
+            remark: str = '',
     ):
         """
         创建一个待领取的券
@@ -347,7 +357,9 @@ class CashCoupon(CashCouponBase):
             granted_time=timezone.now(),
             activity_id=activity_id,
             issuer=issuer,
-            remark=remark
+            remark=remark,
+            use_scope=use_scope,
+            order_id=order_id if order_id else '',
         )
 
         if coupon_num:

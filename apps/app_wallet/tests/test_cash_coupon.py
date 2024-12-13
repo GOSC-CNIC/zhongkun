@@ -259,7 +259,7 @@ class CashCouponTests(MyAPITestCase):
         self.assertEqual(len(results), 2)
         self.assertKeysIn([
             "id", "face_value", "creation_time", "effective_time", "expiration_time",
-            "balance", "status", "granted_time", "issuer",
+            "balance", "status", "granted_time", "issuer", 'use_scope', 'order_id',
             "owner_type", "app_service", "user", "vo", "activity", 'remark'], results[0]
         )
         self.assertKeysIn([
@@ -379,7 +379,7 @@ class CashCouponTests(MyAPITestCase):
         self.assertEqual(len(results), 1)
         self.assertKeysIn([
             "id", "face_value", "creation_time", "effective_time", "expiration_time",
-            "balance", "status", "granted_time",
+            "balance", "status", "granted_time", 'use_scope', 'order_id', 'remark',
             "owner_type", "app_service", "user", "vo", "activity"], results[0]
         )
         self.assertKeysIn([
@@ -942,7 +942,7 @@ class CashCouponTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn([
             "id", "face_value", "creation_time", "effective_time", "expiration_time",
-            "balance", "status", "granted_time", "issuer",
+            "balance", "status", "granted_time", "issuer", 'use_scope', 'order_id',
             "owner_type", "app_service", "user", "vo", "activity", 'remark'], response.data
         )
         self.assertKeysIn([
@@ -1338,7 +1338,8 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertEqual(len(r.data['results']), 2)
         self.assertKeysIn(keys=[
             'id', 'face_value', 'creation_time', 'effective_time', 'expiration_time', 'balance', 'status',
-            'granted_time', 'owner_type', 'app_service', 'user', 'vo', 'activity', 'exchange_code', "issuer", 'remark'
+            'granted_time', 'owner_type', 'app_service', 'user', 'vo', 'activity', 'exchange_code', "issuer", 'remark',
+            'use_scope', 'order_id'
         ], container=r.data['results'][0])
 
         # user has permission of app_service1, query "app_service_id", "status"
@@ -1366,7 +1367,8 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertEqual(len(r.data['results']), 1)
         self.assertKeysIn(keys=[
             'id', 'face_value', 'creation_time', 'effective_time', 'expiration_time', 'balance', 'status',
-            'granted_time', 'owner_type', 'app_service', 'user', 'vo', 'activity', 'exchange_code'
+            'granted_time', 'owner_type', 'app_service', 'user', 'vo', 'activity', 'exchange_code',
+            'use_scope', 'order_id'
         ], container=r.data['results'][0])
         self.assertEqual(r.data['results'][0]['id'], wait_coupon1.id)
 
@@ -1694,7 +1696,8 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(keys=[
             'id', 'face_value', 'creation_time', 'effective_time', 'expiration_time', 'balance', 'status',
-            'granted_time', 'owner_type', 'app_service', 'user', 'vo', 'activity', 'exchange_code', "issuer", 'remark'
+            'granted_time', 'owner_type', 'app_service', 'user', 'vo', 'activity', 'exchange_code', "issuer", 'remark',
+            'use_scope', 'order_id'
         ], container=response.data)
         self.assertKeysIn(keys=['id', 'name', 'service_id'], container=response.data['app_service'])
         self.assertKeysIn(keys=['id', 'username'], container=response.data['user'])
@@ -1712,7 +1715,8 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(keys=[
             'id', 'face_value', 'creation_time', 'effective_time', 'expiration_time', 'balance', 'status',
-            'granted_time', 'owner_type', 'app_service', 'user', 'vo', 'activity', 'exchange_code'
+            'granted_time', 'owner_type', 'app_service', 'user', 'vo', 'activity', 'exchange_code',
+            'use_scope', 'order_id'
         ], container=response.data)
         self.assertKeysIn(keys=['id', 'name', 'service_id'], container=response.data['app_service'])
         self.assertKeysIn(keys=['id', 'username'], container=response.data['user'])

@@ -286,7 +286,7 @@ class PaymentManager:
 
         # 适用的券
         usable_coupons, unusable_coupons = CashCouponManager.sorting_usable_coupons(
-            coupons=coupons, app_service_id=app_service_id
+            coupons=coupons, app_service_id=app_service_id, order_id=order_id
         )
         if coupon_ids:
             if unusable_coupons:

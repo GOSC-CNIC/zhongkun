@@ -385,7 +385,9 @@ class CashCouponHandler:
                     expiration_time=expiration_time,
                     coupon_num=0,
                     issuer=request.user.username,
-                    remark=remark
+                    remark=remark,
+                    use_scope=CashCoupon.UseScope.SERVICE_UNIT.value,
+                    order_id=''
                 )
 
         except Exception as exc:

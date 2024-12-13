@@ -204,8 +204,10 @@ class CashCouponManager:
             expiration_time: datetime,
             coupon_num: int,
             issuer: str,
+            use_scope: str,
+            order_id: str = '',
             activity_id: str = None,
-            remark: str = ''
+            remark: str = '',
     ):
         """
         创建一个待领取的券
@@ -230,7 +232,9 @@ class CashCouponManager:
                     activity_id=activity_id,
                     coupon_num=coupon_num,
                     issuer=issuer,
-                    remark=remark
+                    remark=remark,
+                    use_scope=use_scope,
+                    order_id=order_id
                 )
                 return coupon, coupon_num
             except Exception as e:
@@ -249,7 +253,10 @@ class CashCouponManager:
             app_service_id=app_service_id,
             activity_id=activity_id,
             coupon_num=coupon_num,
-            issuer=issuer
+            issuer=issuer,
+            remark=remark,
+            use_scope=use_scope,
+            order_id=order_id
         )
         return coupon, coupon_num
 
@@ -261,7 +268,9 @@ class CashCouponManager:
             expiration_time: datetime,
             issuer: str,
             activity_id: str = None,
-            remark: str = ''
+            remark: str = '',
+            use_scope: str = CashCoupon.UseScope.SERVICE_UNIT.value,
+            order_id: str = '',
     ):
         """
         创建一个券，并发放给指定user或vo
@@ -278,7 +287,8 @@ class CashCouponManager:
                 expiration_time=expiration_time,
                 activity_id=activity_id,
                 coupon_num=num + 1,
-                issuer=issuer, remark=remark
+                issuer=issuer, remark=remark,
+                use_scope=use_scope, order_id=order_id
             )
             self.ensure_wait_draw_cash_coupon(coupon=coupon)
             self._grant_coupon_to_user_or_vo(coupon=coupon, user=user, vo=vo)
@@ -484,20 +494,45 @@ class CashCouponManager:
         return coupons
 
     @staticmethod
-    def sorting_usable_coupons(coupons: List[CashCoupon], app_service_id: str):
+    def sorting_usable_coupons(coupons: List[CashCoupon], app_service_id: str, order_id: str = ''):
         """
-        分拣适用指定服务的券
+        分拣适用指定服务和订单的券
+
+        不指定订单编号时，使用范围为“指定订单”的券为不可用
         """
         # 适用的券
         usable_coupons = []
         unusable_coupons = []
         for coupon in coupons:
-            if app_service_id == coupon.app_service_id:
+            if CashCouponManager.is_usable_coupon(coupon=coupon, app_service_id=app_service_id, order_id=order_id):
                 usable_coupons.append(coupon)
             else:
                 unusable_coupons.append(coupon)
 
         return usable_coupons, unusable_coupons
+
+    @staticmethod
+    def is_usable_coupon(coupon: CashCoupon, app_service_id: str, order_id: str = '') -> bool:
+        """
+        判定券是否适用 指定结算单元 和 订单
+
+        * 不指定订单编号时，使用范围为“指定订单”的券为不可用
+        """
+        # 结算单元不一致，不可用
+        if app_service_id != coupon.app_service_id:
+            return False
+
+        # 全结算单元券，可用
+        if coupon.use_scope == CashCoupon.UseScope.SERVICE_UNIT.value:
+            return True
+        elif coupon.use_scope == CashCoupon.UseScope.ORDER.value:
+            # 指定订单编号的券，订单编号一致 可用
+            if order_id and coupon.order_id == order_id:
+                return True
+            else:
+                return False
+
+        return False
 
     def get_cash_coupon_payment_queryset(self, coupon_id: str, user):
         """
@@ -755,6 +790,8 @@ class CashCouponActivityManager:
             expiration_time=activity.expiration_time,
             coupon_num=coupon_num,
             activity_id=activity.id,
-            issuer=issuer
+            issuer=issuer,
+            use_scope=CashCoupon.UseScope.SERVICE_UNIT.value,
+            order_id=''
         )
         return coupon, coupon_num
