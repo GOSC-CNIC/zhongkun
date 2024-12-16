@@ -1422,6 +1422,8 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(coupon1.user_id, apply1.user_id)
         self.assertEqual(coupon1.vo_id, apply1.vo_id)
         self.assertEqual(coupon1.issuer, self.user1.username)
+        self.assertEqual(coupon1.use_scope, CashCoupon.UseScope.SERVICE_UNIT.value)
+        self.assertEqual(coupon1.order_id, '')
         delay_gte_len(dj_mail.outbox, 1, timeout=2)     # 等待邮件异步发送
         self.assertEqual(len(dj_mail.outbox), 1)
 
@@ -1499,6 +1501,8 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(coupon2.user_id, apply2.user_id)
         self.assertIsNone(coupon2.vo_id)
         self.assertEqual(coupon2.issuer, self.user1.username)
+        self.assertEqual(coupon2.use_scope, CashCoupon.UseScope.SERVICE_UNIT.value)
+        self.assertEqual(coupon2.order_id, '')
         delay_gte_len(dj_mail.outbox, 2, timeout=2)     # 等待邮件异步发送
         self.assertEqual(len(dj_mail.outbox), 2)
 
@@ -1665,6 +1669,8 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(coupon2.user_id, apply1.user_id)
         self.assertIsNone(coupon2.vo_id)
         self.assertEqual(coupon2.issuer, self.user1.username)
+        self.assertEqual(coupon2.use_scope, CashCoupon.UseScope.ORDER.value)
+        self.assertEqual(coupon2.order_id, scan_order.id)
         # 订单支付
         scan_order.refresh_from_db()
         self.assertEqual(scan_order.status, scan_order.Status.PAID.value)

@@ -12,6 +12,7 @@ from apps.users.managers import get_user_by_id
 from apps.service.models import OrgDataCenter
 from apps.service.odc_manager import OrgDataCenterManager
 from apps.app_wallet.managers.cash_coupon import CashCouponManager
+from apps.app_wallet.models import CashCoupon
 from apps.vo.managers import VoManager
 from apps.order.models import Order
 from apps.app_apply.models import CouponApply
@@ -300,12 +301,20 @@ class CouponApplyManager:
             else:
                 vo = VoManager.get_vo_by_id(apply.vo_id)
 
+            if apply.order_id:
+                use_scope = CashCoupon.UseScope.ORDER.value
+                order_id = apply.order_id
+            else:
+                use_scope = CashCoupon.UseScope.SERVICE_UNIT.value
+                order_id = ''
+
             coupon = CashCouponManager().create_one_coupon_to_user_or_vo(
                 user=user, vo=vo, app_service_id=apply.pay_service_id,
                 face_value=approved_amount,
                 effective_time=dj_timezone.now(),
                 expiration_time=apply.expiration_time,
-                issuer=issuer, remark='来自券申请'
+                issuer=issuer, remark='来自券申请',
+                use_scope=use_scope, order_id=order_id
             )
 
             apply.status = CouponApply.Status.PASS.value
