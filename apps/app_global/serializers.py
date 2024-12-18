@@ -8,6 +8,7 @@ class AnnouncementSerializer(serializers.Serializer):
     name_en = serializers.CharField(label=_('英文标题'), max_length=128)
     status = serializers.CharField(label=_('状态'), max_length=16)
     content = serializers.CharField(label=_('内容'))
+    content_en = serializers.CharField(label=_('英文内容'))
     creation_time = serializers.DateTimeField(label=_('创建时间'))
     update_time = serializers.DateTimeField(label=_('更新时间'))
     expire_time = serializers.DateTimeField(label=_('过期时间'))

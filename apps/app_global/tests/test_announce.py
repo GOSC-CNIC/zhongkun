@@ -27,7 +27,7 @@ class AnnounceTests(MyAPITestCase):
         anno2.save(force_insert=True)
         anno3 = Announcement(
             name='标题3', name_en='title3', status=Announcement.Status.PUBLISH.value,
-            content='内容3 content3', expire_time=dj_timezone.now(), publisher=user1
+            content='内容3 content3', content_en='英文3 content3', expire_time=dj_timezone.now(), publisher=user1
         )
         anno3.save(force_insert=True)
         anno4 = Announcement(
@@ -37,7 +37,8 @@ class AnnounceTests(MyAPITestCase):
         anno4.save(force_insert=True)
         anno5 = Announcement(
             name='标题5', name_en='title5', status=Announcement.Status.REVOKED.value,
-            content='内容5 content5', expire_time=dj_timezone.now() + timedelta(days=1), publisher=user1
+            content='内容5 content5', content_en='英文5 content5',
+            expire_time=dj_timezone.now() + timedelta(days=1), publisher=user1
         )
         anno5.save(force_insert=True)
 
@@ -58,7 +59,7 @@ class AnnounceTests(MyAPITestCase):
         self.assertEqual(r.data['results'][0]['id'], anno4.id)
         self.assertEqual(r.data['results'][1]['id'], anno2.id)
         self.assertKeysIn(['id', 'name', 'name_en', 'status', 'content', 'creation_time', 'update_time',
-                           'expire_time', 'publisher'], r.data['results'][0])
+                           'expire_time', 'publisher', 'content_en'], r.data['results'][0])
 
         # page
         query = parse.urlencode(query={'page': 2, 'page_size': 1})

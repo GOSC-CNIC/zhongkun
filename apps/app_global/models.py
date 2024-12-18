@@ -176,6 +176,7 @@ class Announcement(UuidModel):
     name_en = models.CharField(verbose_name=_('英文标题'), max_length=128)
     status = models.CharField(verbose_name=_('状态'), max_length=16, choices=Status.choices, default=Status.DRAFT.value)
     content = models.TextField(verbose_name=_('内容'))
+    content_en = models.TextField(verbose_name=_('英文内容'), default='')
     creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
     update_time = models.DateTimeField(verbose_name=_('更新时间'), auto_now=True)
     expire_time = models.DateTimeField(verbose_name=_('过期时间'), null=True, blank=True, default=None)
