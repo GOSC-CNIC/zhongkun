@@ -66,7 +66,7 @@ class ResOrderTaskTests(MyAPITransactionTestCase):
         self.app_service1 = app_service1
 
     def test_task_create_bad_request(self):
-        url = reverse('servers-api:res-order-deliver-task-list')
+        url = reverse('servers-api:res-order-deliver-task-server-create')
         response = self.client.post(url, data={})
         self.assertEqual(response.status_code, 401)
         self.client.force_login(self.user)
@@ -216,7 +216,7 @@ class ResOrderTaskTests(MyAPITransactionTestCase):
         image_id = response.data['results'][0]['id']
 
         # param "azone_id"
-        url = reverse('servers-api:res-order-deliver-task-list')
+        url = reverse('servers-api:res-order-deliver-task-server-create')
         response = self.client.post(url, data={
             'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
             'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id,
@@ -246,7 +246,7 @@ class ResOrderTaskTests(MyAPITransactionTestCase):
         is_public_network = response.data[0]['public']
 
         # service not set pay_app_service_id
-        task_base_url = reverse('servers-api:res-order-deliver-task-list')
+        task_base_url = reverse('servers-api:res-order-deliver-task-server-create')
         response = self.client.post(task_base_url, data={
             'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
             'image_id': 'ss', 'period': 12, 'flavor_id': self.flavor.id, 'network_id': network_id,

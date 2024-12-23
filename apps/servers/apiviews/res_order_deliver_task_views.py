@@ -8,6 +8,7 @@ from django.db import transaction
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.serializers import Serializer
+from rest_framework.decorators import action
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
@@ -269,7 +270,8 @@ class ResOdDeliverTaskViewSet(CustomGenericViewSet):
             '''
         }
     )
-    def create(self, request, *args, **kwargs):
+    @action(methods=['post'], detail=False, url_path='server/create', url_name='server-create')
+    def create_server(self, request, *args, **kwargs):
         """
         管理员提交云服务器订购任务，自动发放资源券，支付订单交付资源
 
@@ -445,7 +447,7 @@ class ResOdDeliverTaskViewSet(CustomGenericViewSet):
     def get_serializer_class(self):
         if self.action == 'list':
             return serializers.AdminResTaskSerializer
-        elif self.action == 'create':
+        elif self.action == 'create_server':
             return serializers.ServerCreateTaskSerializer
 
         return Serializer
