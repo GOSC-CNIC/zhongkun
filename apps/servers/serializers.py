@@ -454,3 +454,37 @@ class SnapshotUpdateSerializer(serializers.Serializer):
         label=_('快照名称'), required=False, allow_blank=True, max_length=128, default=None)
     description = serializers.CharField(
         label=_('快照描述'), required=False, allow_blank=True, max_length=255, default=None)
+
+
+class AdminResTaskSerializer(serializers.Serializer):
+    id = serializers.CharField(label='ID')
+    status = serializers.CharField(label=_('状态'), max_length=16)
+    status_desc = serializers.CharField(label=_('状态描述'), max_length=255)
+    progress = serializers.CharField(label=_('任务进度'), max_length=16)
+    submitter_id = serializers.CharField(label=_('提交人id'), max_length=36)
+    submitter = serializers.CharField(label=_('提交人'), max_length=128)
+    creation_time = serializers.DateTimeField(label=_('创建时间'))
+    update_time = serializers.DateTimeField(label=_('更新时间'))
+    task_desc = serializers.CharField(max_length=255, label=_('任务描述'))
+    service = serializers.SerializerMethodField(label=_('服务单元'), method_name='get_service')
+    order = serializers.SerializerMethodField(label=_('订单编号'), method_name='get_order')
+    coupon_id = serializers.CharField(label=_('资源券编号'))
+
+    @staticmethod
+    def get_service(obj):
+        if not obj.service:
+            return None
+
+        return {'id': obj.service.id, 'name': obj.service.name, 'name_en': obj.service.name_en}
+
+    @staticmethod
+    def get_order(obj):
+        od = obj.order
+        if not od:
+            return None
+
+        return {
+            'id': od.id, 'resource_type': od.resource_type, 'number': od.number,
+            'order_type': od.order_type,
+            'total_amount': serializers.DecimalField(max_digits=10, decimal_places=2).to_representation(od.total_amount)
+        }

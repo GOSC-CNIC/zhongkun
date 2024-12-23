@@ -9,6 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.serializers import Serializer
 from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 from core import errors as exceptions
 from core import site_configs_manager
@@ -19,6 +20,7 @@ from apps.api.paginations import NewPageNumberPagination100
 from apps.servers.handlers.server_handler import ServerHandler
 from apps.servers import serializers
 from apps.servers.models import ResourceOrderDeliverTask
+from apps.servers.managers import ServiceManager
 from apps.order.models import Order
 from apps.order.managers import OrderPaymentManager, OrderManager
 from apps.order.deliver_resource import OrderResourceDeliverer
@@ -200,6 +202,54 @@ class ResTaskManager:
         elif task.progress == ResourceOrderDeliverTask.Progress.DELIVERED.value:
             raise exceptions.ConflictError(message=_('任务资源已交付'), code='ConflictProgress')
 
+    @staticmethod
+    def filter_res_task_qs(queryset, status, search: str, service_ids: list = None):
+        """
+        :search: 任务描述
+        :service_ids: None(不过滤)；空数组返回空，非空数组过滤
+        """
+        lookups = {}
+        if status:
+            lookups['status'] = status
+
+        if search:
+            lookups['task_desc__contains'] = search
+
+        if lookups:
+            queryset = queryset.filter(**lookups)
+
+        if service_ids is not None:
+            if service_ids:
+                queryset = queryset.filter(service_id__in=service_ids)
+            else:
+                queryset = queryset.none()
+
+        return queryset
+
+    def get_perm_task_qs(self, auth_user, status, search: str, service_id: str):
+        """
+        用户用权限的任务
+        """
+        qs = ResourceOrderDeliverTask.objects.select_related('order', 'service')
+
+        if service_id:
+            if auth_user.is_federal_admin():
+                pass
+            elif not ServiceManager.has_perm(user_id=auth_user.id, service_id=service_id):
+                raise exceptions.AccessDenied(message=_('没有指定服务单元的管理员权限'))
+
+            service_ids = [service_id]
+        else:
+            if auth_user.is_federal_admin():
+                service_ids = None  # 所有服务单元
+            else:
+                # 有权限的服务单元
+                service_ids = ServiceManager.get_has_perm_service_ids(user_id=auth_user.id)
+                service_ids = list(service_ids)
+
+        qs = self.filter_res_task_qs(queryset=qs, status=status, search=search, service_ids=service_ids)
+        return qs.order_by('-creation_time')
+
 
 class ResOdDeliverTaskViewSet(CustomGenericViewSet):
     """
@@ -296,8 +346,106 @@ class ResOdDeliverTaskViewSet(CustomGenericViewSet):
 
         return Response(data={'task_id': res_task.id}, status=202)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举管理员云服务器订购任务'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='status',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'{ResourceOrderDeliverTask.Status.choices}'
+            ),
+            openapi.Parameter(
+                name='search',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('任务描述关键字查询')
+            ),
+            openapi.Parameter(
+                name='service_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('服务单元筛选')
+            ),
+        ],
+        responses={
+            200: ''''''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        列举管理员云服务器订购任务
+
+            http code 200 Ok:
+            {
+                "count": 3,
+                "page_num": 1,
+                "page_size": 100,
+                "results": [
+                    {
+                        "id": "u2crcvggpif6dyry4fwrznqog",
+                        "status": "completed",
+                        "status_desc": "",
+                        "progress": "delivered",
+                        "submitter_id": "u270orx13tm4ubmkhr70vtyt1",
+                        "submitter": "user2",
+                        "creation_time": "2024-12-23T06:48:54.066790Z",
+                        "update_time": "2024-12-23T06:48:54.065855Z",
+                        "task_desc": "test task3 desc",
+                        "service": {
+                            "id": "u2axgc6x4o6f5wo2kw8fp8c61",
+                            "name": "test2",
+                            "name_en": "test2_en"
+                        },
+                        "order": {          # maybe null
+                            "id": "2024122306485405471025",
+                            "resource_type": "vm",
+                            "number": 1,
+                            "order_type": "new",
+                            "total_amount": "18771.84"
+                        },
+                        "coupon_id": "241223046803"     # maybe null
+                    }
+                ]
+            }
+            * status（任务状态）:
+                wait: 待执行
+                in-progress: 执行中
+                failed: 失败
+                completed: 完成
+                cancelled: 作废
+
+            * rogress(任务进度):
+                ordered: 已订购        # 创建好订单
+                coupon: 已发资源券
+                paid: 已支付           # 订单已支付
+                partdeliver: 部分交付   # 订购多个资源时，资源部分交付
+                delivered: 已交付      # 订购资源交付完成
+        """
+        status = request.query_params.get('status', None)
+        search = request.query_params.get('search', None)
+        service_id = request.query_params.get('service_id', None)
+
+        try:
+            if status is not None and status not in ResourceOrderDeliverTask.Status.values:
+                raise exceptions.InvalidArgument(message=_('指定的任务的状态无效'))
+
+            qs = ResTaskManager().get_perm_task_qs(
+                auth_user=request.user, status=status, search=search, service_id=service_id)
+            objs = self.paginate_queryset(queryset=qs)
+            slr = self.get_serializer(objs, many=True)
+        except Exception as exc:
+            return self.exception_response(exc)
+
+        return self.get_paginated_response(data=slr.data)
+
     def get_serializer_class(self):
-        if self.action == 'create':
+        if self.action == 'list':
+            return serializers.AdminResTaskSerializer
+        elif self.action == 'create':
             return serializers.ServerCreateTaskSerializer
 
         return Serializer

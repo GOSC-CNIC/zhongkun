@@ -7,9 +7,9 @@ from django.urls import reverse
 from django.utils import timezone as dj_timezone
 from django.conf import settings
 
-from apps.servers.managers import ServicePrivateQuotaManager, ServerSnapshotManager
-from apps.servers.models import ServiceConfig, EVCloudPermsLog
-from apps.servers.models import Flavor, Server, ServerArchive, Disk, ResourceActionLog, ServerSnapshot
+from apps.servers.managers import ServicePrivateQuotaManager
+from apps.servers.models import ServiceConfig
+from apps.servers.models import Flavor, Server
 from utils.test import (
     get_or_create_user, get_or_create_service, get_or_create_organization,
     MyAPITransactionTestCase, MyAPITestCase
@@ -18,14 +18,11 @@ from utils.model import PayType, OwnerType, ResourceType
 from utils.time import iso_utc_to_datetime
 from utils.decimal_utils import quantize_10_2
 from apps.vo.models import VirtualOrganization, VoMember
-# from apps.vo.tests import VoTests
-from apps.order.managers import OrderManager, PriceManager
+from apps.order.managers import OrderManager
 from apps.order.models import Order, Resource
 from apps.order.managers import ServerConfig
 from apps.order.tests import create_price
-from apps.app_wallet.managers import PaymentManager
 from apps.app_wallet.models import PayApp, PayAppService, CashCoupon, PaymentHistory
-from core.adapters.evcloud import EVCloudAdapter
 from core import site_configs_manager
 from apps.servers.apiviews.res_order_deliver_task_views import ResTaskManager
 from apps.servers.models import ResourceOrderDeliverTask
@@ -414,3 +411,189 @@ class ResOrderTaskTests(MyAPITransactionTestCase):
         self.assertEqual(task2.submitter_id, self.user.id)
         self.assertEqual(task2.submitter, self.user.username)
         self.assertEqual(task2.task_desc, '')
+
+    def test_list(self):
+        service2 = ServiceConfig(
+            name='test2', name_en='test2_en', org_data_center=None,
+        )
+        service2.save(force_insert=True)
+
+        coupon1 = CashCoupon(
+            face_value=Decimal('66.6'),
+            balance=Decimal('66.6'),
+            effective_time=dj_timezone.now(),
+            expiration_time=dj_timezone.now(),
+            status=CashCoupon.Status.WAIT.value
+        )
+        coupon1.save(force_insert=True)
+
+        order_instance_config = ServerConfig(
+            vm_cpu=2, vm_ram=2, systemdisk_size=100, public_ip=True,
+            image_id='image_id', image_name='', network_id='network_id', network_name='',
+            azone_id='azone_id', azone_name='azone_name', flavor_id=''
+        )
+        order1, resource_list = OrderManager().create_order(
+            order_type=Order.OrderType.NEW.value,
+            pay_app_service_id='test',
+            service_id='test',
+            service_name='test',
+            resource_type=ResourceType.VM.value,
+            instance_config=order_instance_config,
+            period=2,
+            period_unit=Order.PeriodUnit.MONTH.value,
+            pay_type=PayType.PREPAID.value,
+            user_id=self.user.id,
+            username=self.user.username,
+            vo_id='', vo_name='',
+            owner_type=OwnerType.USER.value
+        )
+
+        task1 = ResTaskManager.create_task(
+            status=ResourceOrderDeliverTask.Status.WAIT.value,
+            status_desc='', progress=ResourceOrderDeliverTask.Progress.ORDERAED.value,
+            order=order1, submitter_id=self.user.id, submitter=self.user.username,
+            service=self.service, task_desc='test task1 desc'
+        )
+        task2 = ResTaskManager.create_task(
+            status=ResourceOrderDeliverTask.Status.FAILED.value,
+            status_desc='', progress=ResourceOrderDeliverTask.Progress.COUPON.value,
+            order=order1, submitter_id=self.user.id, submitter=self.user.username,
+            service=self.service, task_desc='test task2 desc', coupon=coupon1
+        )
+        task3 = ResTaskManager.create_task(
+            status=ResourceOrderDeliverTask.Status.COMPLETED.value,
+            status_desc='', progress=ResourceOrderDeliverTask.Progress.DELIVERED.value,
+            order=order1, submitter_id=self.user2.id, submitter=self.user2.username,
+            service=service2, task_desc='test task3 desc', coupon=coupon1
+        )
+
+        base_url = reverse('servers-api:res-order-deliver-task-list')
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 401)
+        self.client.force_login(self.user)
+
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 100)
+        self.assertEqual(len(response.data['results']), 0)
+
+        # -- test fed admin --
+        self.user.set_fed_admin(is_fed=True)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 3)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 100)
+        self.assertEqual(len(response.data['results']), 3)
+        self.assertEqual(response.data['results'][0]['id'], task3.id)
+        self.assertEqual(response.data['results'][1]['id'], task2.id)
+        self.assertEqual(response.data['results'][2]['id'], task1.id)
+
+        # page，page_size
+        query = parse.urlencode(query={'page': 2, 'page_size': 1})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.data['count'], 3)
+        self.assertEqual(response.data['page_num'], 2)
+        self.assertEqual(response.data['page_size'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['id'], task2.id)
+
+        # query "status"
+        query = parse.urlencode(query={'status': 'test'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        query = parse.urlencode(query={'status': ResourceOrderDeliverTask.Status.FAILED.value})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 100)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['id'], task2.id)
+
+        # query "search"
+        query = parse.urlencode(query={'search': 'task'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 3)
+        self.assertEqual(len(response.data['results']), 3)
+
+        query = parse.urlencode(query={'search': 'task3'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['id'], task3.id)
+
+        # service_id
+        query = parse.urlencode(query={'service_id': 'task'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(len(response.data['results']), 0)
+
+        query = parse.urlencode(query={'service_id': service2.id})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['id'], task3.id)
+
+        # -- test service admin ---
+        self.user.set_fed_admin(is_fed=False)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 100)
+        self.assertEqual(len(response.data['results']), 0)
+
+        # 运维管理员
+        self.service.org_data_center.add_admin_user(self.user, is_ops_user=True)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(len(response.data['results']), 2)
+        self.assertEqual(response.data['results'][0]['id'], task2.id)
+        self.assertEqual(response.data['results'][1]['id'], task1.id)
+
+        # service_id
+        query = parse.urlencode(query={'service_id': 'task'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        query = parse.urlencode(query={'service_id': service2.id})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        query = parse.urlencode(query={'service_id': self.service.id})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(len(response.data['results']), 2)
+
+        service2.users.add(self.user)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 3)
+        self.assertEqual(len(response.data['results']), 3)
+
+        query = parse.urlencode(query={'service_id': service2.id})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['id'], task3.id)
+
+        self.assertKeysIn([
+            'id', 'status', 'status_desc', 'progress', 'submitter_id', 'submitter', 'creation_time',
+            'update_time', 'task_desc', 'service', 'order', 'coupon_id'
+        ], response.data['results'][0])
+        self.assertKeysIn(['id', 'name', 'name_en'], response.data['results'][0]['service'])
+        self.assertKeysIn([
+            'id', 'resource_type', 'number', 'order_type', 'total_amount'
+        ], response.data['results'][0]['order'])
