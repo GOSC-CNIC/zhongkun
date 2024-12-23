@@ -5,6 +5,7 @@ from datetime import datetime
 from django.utils.translation import gettext as _
 from django.db import transaction
 from django.utils import timezone
+from django.db.transaction import TransactionManagementError
 
 from core import errors
 from utils.model import OwnerType
@@ -237,8 +238,12 @@ class CashCouponManager:
                     order_id=order_id
                 )
                 return coupon, coupon_num
-            except Exception as e:
-                num = CashCouponManager.get_date_coupon_count(date=timezone.now().date())
+            except Exception as exc:
+                # 如果此函数是在一个事务中执行的，不再重试，事务中发生错误后是无法执行数据库查询的，会抛出TransactionManagementError
+                try:
+                    num = CashCouponManager.get_date_coupon_count(date=timezone.now().date())
+                except TransactionManagementError as e:
+                    raise exc
                 if num > coupon_num:
                     coupon_num = num
 

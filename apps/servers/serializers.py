@@ -2,6 +2,8 @@ from django.utils.translation import gettext_lazy as _
 from django.db.models import ObjectDoesNotExist
 from rest_framework import serializers
 
+from utils.model import PayType
+
 
 class PeriodSerializer(serializers.Serializer):
     id = serializers.CharField(label=_('ID'))
@@ -170,11 +172,8 @@ class ServerCreateSerializer(serializers.Serializer):
     systemdisk_size = serializers.IntegerField(
         label=_('系统盘大小（GiB）'), min_value=50, max_value=500, required=False, allow_null=True,
         help_text=_('指定云服务期的系统盘大小，单位GiB，只允许50的倍数值，50、100、150等'), default=None)
-    remarks = serializers.CharField(label=_('备注'), required=False, allow_blank=True, max_length=255, default='')
+    remarks = serializers.CharField(label=_('云主机备注'), required=False, allow_blank=True, max_length=255, default='')
     azone_id = serializers.CharField(label=_('可用区'), required=False, allow_null=True, max_length=36, default=None)
-    vo_id = serializers.CharField(
-        label=_('vo组id'), required=False, allow_null=True, max_length=36, default=None,
-        help_text=_('通过vo_id指定为vo组创建云服务器，不能和“username”一起提交'))
     period = serializers.IntegerField(
         label=_('订购时长，单位由period_unit指定'), required=False, allow_null=True, default=None,
         help_text=_('付费模式为预付费时，必须指定订购时长'))
@@ -182,12 +181,26 @@ class ServerCreateSerializer(serializers.Serializer):
         label=_('时长单位，默认（月）'), required=False, allow_null=True, default=None,
         help_text=_('和时长'))
     number = serializers.IntegerField(label=_('订购资源数量'), required=False, allow_null=True, default=1)
+    vo_id = serializers.CharField(
+        label=_('vo组id'), required=False, allow_null=True, max_length=36, default=None,
+        help_text=_('通过vo_id指定为vo组创建云服务器，不能和“username”一起提交'))
     username = serializers.CharField(
         label=_('用户名'), required=False, allow_null=True, max_length=36, default=None,
         help_text=_('通过“username”指定为用户创建订购云主机，不能和“vo_id”一起提交，管理员参数'))
 
     def validate(self, attrs):
         return attrs
+
+
+class ServerCreateTaskSerializer(ServerCreateSerializer):
+    """
+    管理员云主机订购任务序列化器
+    """
+    pay_type = serializers.CharField(
+        label=_('付费模式'), required=True, max_length=16, help_text=f'只允许预付费模式，{PayType.PREPAID.value}')
+    task_desc = serializers.CharField(
+        label=_('任务描述'), required=False, allow_blank=True, max_length=255, default='',
+    help_text=_('管理员提交此云主机订购任务的描述信息'))
 
 
 class ServerArchiveSerializer(ServerBaseSerializer):

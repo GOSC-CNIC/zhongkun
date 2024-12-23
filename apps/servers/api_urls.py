@@ -2,7 +2,8 @@ from django.urls import path, include
 from rest_framework.routers import SimpleRouter
 
 from .apiviews import (
-    flavor_views, views, disk_views, server_views, service_views, snapshot_views, price_views, stats_views
+    flavor_views, views, disk_views, server_views, service_views, snapshot_views, price_views, stats_views,
+    res_order_deliver_task_views
 )
 
 
@@ -29,6 +30,8 @@ no_slash_router.register(r'app_servers/snapshot', snapshot_views.ServerSnapshotV
 no_slash_router.register(r'app_servers/describe-price/snapshot', price_views.SnapshotPriceViewSet,
                          basename='snapshot-describe-price')
 no_slash_router.register(r'app_servers/stats', stats_views.StatsViewSet, basename='stats')
+no_slash_router.register(r'app_servers/res-order-deliver/task',
+                         res_order_deliver_task_views.ResOdDeliverTaskViewSet, basename='res-order-deliver-task')
 
 
 urlpatterns = [

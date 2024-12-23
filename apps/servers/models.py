@@ -17,6 +17,7 @@ from utils import rand_utils
 from apps.vo.models import VirtualOrganization
 from apps.users.models import UserProfile as User
 from core.adapters.outputs import ImageSysType, ImageSysArch, ImageSysRelease
+from apps.app_wallet.models import CashCoupon
 
 
 def short_uuid1_l25():
@@ -1325,3 +1326,54 @@ class EVCloudPermsLog(UuidModel):
             return f'EVCloudPermsLog({self.server.ipv4}, {self.server.image})[{self.get_status_display()}]'
 
         return f'EVCloudPermsLog({self.id})[{self.get_status_display()}]'
+
+
+class ResourceOrderDeliverTask(UuidModel):
+    """
+    管理员订购、发券、支付、交付资源任务
+    """
+    class Status(models.TextChoices):
+        WAIT = 'wait', _('待执行')
+        IN_PROGRESS = 'in-progress', _('执行中')
+        FAILED = 'failed', _('失败')
+        COMPLETED = 'completed', _('完成')
+        CANCELLED = 'cancelled', _('作废')
+
+    class Progress(models.TextChoices):
+        ORDERAED = 'ordered', _('已订购')
+        COUPON = 'coupon', _('已发资源券')
+        PAID = 'paid', _('已支付')
+        PART_DELIVER = 'partdeliver', _('部分交付')
+        DELIVERED = 'delivered', _('已交付')
+
+    status = models.CharField(verbose_name=_('状态'), max_length=16, choices=Status.choices, default=Status.WAIT.value)
+    status_desc = models.CharField(verbose_name=_('状态描述'), max_length=255, blank=True, default='')
+    progress = models.CharField(verbose_name=_('任务进度'), max_length=16, choices=Progress.choices)
+    order = models.ForeignKey(
+        verbose_name=_('订单'), to='order.Order', related_name='+', on_delete=models.DO_NOTHING,
+        db_constraint=False, db_index=True, null=True, blank=True, default=None)
+    coupon = models.ForeignKey(
+        verbose_name=_('资源券'), to=CashCoupon, related_name='+', on_delete=models.DO_NOTHING,
+        db_constraint=False, db_index=True, null=True, blank=True, default=None)
+    submitter_id = models.CharField(verbose_name=_('提交人id'), max_length=36)
+    submitter = models.CharField(verbose_name=_('提交人'), max_length=128)
+    service = models.ForeignKey(
+        verbose_name=_('服务单元'), to=ServiceConfig, related_name='+', on_delete=models.DO_NOTHING)
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+    update_time = models.DateTimeField(verbose_name=_('更新时间'))
+    task_desc = models.CharField(max_length=255, blank=True, default='', verbose_name=_('任务描述'))
+
+    class Meta:
+        db_table = 'servers_res_od_deliver_task'
+        ordering = ['-creation_time']
+        verbose_name = _('资源订购交付任务')
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return f'Task({self.get_progress_display()})[{self.get_status_display()}]'
+
+    def set_status(self, status, status_desc: str, update_time):
+        self.status = status
+        self.status_desc = status_desc
+        self.update_time = update_time
+        self.save(update_fields=['status', 'status_desc', 'update_time'])
