@@ -64,7 +64,8 @@ class KunYuanServiceTests(MyAPITransactionTestCase):
         self.assertKeysIn(
             ['id', 'name', 'name_en', 'longitude', 'latitude', 'sort_weight', 'organization'],
             response.data['results'][0]['org_data_center'])
-        self.assertKeysIn(['id', 'name', 'name_en'], response.data['results'][0]['org_data_center']['organization'])
+        self.assertKeysIn(['id', 'name', 'name_en', 'sort_weight'],
+                          response.data['results'][0]['org_data_center']['organization'])
         self.assertEqual(response.data['results'][0]['id'], kunyuan1.id)
         self.assertEqual(response.data['results'][1]['id'], kunyuan2.id)
 

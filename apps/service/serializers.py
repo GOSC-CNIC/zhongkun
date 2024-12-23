@@ -20,7 +20,8 @@ class ODCSimpleSerializer(serializers.Serializer):
         if organization is None:
             return None
 
-        return {'id': organization.id, 'name': organization.name, 'name_en': organization.name_en}
+        return {'id': organization.id, 'name': organization.name, 'name_en': organization.name_en,
+                'sort_weight': organization.sort_weight}
 
 
 class OrgDataCenterSerializer(ODCSimpleSerializer):
@@ -133,7 +134,8 @@ class KunYuanODCSerializer(serializers.Serializer):
         if organization is None:
             return None
 
-        return {'id': organization.id, 'name': organization.name, 'name_en': organization.name_en}
+        return {'id': organization.id, 'name': organization.name, 'name_en': organization.name_en,
+                'sort_weight': organization.sort_weight}
 
 
 class KunYuanServiceSerializer(serializers.Serializer):

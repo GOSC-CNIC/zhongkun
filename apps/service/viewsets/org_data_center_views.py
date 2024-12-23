@@ -734,7 +734,8 @@ class OrgDataCenterViewSet(NormalGenericViewSet):
                       "organization":  {         # 机构
                           "id": "jzddosfo44z0gc1c4hdk980q9",
                           "name": "obj",
-                          "name_en": "xxx"
+                          "name_en": "xxx",
+                          "sort_weight": -1
                         },
                       "longitude": 0,
                       "latitude": 0,
