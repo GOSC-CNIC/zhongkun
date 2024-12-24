@@ -132,6 +132,9 @@ class Order(models.Model):
         db_table = 'order'
         ordering = ['-creation_time']
 
+    def __str__(self):
+        return f'order({self.id})[ {self.build_subject()} ]'
+
     def __repr__(self):
         return f'order[{self.id}]'
 
