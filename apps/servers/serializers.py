@@ -1,8 +1,9 @@
 from django.utils.translation import gettext_lazy as _
-from django.db.models import ObjectDoesNotExist
 from rest_framework import serializers
 
 from utils.model import PayType
+from apps.app_wallet.trade_serializers import CashCouponSerializer
+from apps.order.serializers import OrderSerializer
 
 
 class PeriodSerializer(serializers.Serializer):
@@ -488,3 +489,8 @@ class AdminResTaskSerializer(serializers.Serializer):
             'order_type': od.order_type,
             'total_amount': serializers.DecimalField(max_digits=10, decimal_places=2).to_representation(od.total_amount)
         }
+
+
+class AdminResTaskDetailSerializer(AdminResTaskSerializer):
+    coupon = CashCouponSerializer(label=_('资源券'), allow_null=True)
+    order = OrderSerializer(label=_('订单'), allow_null=True)

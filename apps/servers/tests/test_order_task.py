@@ -1,7 +1,6 @@
 from time import sleep as time_sleep
 from urllib import parse
 from decimal import Decimal
-from datetime import datetime, timedelta, timezone
 
 from django.urls import reverse
 from django.utils import timezone as dj_timezone
@@ -12,14 +11,12 @@ from apps.servers.models import ServiceConfig
 from apps.servers.models import Flavor, Server
 from utils.test import (
     get_or_create_user, get_or_create_service, get_or_create_organization,
-    MyAPITransactionTestCase, MyAPITestCase
+    MyAPITransactionTestCase
 )
 from utils.model import PayType, OwnerType, ResourceType
-from utils.time import iso_utc_to_datetime
-from utils.decimal_utils import quantize_10_2
-from apps.vo.models import VirtualOrganization, VoMember
+from apps.vo.models import VirtualOrganization
 from apps.order.managers import OrderManager
-from apps.order.models import Order, Resource
+from apps.order.models import Order
 from apps.order.managers import ServerConfig
 from apps.order.tests import create_price
 from apps.app_wallet.models import PayApp, PayAppService, CashCoupon, PaymentHistory
@@ -28,7 +25,6 @@ from apps.servers.apiviews.res_order_deliver_task_views import ResTaskManager
 from apps.servers.models import ResourceOrderDeliverTask
 
 
-utc = timezone.utc
 PAY_APP_ID = site_configs_manager.get_pay_app_id(settings)
 
 
@@ -597,3 +593,85 @@ class ResOrderTaskTests(MyAPITransactionTestCase):
         self.assertKeysIn([
             'id', 'resource_type', 'number', 'order_type', 'total_amount'
         ], response.data['results'][0]['order'])
+
+    def test_detail(self):
+        order_instance_config = ServerConfig(
+            vm_cpu=2, vm_ram=2, systemdisk_size=100, public_ip=True,
+            image_id='image_id', image_name='', network_id='network_id', network_name='',
+            azone_id='azone_id', azone_name='azone_name', flavor_id=''
+        )
+        order1, resource_list = OrderManager().create_order(
+            order_type=Order.OrderType.NEW.value,
+            pay_app_service_id=self.app_service1.id,
+            service_id=self.service.id,
+            service_name=self.service.name,
+            resource_type=ResourceType.VM.value,
+            instance_config=order_instance_config,
+            period=2,
+            period_unit=Order.PeriodUnit.MONTH.value,
+            pay_type=PayType.PREPAID.value,
+            user_id=self.user.id,
+            username=self.user.username,
+            vo_id=self.vo.id, vo_name=self.vo.name,
+            owner_type=OwnerType.VO.value
+        )
+
+        task1 = ResTaskManager.create_task(
+            status=ResourceOrderDeliverTask.Status.COMPLETED.value,
+            status_desc='', progress=ResourceOrderDeliverTask.Progress.DELIVERED.value,
+            order=order1, submitter_id=self.user2.id, submitter=self.user2.username,
+            service=self.service, task_desc='test task3 desc', coupon=None
+        )
+
+        task_url = reverse('servers-api:res-order-deliver-task-detail', kwargs={'id': task1.id})
+        response = self.client.get(task_url)
+        self.assertEqual(response.status_code, 401)
+        self.client.force_login(self.user)
+
+        task_url = reverse('servers-api:res-order-deliver-task-detail', kwargs={'id': 'test'})
+        response = self.client.get(task_url)
+        self.assertEqual(response.status_code, 404)
+
+        task_url = reverse('servers-api:res-order-deliver-task-detail', kwargs={'id': task1.id})
+        response = self.client.get(task_url)
+        self.assertEqual(response.status_code, 403)
+
+        # -- test fed admin --
+        self.user.set_fed_admin(is_fed=True)
+        response = self.client.get(task_url)
+        self.assertEqual(response.status_code, 200)
+
+        self.user.set_fed_admin(is_fed=False)
+        response = self.client.get(task_url)
+        self.assertEqual(response.status_code, 403)
+
+        # --- admin ---
+        coupon1 = ResTaskManager.create_coupon_for_order(order=order1, issuer=self.user.username)
+        task1.coupon = coupon1
+        task1.save(update_fields=['coupon'])
+
+        self.service.org_data_center.add_admin_user(self.user, is_ops_user=True)
+        response = self.client.get(task_url)
+        self.assertEqual(response.status_code, 200)
+
+        self.assertKeysIn(['id'], response.data)
+        self.assertKeysIn([
+            'id', 'status', 'status_desc', 'progress', 'submitter_id', 'submitter', 'creation_time',
+            'update_time', 'task_desc', 'service', 'order', 'coupon_id', 'coupon'
+        ], response.data)
+        self.assertKeysIn(['id', 'name', 'name_en'], response.data['service'])
+        self.assertKeysIn([
+            "id", "order_type", "status", "total_amount", "pay_amount",
+            "service_id", "service_name", "resource_type", "instance_config",
+            "period", "period_unit", "start_time", "end_time",
+            "payment_time", "pay_type", "creation_time", "user_id", "username", 'number',
+            "vo_id", "vo_name", "owner_type", "cancelled_time", "app_service_id", 'trading_status'
+        ], response.data['order'])
+        self.assertKeysIn([
+            "id", "face_value", "creation_time", "effective_time", "expiration_time",
+            "balance", "status", "granted_time", "issuer", 'use_scope', 'order_id',
+            "owner_type", "app_service", "user", "vo", "activity", 'remark'], response.data['coupon']
+        )
+        self.assertKeysIn([
+            "id", "name", "name_en", "service_id", "category"], response.data['coupon']['app_service']
+        )

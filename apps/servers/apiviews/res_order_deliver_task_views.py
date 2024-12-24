@@ -444,10 +444,138 @@ class ResOdDeliverTaskViewSet(CustomGenericViewSet):
 
         return self.get_paginated_response(data=slr.data)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('管理员云服务器订购任务详情'),
+        responses={
+            200: ''' '''
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        """
+        管理员云服务器订购任务详情
+
+            http code 200 Ok:
+            {
+                "id": "7yh1hdjqojd8fs14od2siqwyq",
+                "status": "completed",
+                "status_desc": "",
+                "progress": "delivered",
+                "submitter_id": "7ye4fzoatsnyfqi4bzxmw8n35",
+                "submitter": "user2",
+                "creation_time": "2024-12-24T02:17:47.261191Z",
+                "update_time": "2024-12-24T02:17:47.260453Z",
+                "task_desc": "test task3 desc",
+                "service": {
+                    "id": "7yewsmder5ettnowipngvkkta",
+                    "name": "test",
+                    "name_en": "test_en"
+                },
+                "order": {
+                    "id": "2024122402174725672027",
+                    "order_type": "new",
+                    "status": "unpaid",
+                    "total_amount": "18771.84",
+                    "pay_amount": "0.00",
+                    "payable_amount": "12389.41",
+                    "balance_amount": "0.00",
+                    "coupon_amount": "0.00",
+                    "service_id": "7yewsmder5ettnowipngvkkta",
+                    "service_name": "test",
+                    "resource_type": "vm",
+                    "instance_config": {
+                        "vm_cpu": 2,
+                        "vm_ram": 2,
+                        "vm_systemdisk_size": 100,
+                        "vm_public_ip": true,
+                        "vm_image_id": "image_id",
+                        "vm_image_name": "",
+                        "vm_network_id": "network_id",
+                        "vm_network_name": "",
+                        "vm_azone_id": "azone_id",
+                        "vm_azone_name": "azone_name",
+                        "vm_flavor_id": ""
+                    },
+                    "period": 2,
+                    "period_unit": "month",
+                    "start_time": null,
+                    "end_time": null,
+                    "payment_time": null,
+                    "pay_type": "prepaid",
+                    "creation_time": "2024-12-24T02:17:47.257327Z",
+                    "user_id": "7ydwpfxk669tggu1dscxues30",
+                    "username": "test",
+                    "vo_id": "7yf5jnr4ndyk5fdvb6g44n1qv",
+                    "vo_name": "test vo",
+                    "owner_type": "vo",
+                    "cancelled_time": null,
+                    "app_service_id": "123",
+                    "trading_status": "opening",
+                    "number": 1
+                },
+                "coupon_id": "241224000001",
+                "coupon": {
+                    "id": "241224000001",
+                    "face_value": "12389.41",
+                    "creation_time": "2024-12-24T02:17:47.380474Z",
+                    "effective_time": "2024-12-24T02:17:47.378205Z",
+                    "expiration_time": "2025-01-23T02:17:47.378209Z",
+                    "balance": "12389.41",
+                    "status": "available",
+                    "granted_time": "2024-12-24T02:17:47.383615Z",
+                    "owner_type": "vo",
+                    "app_service": {
+                        "id": "123",
+                        "name": "service1",
+                        "name_en": "",
+                        "category": "vms-server",
+                        "service_id": ""
+                    },
+                    "user": {
+                        "id": "7ydwpfxk669tggu1dscxues30",
+                        "username": "test"
+                    },
+                    "vo": {
+                        "id": "7yf5jnr4ndyk5fdvb6g44n1qv",
+                        "name": "test vo"
+                    },
+                    "activity": null,
+                    "issuer": "test",
+                    "remark": "为指定订单发放的券",
+                    "use_scope": "order",
+                    "order_id": "2024122402174725672027"
+                }
+            }
+        """
+        try:
+            task_id = kwargs[self.lookup_field]
+            task = ResourceOrderDeliverTask.objects.select_related(
+                'order', 'service', 'coupon__user', 'coupon__vo', 'coupon__app_service'
+            ).filter(id=task_id).first()
+            if task is None:
+                raise exceptions.TargetNotExist(message=_('任务不存在'))
+
+            if not self.has_perm_of_task(auth_user=request.user, task=task):
+                raise exceptions.AccessDenied(message=_('没有任务的管理权限'))
+
+            return Response(data=self.get_serializer(task).data)
+        except Exception as exc:
+            return self.exception_response(exc)
+
+    @staticmethod
+    def has_perm_of_task(auth_user, task):
+        if auth_user.is_federal_admin():
+            return True
+        elif ServiceManager.has_perm(user_id=auth_user.id, service_id=task.service_id):
+            return True
+
+        return False
+
     def get_serializer_class(self):
         if self.action == 'list':
             return serializers.AdminResTaskSerializer
         elif self.action == 'create_server':
             return serializers.ServerCreateTaskSerializer
+        elif self.action == 'retrieve':
+            return serializers.AdminResTaskDetailSerializer
 
         return Serializer
