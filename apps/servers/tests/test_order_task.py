@@ -675,3 +675,98 @@ class ResOrderTaskTests(MyAPITransactionTestCase):
         self.assertKeysIn([
             "id", "name", "name_en", "service_id", "category"], response.data['coupon']['app_service']
         )
+
+    def test_retry(self):
+        # 替换资源交付方法，模拟资源交付，避免真实去交付资源
+        ResTaskManager.deliver_task_order = new_deliver_task_order
+
+        # 配置无效，兜底 避免成功创建资源
+        order_instance_config = ServerConfig(
+            vm_cpu=2, vm_ram=2, systemdisk_size=100, public_ip=True,
+            image_id='image_id', image_name='', network_id='network_id', network_name='',
+            azone_id='azone_id', azone_name='azone_name', flavor_id=''
+        )
+        order1, resource_list = OrderManager().create_order(
+            order_type=Order.OrderType.RENEWAL.value,
+            pay_app_service_id=self.app_service1.id,
+            service_id=self.service.id,
+            service_name=self.service.name,
+            resource_type=ResourceType.VM.value,
+            instance_config=order_instance_config,
+            period=1,
+            period_unit=Order.PeriodUnit.MONTH.value,
+            pay_type=PayType.PREPAID.value,
+            user_id=self.user.id,
+            username=self.user.username,
+            vo_id=self.vo.id, vo_name=self.vo.name,
+            owner_type=OwnerType.VO.value
+        )
+
+        task1 = ResTaskManager.create_task(
+            status=ResourceOrderDeliverTask.Status.COMPLETED.value,
+            status_desc='', progress=ResourceOrderDeliverTask.Progress.ORDERAED.value,
+            order=order1, submitter_id=self.user2.id, submitter=self.user2.username,
+            service=self.service, task_desc='test task3 desc', coupon=None
+        )
+
+        task_url = reverse('servers-api:res-order-deliver-task-retry', kwargs={'id': task1.id})
+        response = self.client.post(task_url)
+        self.assertEqual(response.status_code, 401)
+        self.client.force_login(self.user)
+
+        task_url = reverse('servers-api:res-order-deliver-task-retry', kwargs={'id': 'test'})
+        response = self.client.post(task_url)
+        self.assertEqual(response.status_code, 404)
+
+        task_url = reverse('servers-api:res-order-deliver-task-retry', kwargs={'id': task1.id})
+        response = self.client.post(task_url)
+        self.assertEqual(response.status_code, 403)
+
+        # -- test fed admin --
+        self.user.set_fed_admin(is_fed=True)
+        response = self.client.post(task_url)
+        self.assertErrorResponse(status_code=409, code='ConflictStatus', response=response)
+
+        task1.status = ResourceOrderDeliverTask.Status.CANCELLED.value
+        task1.save(update_fields=['status'])
+        response = self.client.post(task_url)
+        self.assertErrorResponse(status_code=409, code='ConflictStatus', response=response)
+
+        task1.status = ResourceOrderDeliverTask.Status.IN_PROGRESS.value
+        task1.save(update_fields=['status'])
+        response = self.client.post(task_url)
+        self.assertErrorResponse(status_code=409, code='ConflictStatus', response=response)
+
+        self.user.set_fed_admin(is_fed=False)
+        response = self.client.post(task_url)
+        self.assertEqual(response.status_code, 403)
+
+        # --- admin ---
+        self.service.org_data_center.add_admin_user(self.user, is_ops_user=True)
+
+        task1.status = ResourceOrderDeliverTask.Status.WAIT.value
+        task1.save(update_fields=['status'])
+
+        self.assertEqual(Order.objects.count(), 1)
+        self.assertEqual(CashCoupon.objects.count(), 0)
+        self.assertEqual(PaymentHistory.objects.count(), 0)
+        order1.refresh_from_db()
+        self.assertEqual(order1.status, Order.Status.UNPAID.value)
+        task1.refresh_from_db()
+        self.assertEqual(task1.status, ResourceOrderDeliverTask.Status.WAIT.value)
+
+        # ok
+        response = self.client.post(task_url)
+        self.assertEqual(response.status_code, 202)
+
+        # 发券、支付
+        time_sleep(2)
+        self.assertEqual(Order.objects.count(), 1)
+        self.assertEqual(CashCoupon.objects.count(), 1)
+        self.assertEqual(PaymentHistory.objects.count(), 1)
+        order1.refresh_from_db()
+        self.assertEqual(order1.status, Order.Status.PAID.value)
+        task1.refresh_from_db()
+        self.assertEqual(task1.status, ResourceOrderDeliverTask.Status.COMPLETED.value)
+        self.assertEqual(task1.progress, ResourceOrderDeliverTask.Progress.DELIVERED.value)
+        self.assertEqual(task1.coupon_id, CashCoupon.objects.first().id)

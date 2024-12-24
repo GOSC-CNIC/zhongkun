@@ -9,7 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.serializers import Serializer
 from rest_framework.decorators import action
-from drf_yasg.utils import swagger_auto_schema
+from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
 from core import errors as exceptions
@@ -560,6 +560,41 @@ class ResOdDeliverTaskViewSet(CustomGenericViewSet):
             return Response(data=self.get_serializer(task).data)
         except Exception as exc:
             return self.exception_response(exc)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('进度未完成任务重试'),
+        request_body=no_body,
+        responses={
+            202: ''''''
+        }
+    )
+    @action(methods=['post'], detail=True, url_path='retry', url_name='retry')
+    def retry_task(self, request, *args, **kwargs):
+        """
+        进度未完成任务重试
+
+            http code 202:
+            {
+                "task_id": "xxx"
+            }
+        """
+        try:
+            task_id = kwargs[self.lookup_field]
+            task = ResourceOrderDeliverTask.objects.filter(id=task_id).first()
+            if task is None:
+                raise exceptions.TargetNotExist(message=_('任务不存在'))
+
+            if not self.has_perm_of_task(auth_user=request.user, task=task):
+                raise exceptions.AccessDenied(message=_('没有任务的管理权限'))
+
+            ResTaskManager.check_pre_handle_task(task=task)
+        except Exception as exc:
+            return self.exception_response(exc)
+
+        # 提交异步任务
+        ResTaskManager().async_do_task_submit(res_task=task, auth_user=request.user)
+
+        return Response(data={'task_id': task.id}, status=202)
 
     @staticmethod
     def has_perm_of_task(auth_user, task):
