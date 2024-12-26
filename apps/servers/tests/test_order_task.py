@@ -1,6 +1,7 @@
 from time import sleep as time_sleep
 from urllib import parse
 from decimal import Decimal
+from datetime import timedelta
 
 from django.urls import reverse
 from django.utils import timezone as dj_timezone
@@ -770,3 +771,83 @@ class ResOrderTaskTests(MyAPITransactionTestCase):
         self.assertEqual(task1.status, ResourceOrderDeliverTask.Status.COMPLETED.value)
         self.assertEqual(task1.progress, ResourceOrderDeliverTask.Progress.DELIVERED.value)
         self.assertEqual(task1.coupon_id, CashCoupon.objects.first().id)
+
+    def test_cancel(self):
+        # 配置无效，兜底 避免成功创建资源
+        order_instance_config = ServerConfig(
+            vm_cpu=2, vm_ram=2, systemdisk_size=100, public_ip=True,
+            image_id='image_id', image_name='', network_id='network_id', network_name='',
+            azone_id='azone_id', azone_name='azone_name', flavor_id=''
+        )
+        order1, resource_list = OrderManager().create_order(
+            order_type=Order.OrderType.RENEWAL.value,
+            pay_app_service_id=self.app_service1.id,
+            service_id=self.service.id,
+            service_name=self.service.name,
+            resource_type=ResourceType.VM.value,
+            instance_config=order_instance_config,
+            period=1,
+            period_unit=Order.PeriodUnit.MONTH.value,
+            pay_type=PayType.PREPAID.value,
+            user_id=self.user.id,
+            username=self.user.username,
+            vo_id=self.vo.id, vo_name=self.vo.name,
+            owner_type=OwnerType.VO.value
+        )
+
+        task1 = ResTaskManager.create_task(
+            status=ResourceOrderDeliverTask.Status.COMPLETED.value,
+            status_desc='', progress=ResourceOrderDeliverTask.Progress.ORDERAED.value,
+            order=order1, submitter_id=self.user2.id, submitter=self.user2.username,
+            service=self.service, task_desc='test task3 desc', coupon=None
+        )
+        coupon1 = ResTaskManager.create_coupon_for_order(order=order1, issuer=self.user.username)
+        task1.coupon = coupon1
+        task1.save(update_fields=['coupon'])
+
+        task_url = reverse('servers-api:res-order-deliver-task-cancel', kwargs={'id': task1.id})
+        response = self.client.post(task_url)
+        self.assertEqual(response.status_code, 401)
+        self.client.force_login(self.user)
+
+        task_url = reverse('servers-api:res-order-deliver-task-cancel', kwargs={'id': 'test'})
+        response = self.client.post(task_url)
+        self.assertEqual(response.status_code, 404)
+
+        task_url = reverse('servers-api:res-order-deliver-task-cancel', kwargs={'id': task1.id})
+        response = self.client.post(task_url)
+        self.assertEqual(response.status_code, 403)
+
+        # -- test fed admin --
+        self.user.set_fed_admin(is_fed=True)
+        response = self.client.post(task_url)
+        self.assertErrorResponse(status_code=409, code='ConflictStatus', response=response)
+
+        task1.status = ResourceOrderDeliverTask.Status.IN_PROGRESS.value
+        task1.save(update_fields=['status'])
+        response = self.client.post(task_url)
+        self.assertErrorResponse(status_code=409, code='ConflictStatus', response=response)
+
+        self.user.set_fed_admin(is_fed=False)
+        response = self.client.post(task_url)
+        self.assertEqual(response.status_code, 403)
+
+        # --- admin ---
+        self.service.org_data_center.add_admin_user(self.user, is_ops_user=True)
+
+        # 任务状态 “处理中”
+        response = self.client.post(task_url)
+        self.assertErrorResponse(status_code=409, code='ConflictStatus', response=response)
+
+        # 任务状态 “处理中”，距当前时间超过2分钟后可作废
+        task1.update_time -= timedelta(minutes=2)
+        task1.save(update_fields=['update_time'])
+
+        response = self.client.post(task_url)
+        self.assertEqual(response.status_code, 200)
+        order1.refresh_from_db()
+        self.assertTrue(order1.deleted)
+        coupon1.refresh_from_db()
+        self.assertEqual(coupon1.status, CashCoupon.Status.DELETED.value)
+        task1.refresh_from_db()
+        self.assertEqual(task1.status, ResourceOrderDeliverTask.Status.CANCELLED.value)

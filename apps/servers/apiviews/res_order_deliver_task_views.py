@@ -596,6 +596,63 @@ class ResOdDeliverTaskViewSet(CustomGenericViewSet):
 
         return Response(data={'task_id': task.id}, status=202)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('作废任务'),
+        request_body=no_body,
+        responses={
+            202: ''''''
+        }
+    )
+    @action(methods=['post'], detail=True, url_path='cancel', url_name='cancel')
+    def cancel_task(self, request, *args, **kwargs):
+        """
+        作废未完成的任务，任务进度不回滚
+
+            * 已发的资源券和关联的订单 会被删除（软删除，用户不可见），即未使用的券不再可使用，未交付的资源不再交付；
+              已支付的订单不会退款，已交付的资源不会删除
+
+            http code 200:
+            {
+                "task_id": "xxx"
+            }
+        """
+        try:
+            with transaction.atomic():
+                task_id = kwargs[self.lookup_field]
+                task = ResourceOrderDeliverTask.objects.select_related('order', 'coupon').filter(id=task_id).first()
+                if task is None:
+                    raise exceptions.TargetNotExist(message=_('任务不存在'))
+
+                if not self.has_perm_of_task(auth_user=request.user, task=task):
+                    raise exceptions.AccessDenied(message=_('没有任务的管理权限'))
+
+                if task.status == ResourceOrderDeliverTask.Status.COMPLETED.value:
+                    raise exceptions.ConflictError(message=_('任务已完成'), code='ConflictStatus')
+                elif task.status == ResourceOrderDeliverTask.Status.IN_PROGRESS.value:
+                    # 更新时间距现在时间超过几分钟，判定任务“处理中”的状态大概率无效，允许作废
+                    if not task.update_time or (dj_timezone.now() - task.update_time) < timedelta(minutes=2):
+                        raise exceptions.ConflictError(message=_('任务正在处理中'), code='ConflictStatus')
+
+                order = task.order
+                coupon = task.coupon
+                if order:
+                    order.deleted = True
+                    order.save(update_fields=['deleted'])
+
+                if coupon:
+                    coupon.status = CashCoupon.Status.DELETED.value
+                    coupon.save(update_fields=['status'])
+
+                task.set_status(
+                    status=ResourceOrderDeliverTask.Status.CANCELLED.value,
+                    status_desc=_('管理员 %(value)s 作废任务') % {'value': request.user.username},
+                    update_time=dj_timezone.now()
+                )
+        except Exception as exc:
+            return self.exception_response(exc)
+
+        return Response(data={'task_id': task.id}, status=200)
+
     @staticmethod
     def has_perm_of_task(auth_user, task):
         if auth_user.is_federal_admin():
