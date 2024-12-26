@@ -22,7 +22,7 @@ from apps.servers.handlers.server_handler import ServerHandler
 from apps.servers import serializers
 from apps.servers.models import ResourceOrderDeliverTask
 from apps.servers.managers import ServiceManager
-from apps.order.models import Order
+from apps.order.models import Order, Resource
 from apps.order.managers import OrderPaymentManager, OrderManager
 from apps.order.deliver_resource import OrderResourceDeliverer
 from apps.vo.managers import VoManager
@@ -510,7 +510,19 @@ class ResOdDeliverTaskViewSet(CustomGenericViewSet):
                     "cancelled_time": null,
                     "app_service_id": "123",
                     "trading_status": "opening",
-                    "number": 1
+                    "number": 1,
+                    "resources": [
+                    {
+                      "id": "81d9aad0-a03b-11ec-ba16-c8009fe2eb10",
+                      "order_id": "2022031006103240183511",
+                      "resource_type": "vm",
+                      "instance_id": "test",
+                      "instance_status": "wait",
+                      "desc": "xxx",    # 资源交付结果描述
+                      "delivered_time": "2022-03-10T06:10:32.478101Z",
+                      "instance_delete_time": "2022-03-10T06:10:32.478101Z"     # 不为null时，表示对应资源实例删除时间
+                    }
+                  ]
                 },
                 "coupon_id": "241224000001",
                 "coupon": {
@@ -556,6 +568,10 @@ class ResOdDeliverTaskViewSet(CustomGenericViewSet):
 
             if not self.has_perm_of_task(auth_user=request.user, task=task):
                 raise exceptions.AccessDenied(message=_('没有任务的管理权限'))
+
+            if task.order:
+                resources = Resource.objects.filter(order_id=task.order.id).all()
+                task.order.resources = list(resources)
 
             return Response(data=self.get_serializer(task).data)
         except Exception as exc:

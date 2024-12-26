@@ -668,6 +668,12 @@ class ResOrderTaskTests(MyAPITransactionTestCase):
             "payment_time", "pay_type", "creation_time", "user_id", "username", 'number',
             "vo_id", "vo_name", "owner_type", "cancelled_time", "app_service_id", 'trading_status'
         ], response.data['order'])
+        self.assertIsInstance(response.data['order']['resources'], list)
+        self.assertKeysIn([
+            "id", "order_id", "resource_type", "instance_id", "instance_status", 'delivered_time',
+            'desc', 'instance_delete_time'
+        ], response.data['order']['resources'][0]
+        )
         self.assertKeysIn([
             "id", "face_value", "creation_time", "effective_time", "expiration_time",
             "balance", "status", "granted_time", "issuer", 'use_scope', 'order_id',

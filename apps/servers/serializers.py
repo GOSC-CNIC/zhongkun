@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 from utils.model import PayType
 from apps.app_wallet.trade_serializers import CashCouponSerializer
-from apps.order.serializers import OrderSerializer
+from apps.order.serializers import OrderDetailSerializer
 
 
 class PeriodSerializer(serializers.Serializer):
@@ -493,4 +493,4 @@ class AdminResTaskSerializer(serializers.Serializer):
 
 class AdminResTaskDetailSerializer(AdminResTaskSerializer):
     coupon = CashCouponSerializer(label=_('资源券'), allow_null=True)
-    order = OrderSerializer(label=_('订单'), allow_null=True)
+    order = OrderDetailSerializer(label=_('订单'), allow_null=True)
