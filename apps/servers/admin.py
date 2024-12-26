@@ -12,7 +12,7 @@ from utils.model import NoDeleteSelectModelAdmin, PayType, BaseModelAdmin
 from apps.servers.forms import VmsProviderForm, DiskAdminForm
 from apps.servers.models import (
     Server, Flavor, ServerArchive, Disk, ResourceActionLog, DiskChangeLog,
-    ServiceConfig, ServicePrivateQuota, ServerSnapshot, EVCloudPermsLog
+    ServiceConfig, ServicePrivateQuota, ServerSnapshot, EVCloudPermsLog, ResourceOrderDeliverTask
 )
 from apps.servers.managers import ServiceManager
 from apps.servers.tasks import update_services_server_count
@@ -700,6 +700,17 @@ class EVCloudPermsLogAdmin(NoDeleteSelectModelAdmin):
     list_filter = ('status',)
     raw_id_fields = ('server',)
     search_fields = ['remarks', 'server__ipv4']
+
+
+@admin.register(ResourceOrderDeliverTask)
+class ResourceOrderDeliverTaskAdmin(NoDeleteSelectModelAdmin):
+    list_display_links = ('id',)
+    list_display = ('id', 'service', 'status', 'status_desc', 'progress', 'order', 'coupon', 'submitter',
+                    'creation_time', 'update_time', 'task_desc')
+    list_select_related = ('service', 'order', 'coupon')
+    list_filter = ('status', 'progress', ServerServiceFilter)
+    raw_id_fields = ('service', 'order', 'coupon')
+    search_fields = ['status_desc', 'submitter', 'order__id', 'coupon__id']
 
 
 # @admin.register(ServiceShareQuota)

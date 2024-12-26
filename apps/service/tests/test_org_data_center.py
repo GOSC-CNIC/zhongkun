@@ -196,7 +196,7 @@ class AdminODCTests(MyAPITransactionTestCase):
              'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url', 'thanos_remark',
              'loki_endpoint_url', 'loki_username', 'loki_password', 'loki_receive_url', 'loki_remark', 'map_display'],
             response.data['results'][0])
-        self.assertKeysIn(['id', 'name', 'name_en'], response.data['results'][0]['organization'])
+        self.assertKeysIn(['id', 'name', 'name_en', 'sort_weight'], response.data['results'][0]['organization'])
 
         # test federal admin
         odc1.remove_admin_user(user=self.user1)

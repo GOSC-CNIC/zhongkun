@@ -69,7 +69,8 @@ class KunYuanServiceViewSet(NormalGenericViewSet):
                     "organization": {
                       "id": "1",
                       "name": "中国科学院计算机网络信息中心",
-                      "name_en": "Computer Network Information Center,  Chinese Academy of Sciences"
+                      "name_en": "Computer Network Information Center,  Chinese Academy of Sciences",
+                      "sort_weight": -1
                     }
                   }
                 }

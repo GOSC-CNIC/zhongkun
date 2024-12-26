@@ -357,7 +357,7 @@ class ServerHandler:
         return Response(data=data, status=202)
 
     @staticmethod
-    def _server_create_validate_params(view: CustomGenericViewSet, request):
+    def _server_create_validate_params(view: CustomGenericViewSet, request, is_as_admin: bool):
         """
         :raises: Error
         """
@@ -379,8 +379,6 @@ class ServerHandler:
         systemdisk_size = data.get('systemdisk_size', None)
         number = data.get('number', 1)
         username = data.get('username', None)
-
-        is_as_admin = view.is_as_admin_request(request=request)
 
         if not (1 <= number <= 3):
             raise exceptions.InvalidArgument(message=_('订购资源数量可选范围1-3'), code='InvalidNumber')
@@ -565,12 +563,44 @@ class ServerHandler:
         """
         云服务器订单创建
         """
+        is_as_admin = view.is_as_admin_request(request=request)
+
         try:
-            data = ServerHandler._server_create_validate_params(view=view, request=request)
+            data = ServerHandler._server_create_validate_params(view=view, request=request, is_as_admin=is_as_admin)
             pay_app_id = site_configs_manager.get_pay_app_id(settings, check_valid=True)
+
+            auth_user = request.user
+            od_desc = ''
+            if is_as_admin:
+                od_desc = _('管理员（%(name)s）以管理员身份请求订购') % {'name': auth_user.username}
+
+            order, resource_list = self.create_server_order(data=data, auth_user=request.user, od_desc=od_desc)
         except exceptions.Error as exc:
             return view.exception_response(exc)
 
+        # 预付费模式时
+        if order.pay_type == PayType.PREPAID.value:
+            return Response(data={
+                'order_id': order.id
+            })
+
+        try:
+            subject = order.build_subject()
+            order = OrderPaymentManager().pay_order(
+                order=order, app_id=pay_app_id, subject=subject,
+                executor=auth_user.username, remark='',
+                coupon_ids=None, only_coupon=False,
+                required_enough_balance=True
+            )
+            OrderResourceDeliverer().deliver_order(order=order)
+        except exceptions.Error as exc:
+            request_logger.error(msg=f'[{type(exc)}] {str(exc)}; Order({order.id})')
+
+        return Response(data={
+            'order_id': order.id
+        })
+
+    def create_server_order(self, data: dict, auth_user, od_desc: str) -> (Order, list):
         pay_type = data['pay_type']
         image_id = data['image_id']
         flavor = data['flavor']
@@ -586,13 +616,7 @@ class ServerHandler:
         number = data['number']
         order_user = data['order_user']
 
-        auth_user = request.user
         is_public_network = network.public
-
-        is_as_admin = view.is_as_admin_request(request=request)
-        od_desc = ''
-        if is_as_admin:
-            od_desc = _('管理员（%(name)s）以管理员身份请求订购') % {'name': auth_user.username}
 
         if vo or isinstance(vo, VirtualOrganization):
             vo_id = vo.id
@@ -635,7 +659,7 @@ class ServerHandler:
                     service=service, owner_type=owner_type, buy_user=buy_user, vo_id=vo_id, day_price=original_price
                 )
             except Exception as exc:
-                return view.exception_response(exc)
+                raise exc
 
         # 服务私有资源配额是否满足需求
         try:
@@ -645,10 +669,9 @@ class ServerHandler:
                 private_ips=0 if instance_config.vm_public_ip else number
             )
         except exceptions.QuotaShortageError as exc:
-            return view.exception_response(
-                exceptions.QuotaShortageError(message=_('指定服务无法提供足够的资源。') + str(exc)))
+            raise exceptions.QuotaShortageError(message=_('指定服务无法提供足够的资源。') + str(exc))
         except exceptions.Error as exc:
-            return view.exception_response(exc)
+            raise exc
 
         # 创建订单
         order, resource_list = omgr.create_order(
@@ -671,27 +694,7 @@ class ServerHandler:
             description=od_desc
         )
 
-        # 预付费模式时
-        if pay_type == PayType.PREPAID.value:
-            return Response(data={
-                'order_id': order.id
-            })
-
-        try:
-            subject = order.build_subject()
-            order = OrderPaymentManager().pay_order(
-                order=order, app_id=pay_app_id, subject=subject,
-                executor=auth_user.username, remark='',
-                coupon_ids=None, only_coupon=False,
-                required_enough_balance=True
-            )
-            OrderResourceDeliverer().deliver_order(order=order)
-        except exceptions.Error as exc:
-            request_logger.error(msg=f'[{type(exc)}] {str(exc)}; Order({order.id})')
-
-        return Response(data={
-            'order_id': order.id
-        })
+        return order, resource_list
 
     @staticmethod
     def __check_balance_create_server_order(service, owner_type: str, buy_user, vo_id: str, day_price: Decimal):
