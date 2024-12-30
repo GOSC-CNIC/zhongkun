@@ -16,7 +16,7 @@ from apps.app_metering.models import (
 )
 from apps.app_wallet.models import PayApp, PayAppService, CashCoupon
 from apps.storage.models import ObjectsService, Bucket, BucketArchive
-from apps.vo.models import VirtualOrganization, VoMember
+from apps.app_vo.models import VirtualOrganization, VoMember
 from apps.app_report.models import MonthlyReport, BucketMonthlyReport
 from apps.app_report.workers.report_generator import (
     MonthlyReportGenerator, MonthlyReportNotifier, get_report_period_start_and_end,

@@ -9,7 +9,7 @@ from core import site_configs_manager
 from utils.test import get_or_create_user, get_or_create_organization, get_or_create_org_data_center
 from utils.time import utc
 from utils.model import PayType, OwnerType
-from apps.vo.models import VirtualOrganization
+from apps.app_vo.models import VirtualOrganization
 from apps.app_wallet.models import PayApp, PayAppService
 from apps.app_wallet.managers import PaymentManager, CashCouponManager
 from apps.storage.models import ObjectsService, Bucket

@@ -10,8 +10,8 @@ from apps.servers.managers import ServerManager, DiskManager
 from apps.servers.models import Server, ServerArchive, Disk
 from utils.model import OwnerType
 from apps.users.models import UserProfile
-from apps.vo.models import VirtualOrganization
-from apps.vo.managers import VoManager
+from apps.app_vo.models import VirtualOrganization
+from apps.app_vo.managers import VoManager
 from apps.storage.managers.objects_service import ObjectsServiceManager
 from apps.storage.models import Bucket, BucketArchive, ObjectsService
 

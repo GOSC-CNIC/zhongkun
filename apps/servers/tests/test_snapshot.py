@@ -12,7 +12,7 @@ from utils.decimal_utils import quantize_10_2
 from apps.app_order.models import Order
 from apps.app_order.managers import OrderManager, ServerSnapshotConfig
 from apps.app_order.tests import create_price
-from apps.vo.models import VirtualOrganization, VoMember
+from apps.app_vo.models import VirtualOrganization, VoMember
 from apps.servers.managers import ServerSnapshotManager
 from apps.servers.models import ServiceConfig, ServerSnapshot, Server
 from apps.servers.tests import create_server_metadata

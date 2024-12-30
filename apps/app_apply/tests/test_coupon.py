@@ -14,7 +14,7 @@ from utils.model import OwnerType, ResourceType
 from utils.time import utc
 from utils.decimal_utils import quantize_10_2
 from utils.test import get_or_create_org_data_center, get_or_create_user, MyAPITestCase
-from apps.vo.models import VirtualOrganization, VoMember
+from apps.app_vo.models import VirtualOrganization, VoMember
 from apps.app_wallet.models import CashCoupon, PayAppService, PayApp
 from apps.servers.models import ServiceConfig
 from apps.storage.models import ObjectsService

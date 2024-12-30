@@ -9,7 +9,7 @@ from utils.test import (
     MyAPITransactionTestCase
 )
 from utils.model import PayType
-from apps.vo.models import VirtualOrganization
+from apps.app_vo.models import VirtualOrganization
 from apps.servers.models import Server, Disk, ServiceConfig, ServerArchive
 from . import create_server_metadata
 from .test_disk import create_disk_metadata

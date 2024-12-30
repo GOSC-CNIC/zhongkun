@@ -8,9 +8,9 @@ from drf_yasg import openapi
 
 from apps.api.viewsets import CustomGenericViewSet
 from apps.api.paginations import DefaultPageNumberPagination
-from apps.vo.models import VoMember
-from apps.vo.vo_handler import VoHandler
-from apps.vo import vo_serializers
+from apps.app_vo.models import VoMember
+from apps.app_vo.vo_handler import VoHandler
+from apps.app_vo import vo_serializers
 
 
 class VOViewSet(CustomGenericViewSet):
@@ -23,6 +23,7 @@ class VOViewSet(CustomGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举项目组'),
+        tags=['vo'],
         manual_parameters=[
                               openapi.Parameter(
                                   name='owner',

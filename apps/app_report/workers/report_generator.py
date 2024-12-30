@@ -9,7 +9,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 
 from apps.users.models import UserProfile, Email
-from apps.vo.models import VirtualOrganization, VoMember
+from apps.app_vo.models import VirtualOrganization, VoMember
 from apps.app_metering.managers import (
     MeteringServerManager, MeteringStorageManager, StatementStorageManager, StatementServerManager,
     MeteringDiskManager, StatementDiskManager, MeteringMonitorSiteManager

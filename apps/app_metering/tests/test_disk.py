@@ -11,7 +11,7 @@ from utils import rand_utils
 from utils.time import utc
 from core import errors
 from apps.servers.models import Disk, DiskChangeLog, ServiceConfig
-from apps.vo.managers import VoManager
+from apps.app_vo.managers import VoManager
 from apps.app_order.tests import create_price
 from apps.app_wallet.models import CashCoupon, PaymentHistory, PayAppService, PayApp
 from apps.app_metering.measurers import DiskMeasurer

@@ -13,7 +13,7 @@ from apps.app_wallet.models import Recharge
 from apps.app_wallet.managers.recharge import RechargeManager
 from apps.app_wallet.managers.payment import PaymentManager
 from apps.users import managers as user_manager
-from apps.vo.managers import VoManager
+from apps.app_vo.managers import VoManager
 from utils.model import OwnerType
 
 

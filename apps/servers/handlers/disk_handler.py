@@ -13,8 +13,8 @@ from core.quota import QuotaAPI
 from core import site_configs_manager
 from apps.api.viewsets import CustomGenericViewSet, serializer_error_msg
 from apps.api import request_logger
-from apps.vo.managers import VoManager
-from apps.vo.models import VirtualOrganization, VoMember
+from apps.app_vo.managers import VoManager
+from apps.app_vo.models import VirtualOrganization, VoMember
 from core.adapters import inputs
 from utils.model import PayType, OwnerType
 from utils.time import iso_utc_to_datetime

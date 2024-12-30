@@ -11,7 +11,7 @@ from utils.test import (
     MyAPITestCase, MyAPITransactionTestCase
 )
 from utils.time import utc
-from apps.vo.models import VirtualOrganization, VoMember
+from apps.app_vo.models import VirtualOrganization, VoMember
 from apps.app_wallet.models import (
     CashCoupon, PayAppService, PayApp, CashCouponActivity, TransactionBill, PaymentHistory,
     CashCouponPaymentHistory, RefundRecord

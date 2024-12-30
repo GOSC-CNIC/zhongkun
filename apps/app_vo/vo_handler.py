@@ -2,8 +2,8 @@ from django.utils.translation import gettext as _
 from rest_framework.response import Response
 from rest_framework.serializers import DecimalField
 
-from apps.vo.managers import VoManager, VoMemberManager, VoMember
-from apps.vo import vo_serializers
+from apps.app_vo.managers import VoManager, VoMemberManager, VoMember
+from apps.app_vo import vo_serializers
 from utils.model import OwnerType
 from core import errors as exceptions
 from apps.api.viewsets import CustomGenericViewSet, serializer_error_msg

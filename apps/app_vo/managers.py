@@ -7,7 +7,7 @@ from django.db import transaction
 from apps.servers.models import Server
 from core import errors
 from apps.users.models import UserProfile as User
-from apps.vo.models import VirtualOrganization, VoMember
+from apps.app_vo.models import VirtualOrganization, VoMember
 
 
 class VoManager:

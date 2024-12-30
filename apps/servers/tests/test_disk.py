@@ -16,7 +16,7 @@ from utils.model import PayType, OwnerType, ResourceType
 from utils.decimal_utils import quantize_10_2
 from utils.time import iso_utc_to_datetime, utc
 from utils import rand_utils
-from apps.vo.models import VirtualOrganization, VoMember
+from apps.app_vo.models import VirtualOrganization, VoMember
 from apps.app_order.managers import OrderManager, PriceManager
 from apps.app_order.models import Order, Resource
 from apps.app_order.managers import DiskConfig

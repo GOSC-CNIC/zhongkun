@@ -6,7 +6,7 @@ from core.adapters import inputs
 from core.request import request_service, update_server_detail
 from utils.model import ResourceType, PayType, OwnerType
 from apps.api.viewsets import CustomGenericViewSet, serializer_error_msg
-from apps.vo.managers import VoManager
+from apps.app_vo.managers import VoManager
 from apps.servers.managers import ServerSnapshotManager, ServerManager
 from apps.servers import serializers
 from apps.app_order.models import Order

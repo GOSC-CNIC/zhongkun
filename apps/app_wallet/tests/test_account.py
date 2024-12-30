@@ -3,8 +3,8 @@ from decimal import Decimal
 from django.urls import reverse
 
 from utils.test import get_or_create_user, MyAPITestCase
-from apps.vo.models import VirtualOrganization
-from apps.vo.managers import VoManager
+from apps.app_vo.models import VirtualOrganization
+from apps.app_vo.managers import VoManager
 from apps.app_wallet.managers import PaymentManager
 
 

@@ -4,7 +4,7 @@ from django.utils import timezone as dj_timezone
 from utils.test import get_or_create_user,  MyAPITransactionTestCase
 from utils.model import PayType
 
-from apps.vo.models import VirtualOrganization
+from apps.app_vo.models import VirtualOrganization
 from apps.servers.models import ServiceConfig, Server, EVCloudPermsLog
 from apps.servers.tests import create_server_metadata
 from apps.servers.workers.evcloud_perms_log import EVCloudPermsWorker

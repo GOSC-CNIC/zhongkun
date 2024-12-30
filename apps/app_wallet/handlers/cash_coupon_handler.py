@@ -10,8 +10,8 @@ from rest_framework.response import Response
 
 from apps.users.managers import get_user_by_name
 from apps.users.models import UserProfile
-from apps.vo.models import VirtualOrganization
-from apps.vo.managers import VoManager
+from apps.app_vo.models import VirtualOrganization
+from apps.app_vo.managers import VoManager
 from core import errors
 from apps.api.viewsets import CustomGenericViewSet, serializer_error_msg
 from apps.app_wallet.trade_serializers import AdminCashCouponSerializer

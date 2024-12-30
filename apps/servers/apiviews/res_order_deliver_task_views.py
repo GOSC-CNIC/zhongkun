@@ -25,7 +25,7 @@ from apps.servers.managers import ServiceManager
 from apps.app_order.models import Order, Resource
 from apps.app_order.managers import OrderPaymentManager, OrderManager
 from apps.app_order.deliver_resource import OrderResourceDeliverer
-from apps.vo.managers import VoManager
+from apps.app_vo.managers import VoManager
 from apps.users.managers import get_user_by_id
 from apps.app_wallet.models import CashCoupon
 from apps.app_wallet.managers import CashCouponManager

@@ -5,7 +5,7 @@ from decimal import Decimal
 from django.urls import reverse
 from django.utils import timezone as dj_timezone
 
-from apps.vo.models import VirtualOrganization
+from apps.app_vo.models import VirtualOrganization
 from apps.servers.models import ServiceConfig
 from apps.storage.models import Bucket, ObjectsService
 from apps.app_report.managers import (

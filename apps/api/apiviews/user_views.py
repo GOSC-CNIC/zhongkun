@@ -14,7 +14,7 @@ from apps.users.managers import filter_user_queryset
 from core import errors
 from utils.paginators import NoPaginatorInspector
 from utils.time import iso_utc_to_datetime
-from apps.vo.models import VirtualOrganization
+from apps.app_vo.models import VirtualOrganization
 
 
 class UserViewSet(CustomGenericViewSet):

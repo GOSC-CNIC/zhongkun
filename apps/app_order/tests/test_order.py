@@ -15,7 +15,7 @@ from apps.app_order.managers.instance_configs import ServerConfig, DiskConfig
 from apps.app_order.handlers.order_handler import CASH_COUPON_BALANCE
 from utils.decimal_utils import quantize_10_2
 from utils.test import get_or_create_user, get_or_create_service, get_or_create_organization, MyAPITestCase
-from apps.vo.models import VirtualOrganization, VoMember
+from apps.app_vo.models import VirtualOrganization, VoMember
 from apps.app_wallet.managers import PaymentManager
 from apps.app_wallet.models import PaymentHistory, CashCoupon, PayAppService, PayApp, TransactionBill
 from apps.servers.models import ServiceConfig, Flavor

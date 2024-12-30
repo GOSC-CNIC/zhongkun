@@ -6,7 +6,7 @@ from django.core import mail
 
 from utils.model import PayType
 from utils.test import get_or_create_user
-from apps.vo.models import VirtualOrganization, VoMember
+from apps.app_vo.models import VirtualOrganization, VoMember
 from apps.servers.models import Server
 from apps.app_report.workers.server_notifier import (
     ServerNotifier

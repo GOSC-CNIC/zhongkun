@@ -20,8 +20,8 @@ from apps.servers import serializers, format_who_action_str
 from apps.api import paginations
 from apps.api.viewsets import CustomGenericViewSet, serializer_error_msg
 from apps.api import request_logger
-from apps.vo.managers import VoManager
-from apps.vo.models import VirtualOrganization, VoMember
+from apps.app_vo.managers import VoManager
+from apps.app_vo.models import VirtualOrganization, VoMember
 from core.adapters import inputs
 from core.adapters.client import get_service_client
 from utils.model import PayType, OwnerType

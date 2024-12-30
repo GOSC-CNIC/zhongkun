@@ -11,7 +11,7 @@ from django.core.cache import cache
 
 from core import errors
 from core import request as core_request
-from apps.vo.managers import VoManager
+from apps.app_vo.managers import VoManager
 from apps.app_wallet.managers import PaymentManager
 from utils.model import PayType, OwnerType
 from apps.storage.serializers import BucketSerializer

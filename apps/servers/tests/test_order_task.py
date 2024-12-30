@@ -15,7 +15,7 @@ from utils.test import (
     MyAPITransactionTestCase
 )
 from utils.model import PayType, OwnerType, ResourceType
-from apps.vo.models import VirtualOrganization
+from apps.app_vo.models import VirtualOrganization
 from apps.app_order.managers import OrderManager
 from apps.app_order.models import Order
 from apps.app_order.managers import ServerConfig

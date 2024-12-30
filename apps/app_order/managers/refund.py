@@ -9,7 +9,7 @@ from django.db import transaction
 from core import errors
 from utils.model import OwnerType
 from apps.app_wallet.managers.payment import PaymentManager
-from apps.vo.managers import VoManager
+from apps.app_vo.managers import VoManager
 from apps.app_order.models import Order, OrderRefund, Resource
 from apps.app_order.managers.order import OrderManager
 

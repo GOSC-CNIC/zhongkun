@@ -6,7 +6,7 @@ from core.adapters import inputs
 from core.request import request_service
 from core.taskqueue import submit_task
 from apps.servers.models import Server, ServiceConfig, EVCloudPermsLog
-from apps.vo.managers import VoMemberManager
+from apps.app_vo.managers import VoMemberManager
 
 
 class EVCloudPermsSynchronizer:

@@ -3,7 +3,7 @@ from django.urls import reverse
 from utils.test import get_or_create_service, get_or_create_user
 from utils.model import PayType
 from core.request import request_vpn_service
-from apps.vo.models import VirtualOrganization, VoMember
+from apps.app_vo.models import VirtualOrganization, VoMember
 from apps.servers.models import Server
 from apps.servers.tests import create_server_metadata
 from apps.servers import format_who_action_str

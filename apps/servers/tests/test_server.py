@@ -17,8 +17,8 @@ from utils.test import (
 from utils.model import PayType, OwnerType, ResourceType
 from utils.time import iso_utc_to_datetime
 from utils.decimal_utils import quantize_10_2
-from apps.vo.models import VirtualOrganization, VoMember
-from apps.vo.tests import VoTests
+from apps.app_vo.models import VirtualOrganization, VoMember
+from apps.app_vo.tests import VoTests
 from apps.app_order.managers import OrderManager, PriceManager
 from apps.app_order.models import Order, Resource
 from apps.app_order.managers import ServerConfig

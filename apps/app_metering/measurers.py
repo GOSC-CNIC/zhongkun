@@ -12,7 +12,7 @@ from apps.monitor.models import MonitorWebsite, MonitorWebsiteRecord, MonitorWeb
 from apps.app_order.managers import PriceManager
 from utils.decimal_utils import quantize_10_2
 from utils.model import PayType, OwnerType
-from apps.vo.models import VirtualOrganization
+from apps.app_vo.models import VirtualOrganization
 from apps.users.models import UserProfile
 from apps.storage.models import Bucket
 from apps.storage.adapter import inputs

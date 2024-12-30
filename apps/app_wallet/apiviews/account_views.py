@@ -9,7 +9,7 @@ from apps.api.viewsets import CustomGenericViewSet
 from apps.app_wallet import trade_serializers
 from apps.app_wallet.managers import PaymentManager
 from core import errors
-from apps.vo.managers import VoManager
+from apps.app_vo.managers import VoManager
 
 
 class BalanceAccountViewSet(CustomGenericViewSet):

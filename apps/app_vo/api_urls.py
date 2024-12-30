@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import SimpleRouter
 
-from apps.vo.views import VOViewSet
+from apps.app_vo.views import VOViewSet
 
 
 app_name = 'ipam'

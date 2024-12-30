@@ -18,7 +18,7 @@ from apps.app_wallet.models import (
 from apps.app_wallet.managers.payment import PaymentManager, TransactionBillManager
 from utils.test import get_or_create_user, get_or_create_organization, MyAPITestCase, MyAPITransactionTestCase
 from utils.model import OwnerType
-from apps.vo.models import VirtualOrganization
+from apps.app_vo.models import VirtualOrganization
 from apps.app_global.models import GlobalConfig
 from apps.app_global.configs_manager import global_configs
 

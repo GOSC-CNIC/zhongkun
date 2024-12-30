@@ -12,7 +12,7 @@ from utils.decimal_utils import quantize_10_2
 from core import errors
 from core import site_configs_manager
 from apps.servers.models import Server, ServerArchive, ServiceConfig
-from apps.vo.managers import VoManager
+from apps.app_vo.managers import VoManager
 from apps.app_order.tests import create_price
 from apps.app_order.models import Order
 from apps.app_order.managers import OrderManager, ServerConfig, OrderPaymentManager

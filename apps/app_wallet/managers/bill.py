@@ -7,7 +7,7 @@ from django.db.models import Sum
 from core import errors
 from apps.app_wallet.models import PaymentHistory, CashCouponPaymentHistory, TransactionBill, RefundRecord, PayAppService
 from utils.model import OwnerType
-from apps.vo.managers import VoManager
+from apps.app_vo.managers import VoManager
 
 
 class PaymentHistoryManager:

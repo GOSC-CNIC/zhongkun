@@ -6,7 +6,7 @@ from django.db.models import Q
 
 from apps.app_wallet.models import CashCoupon
 from apps.users.models import Email
-from apps.vo.models import VirtualOrganization, VoMember
+from apps.app_vo.models import VirtualOrganization, VoMember
 from utils.model import OwnerType
 from core import site_configs_manager as site_configs
 from core.loggers import config_script_logger

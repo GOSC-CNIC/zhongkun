@@ -11,7 +11,7 @@ from apps.app_metering.models import (
 )
 from utils.model import OwnerType, PayType
 from apps.users.models import UserProfile
-from apps.vo.models import VirtualOrganization
+from apps.app_vo.models import VirtualOrganization
 
 
 class BaseGeneratorStatement:

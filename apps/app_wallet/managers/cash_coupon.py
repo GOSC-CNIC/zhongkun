@@ -9,7 +9,7 @@ from django.db.transaction import TransactionManagementError
 
 from core import errors
 from utils.model import OwnerType
-from apps.vo.managers import VoManager
+from apps.app_vo.managers import VoManager
 from apps.app_wallet.models import CashCoupon, CashCouponPaymentHistory, CashCouponActivity, PayAppService
 from apps.users.models import UserProfile
 

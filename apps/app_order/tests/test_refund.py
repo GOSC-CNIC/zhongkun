@@ -12,7 +12,7 @@ from apps.app_order.models import Order, Resource, OrderRefund
 from apps.app_order.managers import OrderManager, OrderPaymentManager
 from apps.app_order.managers.instance_configs import ServerConfig
 from utils.test import get_or_create_user, get_or_create_service, get_or_create_organization, MyAPITestCase
-from apps.vo.models import VirtualOrganization
+from apps.app_vo.models import VirtualOrganization
 from apps.app_wallet.managers import PaymentManager
 from apps.app_wallet.models import CashCoupon, PayAppService, PayApp
 from apps.servers.models import ServiceConfig, Flavor
