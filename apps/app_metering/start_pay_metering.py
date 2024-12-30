@@ -1,6 +1,7 @@
 import os
 import sys
 from pathlib import Path
+
 from django import setup
 
 
@@ -11,7 +12,11 @@ setup()
 
 
 if __name__ == "__main__":
-    from apps.metering.measurers import ServerMeasurer, StorageMeasurer, DiskMeasurer
-    ServerMeasurer().run()
-    DiskMeasurer().run()
-    StorageMeasurer().run()
+    from django.conf import settings
+
+    from core.site_configs_manager import get_pay_app_id
+    from apps.app_metering.pay_metering import PayMeteringServer, PayMeteringObjectStorage
+
+    app_id = get_pay_app_id(dj_settings=settings)
+    PayMeteringServer(app_id=app_id).run()
+    PayMeteringObjectStorage(app_id=app_id).run()

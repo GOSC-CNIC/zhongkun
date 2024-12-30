@@ -25,8 +25,8 @@ from apps.order.managers import ServerConfig
 from apps.order.tests import create_price
 from apps.app_wallet.managers import PaymentManager
 from apps.app_wallet.models import PayApp, PayAppService
-from apps.metering.measurers import ServerMeasurer
-from apps.metering.models import MeteringServer
+from apps.app_metering.measurers import ServerMeasurer
+from apps.app_metering.models import MeteringServer
 from core.adapters.evcloud import EVCloudAdapter
 from core.adapters import outputs
 from core import site_configs_manager

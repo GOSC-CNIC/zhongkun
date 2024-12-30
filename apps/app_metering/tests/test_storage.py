@@ -10,10 +10,10 @@ from utils.model import OwnerType
 from core import errors
 from apps.order.tests import create_price
 from apps.app_wallet.models import CashCoupon, PaymentHistory, PayAppService, PayApp
-from apps.metering.measurers import StorageMeasurer
-from apps.metering.models import PaymentStatus, MeteringObjectStorage, DailyStatementObjectStorage
-from apps.metering.payment import MeteringPaymentManager
-from apps.metering.statement_generators import GenerateDailyStatementObjectStorage
+from apps.app_metering.measurers import StorageMeasurer
+from apps.app_metering.models import PaymentStatus, MeteringObjectStorage, DailyStatementObjectStorage
+from apps.app_metering.payment import MeteringPaymentManager
+from apps.app_metering.statement_generators import GenerateDailyStatementObjectStorage
 from apps.users.models import UserProfile
 from apps.storage.models import Bucket, ObjectsService
 

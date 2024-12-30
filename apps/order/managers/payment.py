@@ -5,7 +5,6 @@ from django.db import transaction
 
 from core import errors
 from utils.model import OwnerType
-# from apps.metering.models import PaymentStatus
 from apps.order.models import Order
 from apps.app_wallet.managers.payment import PaymentManager
 

@@ -23,8 +23,8 @@ from apps.order.managers import DiskConfig
 from apps.order.tests import create_price
 from apps.app_wallet.managers import PaymentManager
 from apps.app_wallet.models import PayApp, PayAppService
-from apps.metering.measurers import DiskMeasurer
-from apps.metering.models import MeteringDisk
+from apps.app_metering.measurers import DiskMeasurer
+from apps.app_metering.models import MeteringDisk
 
 
 PAY_APP_ID = site_configs_manager.get_pay_app_id(settings)

@@ -10,11 +10,11 @@ from django.conf import settings
 
 from apps.users.models import UserProfile, Email
 from apps.vo.models import VirtualOrganization, VoMember
-from apps.metering.managers import (
+from apps.app_metering.managers import (
     MeteringServerManager, MeteringStorageManager, StatementStorageManager, StatementServerManager,
     MeteringDiskManager, StatementDiskManager, MeteringMonitorSiteManager
 )
-from apps.metering.models import PaymentStatus, MeteringServer, MeteringDisk
+from apps.app_metering.models import PaymentStatus, MeteringServer, MeteringDisk
 from apps.app_report.models import MonthlyReport, BucketMonthlyReport
 from apps.storage.models import Bucket, BucketArchive
 from apps.order.models import Order, Resource, ResourceType

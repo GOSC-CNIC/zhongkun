@@ -10,12 +10,12 @@ from rest_framework.response import Response
 
 from core import errors
 from apps.api.viewsets import CustomGenericViewSet
-from apps.metering.metering_serializers import (
+from apps.app_metering.metering_serializers import (
     MeteringServerSerializer, MeteringStorageSimpleSerializer,
     MeteringDiskSerializer, MeteringMonitorSiteSerializer
 )
-from apps.metering.models import PaymentStatus
-from apps.metering.managers import (
+from apps.app_metering.models import PaymentStatus
+from apps.app_metering.managers import (
     MeteringServerManager, StatementServerManager, MeteringStorageManager, StatementStorageManager,
     MeteringDiskManager, StatementDiskManager, BaseMeteringManager, MeteringMonitorSiteManager
 )

@@ -8,9 +8,9 @@ from drf_yasg import openapi
 
 from apps.api.viewsets import CustomGenericViewSet
 from apps.api.paginations import MeteringPageNumberPagination, StatementPageNumberPagination
-from apps.metering import metering_serializers
-from apps.metering.handlers.metering_handler import MeteringHandler, StatementHandler, MeteringDiskHandler
-from apps.metering.models import PaymentStatus
+from apps.app_metering import metering_serializers
+from apps.app_metering.handlers.metering_handler import MeteringHandler, StatementHandler, MeteringDiskHandler
+from apps.app_metering.models import PaymentStatus
 from utils.paginators import NoPaginatorInspector
 
 

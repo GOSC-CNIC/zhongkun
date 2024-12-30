@@ -10,7 +10,7 @@ from utils.model import PayType, OwnerType, ResourceType
 from utils.test import get_or_create_user, get_or_create_org_data_center, get_or_create_organization
 from utils.time import utc
 from apps.order.models import Order
-from apps.metering.models import (
+from apps.app_metering.models import (
     MeteringServer, MeteringObjectStorage, DailyStatementServer, DailyStatementObjectStorage, PaymentStatus,
     MeteringDisk, DailyStatementDisk, MeteringMonitorWebsite, DailyStatementMonitorWebsite
 )

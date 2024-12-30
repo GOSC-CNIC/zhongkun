@@ -14,10 +14,10 @@ from apps.servers.models import Disk, DiskChangeLog, ServiceConfig
 from apps.vo.managers import VoManager
 from apps.order.tests import create_price
 from apps.app_wallet.models import CashCoupon, PaymentHistory, PayAppService, PayApp
-from apps.metering.measurers import DiskMeasurer
-from apps.metering.models import PaymentStatus, DailyStatementDisk, MeteringDisk
-from apps.metering.payment import MeteringPaymentManager
-from apps.metering.statement_generators import DiskDailyStatementGenerater
+from apps.app_metering.measurers import DiskMeasurer
+from apps.app_metering.models import PaymentStatus, DailyStatementDisk, MeteringDisk
+from apps.app_metering.payment import MeteringPaymentManager
+from apps.app_metering.statement_generators import DiskDailyStatementGenerater
 from apps.users.models import UserProfile
 
 

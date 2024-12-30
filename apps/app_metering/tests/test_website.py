@@ -10,11 +10,11 @@ from utils.time import utc
 from utils.model import OwnerType
 from apps.monitor.models import MonitorWebsite, MonitorWebsiteRecord, MonitorWebsiteBase, MonitorWebsiteVersion
 from apps.order.tests import create_price
-from apps.metering.measurers import MonitorWebsiteMeasurer
-from apps.metering.models import MeteringMonitorWebsite, PaymentStatus, DailyStatementMonitorWebsite
-from apps.metering.statement_generators import WebsiteMonitorStatementGenerater
-from apps.metering.payment import MeteringPaymentManager
-from apps.metering.pay_metering import PayMeteringWebsite
+from apps.app_metering.measurers import MonitorWebsiteMeasurer
+from apps.app_metering.models import MeteringMonitorWebsite, PaymentStatus, DailyStatementMonitorWebsite
+from apps.app_metering.statement_generators import WebsiteMonitorStatementGenerater
+from apps.app_metering.payment import MeteringPaymentManager
+from apps.app_metering.pay_metering import PayMeteringWebsite
 from apps.users.models import UserProfile
 from apps.app_wallet.models import PayApp, PayAppService, PaymentHistory, CashCoupon
 from core import errors

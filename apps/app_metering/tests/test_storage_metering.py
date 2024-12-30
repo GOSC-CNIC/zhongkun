@@ -5,7 +5,7 @@ from datetime import date, timedelta
 from django.urls import reverse
 
 from utils.test import get_or_create_user, get_or_create_storage_service, MyAPITestCase
-from apps.metering.models import MeteringObjectStorage
+from apps.app_metering.models import MeteringObjectStorage
 
 from apps.storage.models import Bucket, BucketArchive, ObjectsService
 from django.utils import timezone

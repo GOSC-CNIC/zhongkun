@@ -11,7 +11,7 @@ from apps.app_wallet.managers.payment import PaymentManager
 from apps.storage.models import Bucket, BucketArchive, ObjectsService
 from apps.app_report.models import BucketStatsMonthly
 from apps.app_report.managers import ArrearBucketManager
-from apps.metering.managers import MeteringStorageManager
+from apps.app_metering.managers import MeteringStorageManager
 from .report_generator import get_report_period_start_and_end
 
 

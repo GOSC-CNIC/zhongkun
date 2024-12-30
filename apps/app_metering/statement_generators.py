@@ -5,7 +5,7 @@ from django.utils import timezone
 from django.db.models import Sum
 from django.db import transaction
 
-from apps.metering.models import (
+from apps.app_metering.models import (
     DailyStatementServer, MeteringServer, PaymentStatus, DailyStatementObjectStorage, MeteringObjectStorage,
     DailyStatementDisk, MeteringDisk, MeteringMonitorWebsite, DailyStatementMonitorWebsite
 )
