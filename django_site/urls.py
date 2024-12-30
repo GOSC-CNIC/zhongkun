@@ -71,7 +71,7 @@ else:
         path('api/', include('apps.service.api_urls', namespace='service-api')),
         path('api/', include('apps.servers.api_urls', namespace='servers-api')),
         path('api/', include('apps.storage.api_urls', namespace='storage-api')),
-        path('api/', include('apps.ticket.api_urls', namespace='ticket-api')),
+        path('api/', include('apps.app_ticket.api_urls', namespace='ticket-api')),
         path('api/', include('apps.order.api_urls', namespace='order-api')),
         path('api/', include('apps.app_metering.api_urls', namespace='metering-api')),
         path('api/', include('apps.app_wallet.api_urls', namespace='wallet-api')),

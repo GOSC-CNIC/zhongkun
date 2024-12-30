@@ -5,10 +5,10 @@ from rest_framework.response import Response
 from core import errors as exceptions
 from apps.api.viewsets import AsRoleGenericViewSet, serializer_error_msg
 from apps.api.paginations import FollowUpMarkerCursorPagination
-from apps.ticket.models import Ticket, TicketChange, TicketRating
-from apps.ticket.managers import TicketManager
-from apps.ticket.notifiers import TicketEmailNotifier
-from apps.ticket import serializers as ticket_serializers
+from apps.app_ticket.models import Ticket, TicketChange, TicketRating
+from apps.app_ticket.managers import TicketManager
+from apps.app_ticket.notifiers import TicketEmailNotifier
+from apps.app_ticket import serializers as ticket_serializers
 from apps.users.managers import get_user_by_name
 
 

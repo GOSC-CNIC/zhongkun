@@ -63,7 +63,7 @@ INSTALLED_APPS = [
     'apps.app_metering',
     'apps.app_report',
     'apps.vo',
-    'apps.ticket',
+    'apps.app_ticket',
     'apps.monitor',
     'apps.app_scan',
     'apps.vpn',

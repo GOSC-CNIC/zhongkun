@@ -1,7 +1,7 @@
 from apps.users import managers as user_manager
 from apps.users.models import Email
 from core import taskqueue, site_configs_manager as site_configs
-from apps.ticket.models import Ticket, FollowUp
+from apps.app_ticket.models import Ticket, FollowUp
 
 
 class TicketEmailNotifier:

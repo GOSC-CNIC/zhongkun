@@ -5,8 +5,8 @@ from django.urls import reverse
 from django.core import mail as dj_mail
 
 from utils.test import get_or_create_user, MyAPITestCase
-from apps.ticket.models import Ticket, FollowUp, TicketChange
-from apps.ticket.managers import TicketManager
+from apps.app_ticket.models import Ticket, FollowUp, TicketChange
+from apps.app_ticket.managers import TicketManager
 
 
 class TicketTests(MyAPITestCase):

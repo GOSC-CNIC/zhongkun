@@ -7,9 +7,9 @@ from drf_yasg import openapi
 
 from apps.api.viewsets import AsRoleGenericViewSet
 from apps.api.paginations import NewPageNumberPagination, FollowUpMarkerCursorPagination
-from apps.ticket import serializers as ticket_serializers
-from apps.ticket.ticket_handler import TicketHandler
-from apps.ticket.models import Ticket
+from apps.app_ticket import serializers as ticket_serializers
+from apps.app_ticket.ticket_handler import TicketHandler
+from apps.app_ticket.models import Ticket
 
 
 class TicketViewSet(AsRoleGenericViewSet):
