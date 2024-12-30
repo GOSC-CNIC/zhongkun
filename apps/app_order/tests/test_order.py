@@ -9,10 +9,10 @@ from django.conf import settings
 
 from core import site_configs_manager
 from utils.model import PayType, OwnerType, ResourceType
-from apps.order.models import Order, Period
-from apps.order.managers import OrderManager
-from apps.order.managers.instance_configs import ServerConfig, DiskConfig
-from apps.order.handlers.order_handler import CASH_COUPON_BALANCE
+from apps.app_order.models import Order, Period
+from apps.app_order.managers import OrderManager
+from apps.app_order.managers.instance_configs import ServerConfig, DiskConfig
+from apps.app_order.handlers.order_handler import CASH_COUPON_BALANCE
 from utils.decimal_utils import quantize_10_2
 from utils.test import get_or_create_user, get_or_create_service, get_or_create_organization, MyAPITestCase
 from apps.vo.models import VirtualOrganization, VoMember

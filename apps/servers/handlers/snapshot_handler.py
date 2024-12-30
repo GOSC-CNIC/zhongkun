@@ -9,8 +9,8 @@ from apps.api.viewsets import CustomGenericViewSet, serializer_error_msg
 from apps.vo.managers import VoManager
 from apps.servers.managers import ServerSnapshotManager, ServerManager
 from apps.servers import serializers
-from apps.order.models import Order
-from apps.order.managers import OrderManager, ServerSnapshotConfig
+from apps.app_order.models import Order
+from apps.app_order.managers import OrderManager, ServerSnapshotConfig
 
 
 class SnapshotHandler:

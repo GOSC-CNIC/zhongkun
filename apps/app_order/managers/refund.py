@@ -10,8 +10,8 @@ from core import errors
 from utils.model import OwnerType
 from apps.app_wallet.managers.payment import PaymentManager
 from apps.vo.managers import VoManager
-from apps.order.models import Order, OrderRefund, Resource
-from apps.order.managers.order import OrderManager
+from apps.app_order.models import Order, OrderRefund, Resource
+from apps.app_order.managers.order import OrderManager
 
 
 class OrderRefundManager:

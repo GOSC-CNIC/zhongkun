@@ -13,9 +13,9 @@ from core import errors
 from core import site_configs_manager
 from apps.servers.models import Server, ServerArchive, ServiceConfig
 from apps.vo.managers import VoManager
-from apps.order.tests import create_price
-from apps.order.models import Order
-from apps.order.managers import OrderManager, ServerConfig, OrderPaymentManager
+from apps.app_order.tests import create_price
+from apps.app_order.models import Order
+from apps.app_order.managers import OrderManager, ServerConfig, OrderPaymentManager
 from apps.app_wallet.models import CashCoupon, PaymentHistory, PayAppService, PayApp
 from apps.app_metering.measurers import ServerMeasurer
 from apps.app_metering.models import MeteringServer, PaymentStatus, DailyStatementServer

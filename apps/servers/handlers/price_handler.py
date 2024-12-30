@@ -4,8 +4,8 @@ from rest_framework.response import Response
 from core import errors
 from core.request import update_server_detail
 from apps.api.viewsets import CustomGenericViewSet
-from apps.order.models import Order
-from apps.order.managers import PriceManager
+from apps.app_order.models import Order
+from apps.app_order.managers import PriceManager
 from utils.decimal_utils import quantize_10_2
 from apps.servers.managers import ServerManager, ServerSnapshotManager
 

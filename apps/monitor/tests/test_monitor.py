@@ -18,7 +18,7 @@ from apps.monitor.managers import (
 )
 from apps.monitor.utils import MonitorEmailAddressIPRestrictor
 from apps.app_wallet.models import PayApp, PayAppService
-from apps.order.tests import create_price
+from apps.app_order.tests import create_price
 from utils.test import (
     get_or_create_user, get_test_case_settings, get_or_create_organization,
     MyAPITestCase, get_or_create_org_data_center

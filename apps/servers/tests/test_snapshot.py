@@ -9,9 +9,9 @@ from django.utils import timezone as dj_timezone
 from utils.test import get_or_create_user, get_or_create_service, MyAPITransactionTestCase
 from utils.model import PayType, OwnerType, ResourceType
 from utils.decimal_utils import quantize_10_2
-from apps.order.models import Order
-from apps.order.managers import OrderManager, ServerSnapshotConfig
-from apps.order.tests import create_price
+from apps.app_order.models import Order
+from apps.app_order.managers import OrderManager, ServerSnapshotConfig
+from apps.app_order.tests import create_price
 from apps.vo.models import VirtualOrganization, VoMember
 from apps.servers.managers import ServerSnapshotManager
 from apps.servers.models import ServiceConfig, ServerSnapshot, Server

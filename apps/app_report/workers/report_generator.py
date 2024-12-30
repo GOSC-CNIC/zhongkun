@@ -17,7 +17,7 @@ from apps.app_metering.managers import (
 from apps.app_metering.models import PaymentStatus, MeteringServer, MeteringDisk
 from apps.app_report.models import MonthlyReport, BucketMonthlyReport
 from apps.storage.models import Bucket, BucketArchive
-from apps.order.models import Order, Resource, ResourceType
+from apps.app_order.models import Order, Resource, ResourceType
 from utils.model import OwnerType, PayType
 from utils.time import utc
 from apps.app_wallet.models import CashCoupon, CashCouponPaymentHistory

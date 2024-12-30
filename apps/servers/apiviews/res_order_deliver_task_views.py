@@ -22,9 +22,9 @@ from apps.servers.handlers.server_handler import ServerHandler
 from apps.servers import serializers
 from apps.servers.models import ResourceOrderDeliverTask
 from apps.servers.managers import ServiceManager
-from apps.order.models import Order, Resource
-from apps.order.managers import OrderPaymentManager, OrderManager
-from apps.order.deliver_resource import OrderResourceDeliverer
+from apps.app_order.models import Order, Resource
+from apps.app_order.managers import OrderPaymentManager, OrderManager
+from apps.app_order.deliver_resource import OrderResourceDeliverer
 from apps.vo.managers import VoManager
 from apps.users.managers import get_user_by_id
 from apps.app_wallet.models import CashCoupon

@@ -15,8 +15,8 @@ from apps.servers import format_who_action_str
 from apps.servers.tasks import update_services_server_count
 from core.adapters import inputs, outputs
 from utils.model import PayType, OwnerType, ResourceType
-from apps.order.models import Order, Resource
-from apps.order.managers import OrderManager, ServerConfig, PriceManager, DiskConfig, ScanConfig, ServerSnapshotConfig
+from apps.app_order.models import Order, Resource
+from apps.app_order.managers import OrderManager, ServerConfig, PriceManager, DiskConfig, ScanConfig, ServerSnapshotConfig
 from apps.app_scan.models import VtTask
 from apps.app_scan.managers import TaskManager
 

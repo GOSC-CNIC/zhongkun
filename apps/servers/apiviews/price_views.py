@@ -6,7 +6,7 @@ from drf_yasg import openapi
 
 from apps.api.viewsets import CustomGenericViewSet
 from apps.servers.handlers.price_handler import DescribePriceHandler
-from apps.order.models import Order
+from apps.app_order.models import Order
 
 
 class SnapshotPriceViewSet(CustomGenericViewSet):

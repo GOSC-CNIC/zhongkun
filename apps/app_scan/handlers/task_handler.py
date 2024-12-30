@@ -5,8 +5,8 @@ from rest_framework.response import Response
 
 from apps.api.viewsets import CustomGenericViewSet, serializer_error_msg
 from core import errors
-from apps.order.managers.order import OrderManager
-from apps.order.managers.instance_configs import ScanConfig
+from apps.app_order.managers.order import OrderManager
+from apps.app_order.managers.instance_configs import ScanConfig
 from apps.app_scan.managers import TaskManager, URLHTTPValidator
 from apps.app_scan.models import VtScanService, VtTask
 

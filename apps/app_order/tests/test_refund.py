@@ -8,9 +8,9 @@ from django.conf import settings
 
 from core import errors, site_configs_manager
 from utils.model import PayType, OwnerType, ResourceType
-from apps.order.models import Order, Resource, OrderRefund
-from apps.order.managers import OrderManager, OrderPaymentManager
-from apps.order.managers.instance_configs import ServerConfig
+from apps.app_order.models import Order, Resource, OrderRefund
+from apps.app_order.managers import OrderManager, OrderPaymentManager
+from apps.app_order.managers.instance_configs import ServerConfig
 from utils.test import get_or_create_user, get_or_create_service, get_or_create_organization, MyAPITestCase
 from apps.vo.models import VirtualOrganization
 from apps.app_wallet.managers import PaymentManager

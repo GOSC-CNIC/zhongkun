@@ -12,9 +12,9 @@ from apps.servers.tests import create_server_metadata
 from utils.test import get_or_create_user, MyAPITransactionTestCase
 from apps.vo.models import VirtualOrganization, VoMember
 from apps.app_wallet.managers.payment import PaymentManager
-from apps.order.managers import OrderManager
-from apps.order.models import Order, ResourceType
-from apps.order.managers.instance_configs import ServerConfig
+from apps.app_order.managers import OrderManager
+from apps.app_order.models import Order, ResourceType
+from apps.app_order.managers.instance_configs import ServerConfig
 
 
 class VoTests(MyAPITransactionTestCase):

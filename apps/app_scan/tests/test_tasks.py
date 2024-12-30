@@ -10,8 +10,8 @@ from utils.test import (
     get_or_create_organization,
     MyAPITestCase,
 )
-from apps.order.tests import create_price
-from apps.order.managers.order import OrderManager
+from apps.app_order.tests import create_price
+from apps.app_order.managers.order import OrderManager
 from apps.app_scan.models import VtScanService, VtTask
 
 

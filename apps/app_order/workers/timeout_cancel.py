@@ -1,8 +1,8 @@
 from datetime import timedelta
 from django.utils import timezone
 
-from apps.order.models import Order
-from apps.order.managers import OrderManager
+from apps.app_order.models import Order
+from apps.app_order.managers import OrderManager
 
 from core.loggers import config_script_logger
 

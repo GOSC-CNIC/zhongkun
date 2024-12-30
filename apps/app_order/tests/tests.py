@@ -7,9 +7,9 @@ from core import errors
 from utils.time import datetime_add_months
 from utils.decimal_utils import quantize_10_2
 from utils.model import ResourceType, OwnerType, PayType
-from apps.order.models import Price, Order, Resource
-from apps.order.managers import PriceManager, OrderManager
-from apps.order.managers.instance_configs import ScanConfig, ServerConfig, ServerSnapshotConfig
+from apps.app_order.models import Price, Order, Resource
+from apps.app_order.managers import PriceManager, OrderManager
+from apps.app_order.managers.instance_configs import ScanConfig, ServerConfig, ServerSnapshotConfig
 from . import create_price
 
 

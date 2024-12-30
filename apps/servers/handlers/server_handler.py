@@ -26,9 +26,9 @@ from core.adapters import inputs
 from core.adapters.client import get_service_client
 from utils.model import PayType, OwnerType
 from utils.time import iso_utc_to_datetime
-from apps.order.deliver_resource import OrderResourceDeliverer
-from apps.order.models import ResourceType, Order
-from apps.order.managers import OrderManager, ServerConfig, OrderPaymentManager
+from apps.app_order.deliver_resource import OrderResourceDeliverer
+from apps.app_order.models import ResourceType, Order
+from apps.app_order.managers import OrderManager, ServerConfig, OrderPaymentManager
 from apps.app_wallet.managers import PaymentManager
 from apps.servers.handlers.disk_handler import DiskHandler
 from apps.users.managers import get_user_by_name

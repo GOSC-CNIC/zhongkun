@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 from utils.model import PayType
 from apps.app_wallet.trade_serializers import CashCouponSerializer
-from apps.order.serializers import OrderDetailSerializer
+from apps.app_order.serializers import OrderDetailSerializer
 
 
 class PeriodSerializer(serializers.Serializer):

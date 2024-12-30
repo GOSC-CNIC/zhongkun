@@ -16,8 +16,8 @@ from apps.app_metering import metering_serializers
 from apps.app_metering.models import MeteringServer, DailyStatementServer
 from apps.app_wallet.models import PaymentHistory, CashCouponPaymentHistory
 from apps.app_wallet import trade_serializers
-from apps.order.models import Resource, Order
-from apps.order.serializers import OrderSerializer
+from apps.app_order.models import Resource, Order
+from apps.app_order.serializers import OrderSerializer
 
 
 def previous_days_dates(days: int = 10):

@@ -11,8 +11,8 @@ from utils.model import PayType
 from apps.servers.tests import create_server_metadata
 from apps.servers.managers import ServerSnapshotManager
 from apps.servers.models import ServerSnapshot
-from apps.order.models import Order
-from apps.order.tests import create_price
+from apps.app_order.models import Order
+from apps.app_order.tests import create_price
 
 
 class PriceTests(MyAPITestCase):

@@ -12,7 +12,7 @@ from apps.monitor.models import MonitorWebsiteTask, MonitorWebsiteVersion, Monit
 from apps.monitor.utils import MonitorEmailAddressIPRestrictor
 from apps.api.viewsets import CustomGenericViewSet
 from apps.app_wallet.managers.payment import PaymentManager
-from apps.order.managers.price import PriceManager
+from apps.app_order.managers.price import PriceManager
 from apps.api.handlers import serializer_error_msg
 
 

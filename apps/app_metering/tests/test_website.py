@@ -9,7 +9,7 @@ from utils.decimal_utils import quantize_10_2
 from utils.time import utc
 from utils.model import OwnerType
 from apps.monitor.models import MonitorWebsite, MonitorWebsiteRecord, MonitorWebsiteBase, MonitorWebsiteVersion
-from apps.order.tests import create_price
+from apps.app_order.tests import create_price
 from apps.app_metering.measurers import MonitorWebsiteMeasurer
 from apps.app_metering.models import MeteringMonitorWebsite, PaymentStatus, DailyStatementMonitorWebsite
 from apps.app_metering.statement_generators import WebsiteMonitorStatementGenerater

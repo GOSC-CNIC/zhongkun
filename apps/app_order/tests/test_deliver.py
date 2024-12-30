@@ -8,11 +8,11 @@ from django.utils import timezone as dj_timezone
 from core.adapters import inputs, outputs
 from core import errors
 from utils.model import PayType, OwnerType, ResourceType
-from apps.order.models import Order, Resource
-from apps.order.managers import OrderManager
-from apps.order.managers.instance_configs import ServerConfig, ScanConfig, ServerSnapshotConfig
-from apps.order.deliver_resource import OrderResourceDeliverer
-from apps.order.tests import create_price
+from apps.app_order.models import Order, Resource
+from apps.app_order.managers import OrderManager
+from apps.app_order.managers.instance_configs import ServerConfig, ScanConfig, ServerSnapshotConfig
+from apps.app_order.deliver_resource import OrderResourceDeliverer
+from apps.app_order.tests import create_price
 from utils.test import get_or_create_user, MyAPITransactionTestCase
 from apps.servers.models import ServiceConfig, Server, ServerSnapshot, EVCloudPermsLog
 from apps.vo.models import VirtualOrganization

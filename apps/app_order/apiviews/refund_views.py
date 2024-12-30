@@ -7,9 +7,9 @@ from drf_yasg import openapi
 
 from apps.api.viewsets import CustomGenericViewSet
 from apps.api.paginations import NewPageNumberPagination100
-from apps.order import serializers
-from apps.order.handlers.refund_handler import RefundOrderHandler
-from apps.order.models import OrderRefund
+from apps.app_order import serializers
+from apps.app_order.handlers.refund_handler import RefundOrderHandler
+from apps.app_order.models import OrderRefund
 
 
 class RefundViewSet(CustomGenericViewSet):

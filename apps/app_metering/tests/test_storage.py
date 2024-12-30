@@ -8,7 +8,7 @@ from django.utils import timezone
 from utils.test import get_or_create_user, get_or_create_storage_service, get_or_create_organization
 from utils.model import OwnerType
 from core import errors
-from apps.order.tests import create_price
+from apps.app_order.tests import create_price
 from apps.app_wallet.models import CashCoupon, PaymentHistory, PayAppService, PayApp
 from apps.app_metering.measurers import StorageMeasurer
 from apps.app_metering.models import PaymentStatus, MeteringObjectStorage, DailyStatementObjectStorage

@@ -16,10 +16,10 @@ from utils.test import (
 )
 from utils.model import PayType, OwnerType, ResourceType
 from apps.vo.models import VirtualOrganization
-from apps.order.managers import OrderManager
-from apps.order.models import Order
-from apps.order.managers import ServerConfig
-from apps.order.tests import create_price
+from apps.app_order.managers import OrderManager
+from apps.app_order.models import Order
+from apps.app_order.managers import ServerConfig
+from apps.app_order.tests import create_price
 from apps.app_wallet.models import PayApp, PayAppService, CashCoupon, PaymentHistory
 from core import site_configs_manager
 from apps.servers.apiviews.res_order_deliver_task_views import ResTaskManager

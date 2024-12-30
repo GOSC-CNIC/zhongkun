@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import SimpleRouter
 
-from apps.order.apiviews import order_views, refund_views
+from apps.app_order.apiviews import order_views, refund_views
 
 
 app_name = 'order'

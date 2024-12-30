@@ -11,7 +11,7 @@ from utils import rand_utils
 from apps.vo.managers import VoManager
 from core import errors
 from apps.servers.managers import ServiceManager
-from apps.order.models import Order, Resource, ResourceType
+from apps.app_order.models import Order, Resource, ResourceType
 from .instance_configs import (
     BaseConfig, ServerConfig, DiskConfig, BucketConfig, ScanConfig, ServerSnapshotConfig
 )

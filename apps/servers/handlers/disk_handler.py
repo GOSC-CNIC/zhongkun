@@ -18,9 +18,9 @@ from apps.vo.models import VirtualOrganization, VoMember
 from core.adapters import inputs
 from utils.model import PayType, OwnerType
 from utils.time import iso_utc_to_datetime
-from apps.order.deliver_resource import OrderResourceDeliverer
-from apps.order.models import ResourceType, Order
-from apps.order.managers import OrderManager, OrderPaymentManager, DiskConfig
+from apps.app_order.deliver_resource import OrderResourceDeliverer
+from apps.app_order.models import ResourceType, Order
+from apps.app_order.managers import OrderManager, OrderPaymentManager, DiskConfig
 from apps.app_wallet.managers import PaymentManager
 from apps.servers.managers import ServiceManager
 from apps.servers.managers import ServerManager, DiskManager, ResourceActionLogManager

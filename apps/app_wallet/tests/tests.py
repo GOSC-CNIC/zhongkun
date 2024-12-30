@@ -8,8 +8,8 @@ from core import errors
 from utils.test import get_or_create_user, get_or_create_service, get_or_create_organization
 from utils.model import OwnerType, PayType
 from utils.decimal_utils import quantize_10_2
-from apps.order.models import ResourceType, Order
-from apps.order.managers import OrderPaymentManager
+from apps.app_order.models import ResourceType, Order
+from apps.app_order.managers import OrderPaymentManager
 from apps.vo.managers import VoManager
 from apps.servers.models import ServiceConfig
 from apps.app_wallet.models import (

@@ -9,8 +9,8 @@ from core import errors
 from apps.servers.models import Flavor
 
 from apps.api.viewsets import CustomGenericViewSet
-from apps.order.models import ResourceType, Order
-from apps.order.managers import PriceManager
+from apps.app_order.models import ResourceType, Order
+from apps.app_order.managers import PriceManager
 from utils.decimal_utils import quantize_10_2
 from utils.time import iso_utc_to_datetime
 from apps.servers.managers import ServerManager, DiskManager

@@ -19,10 +19,10 @@ from utils.time import iso_utc_to_datetime
 from utils.decimal_utils import quantize_10_2
 from apps.vo.models import VirtualOrganization, VoMember
 from apps.vo.tests import VoTests
-from apps.order.managers import OrderManager, PriceManager
-from apps.order.models import Order, Resource
-from apps.order.managers import ServerConfig
-from apps.order.tests import create_price
+from apps.app_order.managers import OrderManager, PriceManager
+from apps.app_order.models import Order, Resource
+from apps.app_order.managers import ServerConfig
+from apps.app_order.tests import create_price
 from apps.app_wallet.managers import PaymentManager
 from apps.app_wallet.models import PayApp, PayAppService
 from apps.app_metering.measurers import ServerMeasurer

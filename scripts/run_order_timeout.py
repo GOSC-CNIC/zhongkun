@@ -15,7 +15,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_site.settings')
 setup()
 
 
-from apps.order.workers.timeout_cancel import OrderTimeoutTask
+from apps.app_order.workers.timeout_cancel import OrderTimeoutTask
 
 
 if __name__ == "__main__":

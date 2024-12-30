@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from apps.order.models import Price
+from apps.app_order.models import Price
 
 
 def create_price():

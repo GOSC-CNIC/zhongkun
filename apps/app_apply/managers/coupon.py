@@ -14,7 +14,7 @@ from apps.service.odc_manager import OrgDataCenterManager
 from apps.app_wallet.managers.cash_coupon import CashCouponManager
 from apps.app_wallet.models import CashCoupon
 from apps.vo.managers import VoManager
-from apps.order.models import Order
+from apps.app_order.models import Order
 from apps.app_apply.models import CouponApply
 
 

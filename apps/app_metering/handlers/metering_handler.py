@@ -25,7 +25,7 @@ from utils import rand_utils
 from utils.decimal_utils import quantize_18_2
 from utils.model import PayType, ResourceType, OwnerType
 from utils.time import utc
-from apps.order.models import Order
+from apps.app_order.models import Order
 
 
 def validate_date_start_end(request, default_date_start: date = None, default_date_end: date = None):

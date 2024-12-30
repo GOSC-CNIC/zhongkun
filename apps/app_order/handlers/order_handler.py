@@ -6,9 +6,9 @@ from rest_framework.response import Response
 
 from core import errors, site_configs_manager
 from apps.api.viewsets import CustomGenericViewSet
-from apps.order.deliver_resource import OrderResourceDeliverer
-from apps.order.models import ResourceType, Order, Resource
-from apps.order.managers import OrderManager, OrderPaymentManager
+from apps.app_order.deliver_resource import OrderResourceDeliverer
+from apps.app_order.models import ResourceType, Order, Resource
+from apps.app_order.managers import OrderManager, OrderPaymentManager
 from utils.time import iso_to_datetime
 from apps.api import request_logger
 from apps.servers. managers import ServerManager
