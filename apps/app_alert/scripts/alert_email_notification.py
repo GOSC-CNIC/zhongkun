@@ -6,26 +6,27 @@ import os
 import sys
 import re
 import traceback
-from django import setup
 from pathlib import Path
+from datetime import timedelta
+from concurrent.futures import ThreadPoolExecutor
 
 # 将项目路径添加到系统搜寻路径当中，查找方式为从当前脚本开始，找到要调用的django项目的路径
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_site.settings')
+from django import setup
+from django.utils import timezone as dj_timezone
 setup()
+
 from apps.app_alert.models import AlertModel
 from apps.app_alert.models import EmailNotification
 from apps.app_alert.utils.logger import setup_logger
 from apps.app_alert.utils.utils import custom_model_to_dict
 from apps.app_alert.utils.utils import DateUtils
-from django.contrib.contenttypes.models import ContentType
-from concurrent.futures import ThreadPoolExecutor
-from django.utils import timezone as dj_timezone
-from datetime import timedelta
 from apps.app_global.task_locks import alert_email_notify_lock
 from apps.app_monitor.alert_helpers import AlertEmailsHelper
+from apps.app_users.models import Email
 
 logger = setup_logger(__name__, __file__)
 
@@ -126,11 +127,10 @@ class NotificationSender(object):
 
     def send_to_monitor(self, receiver, subject, message):
         logger.info(message)
-        email_model = ContentType.objects.get(app_label="users", model="email").model_class()
-        email = email_model.send_email(
+        email = Email.send_email(
             subject=subject, receivers=[receiver],
             message='', html_message=message,
-            tag=email_model.Tag.API.value, fail_silently=False,
+            tag=Email.Tag.API.value, fail_silently=False,
             save_db=True, remote_ip='127.0.0.1', is_feint=self.feint
         )
         logger.info("邮件发送状态：{}".format(email))
