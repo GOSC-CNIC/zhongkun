@@ -14,10 +14,10 @@ from apps.app_order.managers.instance_configs import ServerConfig, ScanConfig, S
 from apps.app_order.deliver_resource import OrderResourceDeliverer
 from apps.app_order.tests import create_price
 from utils.test import get_or_create_user, MyAPITransactionTestCase
-from apps.servers.models import ServiceConfig, Server, ServerSnapshot, EVCloudPermsLog
+from apps.app_servers.models import ServiceConfig, Server, ServerSnapshot, EVCloudPermsLog
 from apps.app_vo.models import VirtualOrganization
-from apps.servers.managers import ServicePrivateQuotaManager, ServerSnapshotManager
-from apps.servers.tests import create_server_metadata
+from apps.app_servers.managers import ServicePrivateQuotaManager, ServerSnapshotManager
+from apps.app_servers.tests import create_server_metadata
 from apps.app_scan.models import VtTask
 
 

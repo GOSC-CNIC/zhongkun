@@ -6,7 +6,7 @@ from decimal import Decimal
 from django.utils import timezone
 from django.db import close_old_connections
 
-from apps.servers.models import Server, ServerArchive, ServerBase, Disk, DiskChangeLog
+from apps.app_servers.models import Server, ServerArchive, ServerBase, Disk, DiskChangeLog
 from apps.app_metering.models import MeteringServer, MeteringObjectStorage, MeteringDisk, MeteringMonitorWebsite
 from apps.app_monitor.models import MonitorWebsite, MonitorWebsiteRecord, MonitorWebsiteBase
 from apps.app_order.managers import PriceManager

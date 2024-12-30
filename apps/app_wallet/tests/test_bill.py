@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from utils.model import OwnerType
 from utils.test import get_or_create_service, get_or_create_user, MyAPITestCase
-from apps.servers.models import ServiceConfig
+from apps.app_servers.models import ServiceConfig
 from apps.app_vo.models import VirtualOrganization, VoMember
 from apps.app_wallet.models import PaymentHistory, CashCouponPaymentHistory
 

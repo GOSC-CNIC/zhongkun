@@ -4,7 +4,7 @@ from django.utils.translation import gettext as _
 from django.db.models import Q
 from django.db import transaction
 
-from apps.servers.models import Server
+from apps.app_servers.models import Server
 from core import errors
 from apps.users.models import UserProfile as User
 from apps.app_vo.models import VirtualOrganization, VoMember

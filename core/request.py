@@ -1,6 +1,6 @@
 from core.adapters import exceptions as apt_exceptions, client as clients
 from core.adapters import inputs, outputs
-from apps.servers.models import Disk, Server
+from apps.app_servers.models import Disk, Server
 from .auth import auth_handler
 from . import errors as exceptions
 

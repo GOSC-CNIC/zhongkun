@@ -1,4 +1,4 @@
-from apps.servers.managers import ServicePrivateQuotaManager
+from apps.app_servers.managers import ServicePrivateQuotaManager
 
 
 class QuotaAPI:

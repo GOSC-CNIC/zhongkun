@@ -11,7 +11,7 @@ from utils.decimal_utils import quantize_10_2
 from apps.app_order.models import ResourceType, Order
 from apps.app_order.managers import OrderPaymentManager
 from apps.app_vo.managers import VoManager
-from apps.servers.models import ServiceConfig
+from apps.app_servers.models import ServiceConfig
 from apps.app_wallet.models import (
     CashCoupon, CashCouponActivity, CashCouponPaymentHistory, RefundRecord,
     PaymentHistory, PayAppService, PayApp, TransactionBill

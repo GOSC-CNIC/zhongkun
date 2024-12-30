@@ -6,9 +6,9 @@ from django.urls import reverse
 from django.utils import timezone
 
 from utils.model import PayType, OwnerType
-from apps.servers.models import Disk, Server, ServiceConfig, EVCloudPermsLog
-from apps.servers.tests.test_disk import create_disk_metadata
-from apps.servers.tests import create_server_metadata
+from apps.app_servers.models import Disk, Server, ServiceConfig, EVCloudPermsLog
+from apps.app_servers.tests.test_disk import create_disk_metadata
+from apps.app_servers.tests import create_server_metadata
 from utils.test import get_or_create_user, MyAPITransactionTestCase
 from apps.app_vo.models import VirtualOrganization, VoMember
 from apps.app_wallet.managers.payment import PaymentManager

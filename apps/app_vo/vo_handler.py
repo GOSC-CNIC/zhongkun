@@ -7,8 +7,8 @@ from apps.app_vo import vo_serializers
 from utils.model import OwnerType
 from core import errors as exceptions
 from apps.api.viewsets import CustomGenericViewSet, serializer_error_msg
-from apps.servers.managers import ServerManager, DiskManager
-from apps.servers.evcloud_perms import EVCloudPermsSynchronizer
+from apps.app_servers.managers import ServerManager, DiskManager
+from apps.app_servers.evcloud_perms import EVCloudPermsSynchronizer
 from apps.app_order.managers import OrderManager
 from apps.app_wallet.models import CashCoupon
 from apps.app_wallet.managers import PaymentManager

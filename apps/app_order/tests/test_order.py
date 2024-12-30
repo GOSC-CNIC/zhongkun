@@ -18,8 +18,8 @@ from utils.test import get_or_create_user, get_or_create_service, get_or_create_
 from apps.app_vo.models import VirtualOrganization, VoMember
 from apps.app_wallet.managers import PaymentManager
 from apps.app_wallet.models import PaymentHistory, CashCoupon, PayAppService, PayApp, TransactionBill
-from apps.servers.models import ServiceConfig, Flavor
-from apps.servers.managers import ServicePrivateQuotaManager
+from apps.app_servers.models import ServiceConfig, Flavor
+from apps.app_servers.managers import ServicePrivateQuotaManager
 from . import create_price
 
 

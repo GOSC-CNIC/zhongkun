@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext
 
 from utils.model import BaseModelAdmin
-from apps.servers.admin import ServerServiceFilter
+from apps.app_servers.admin import ServerServiceFilter
 from .models import Order, Resource, Price, Period, OrderRefund
 
 

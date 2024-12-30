@@ -19,7 +19,7 @@ setup()
 
 from django.utils import timezone as dj_timezone
 
-from apps.servers.workers.evcloud_perms_log import EVCloudPermsWorker
+from apps.app_servers.workers.evcloud_perms_log import EVCloudPermsWorker
 from apps.app_global.task_locks import vo_server_perm_evcloud_lock
 
 

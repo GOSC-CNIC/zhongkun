@@ -7,8 +7,8 @@ from utils.model import OwnerType, PayType, CustomIdModel
 from utils import rand_utils
 from apps.users.models import UserProfile
 from apps.app_vo.models import VirtualOrganization
-from apps.servers.models import Server
-from apps.servers.models import ServiceConfig
+from apps.app_servers.models import Server
+from apps.app_servers.models import ServiceConfig
 from apps.app_storage.models import ObjectsService
 from apps.app_monitor.models import MonitorWebsiteVersion
 

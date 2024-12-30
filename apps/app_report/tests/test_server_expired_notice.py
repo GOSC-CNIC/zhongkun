@@ -7,11 +7,11 @@ from django.core import mail
 from utils.model import PayType
 from utils.test import get_or_create_user
 from apps.app_vo.models import VirtualOrganization, VoMember
-from apps.servers.models import Server
+from apps.app_servers.models import Server
 from apps.app_report.workers.server_notifier import (
     ServerNotifier
 )
-from apps.servers.tests import create_server_metadata
+from apps.app_servers.tests import create_server_metadata
 
 
 class ServerExpiredTests(TransactionTestCase):

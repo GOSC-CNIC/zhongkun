@@ -3,8 +3,8 @@ from rest_framework.response import Response
 
 from core import errors
 from apps.api.viewsets import CustomGenericViewSet
-from apps.servers.managers import ServerManager
-from apps.servers import format_who_action_str
+from apps.app_servers.managers import ServerManager
+from apps.app_servers import format_who_action_str
 
 
 class VPNHandler:

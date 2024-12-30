@@ -19,7 +19,7 @@ from apps.app_metering.managers import (
     MeteringServerManager, StatementServerManager, MeteringStorageManager, StatementStorageManager,
     MeteringDiskManager, StatementDiskManager, BaseMeteringManager, MeteringMonitorSiteManager
 )
-from apps.servers.models import Server, ServerArchive, Disk
+from apps.app_servers.models import Server, ServerArchive, Disk
 from utils.report_file import CSVFileInMemory, wrap_csv_file_response
 from utils import rand_utils
 from utils.decimal_utils import quantize_18_2

@@ -12,7 +12,7 @@ from apps.app_storage.adapter import inputs
 from apps.app_storage.managers import BucketManager, ObjectsServiceManager
 from apps.app_storage.models import Bucket, ObjectsService
 from apps.app_storage import serializers as storage_serializers
-from apps.servers.managers import ResourceActionLogManager
+from apps.app_servers.managers import ResourceActionLogManager
 
 
 class BucketHandler:

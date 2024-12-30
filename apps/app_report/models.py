@@ -8,7 +8,7 @@ from utils.model import UuidModel, OwnerType, PayType
 from apps.users.models import UserProfile
 from apps.app_vo.models import VirtualOrganization
 from apps.app_storage.models import ObjectsService, BucketBase
-from apps.servers.models import Server, ServiceConfig
+from apps.app_servers.models import Server, ServiceConfig
 
 
 class MonthlyReport(UuidModel):

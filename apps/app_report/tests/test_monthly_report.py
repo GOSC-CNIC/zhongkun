@@ -22,8 +22,8 @@ from apps.app_report.workers.report_generator import (
     MonthlyReportGenerator, MonthlyReportNotifier, get_report_period_start_and_end,
     last_target_day_date
 )
-from apps.servers.managers import ServerSnapshotManager
-from apps.servers.models import ServerSnapshot
+from apps.app_servers.managers import ServerSnapshotManager
+from apps.app_servers.models import ServerSnapshot
 from apps.app_scan.managers import TaskManager
 from apps.app_scan.models import VtTask
 

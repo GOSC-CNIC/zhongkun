@@ -11,7 +11,7 @@ from drf_yasg import openapi
 from utils.iprestrict import IPRestrictor
 from core.request import request_service, request_vpn_service
 from core import errors as exceptions
-from apps.servers.managers import ServiceManager
+from apps.app_servers.managers import ServiceManager
 from apps.app_storage.request import request_service as storage_request_service
 from apps.app_storage.models import ObjectsService
 from apps.app_storage.managers import ObjectsServiceManager

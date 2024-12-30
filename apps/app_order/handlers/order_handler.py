@@ -11,7 +11,7 @@ from apps.app_order.models import ResourceType, Order, Resource
 from apps.app_order.managers import OrderManager, OrderPaymentManager
 from utils.time import iso_to_datetime
 from apps.api import request_logger
-from apps.servers. managers import ServerManager
+from apps.app_servers. managers import ServerManager
 from apps.users import managers as user_managers
 
 

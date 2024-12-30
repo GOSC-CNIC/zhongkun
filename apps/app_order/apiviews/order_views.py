@@ -12,7 +12,7 @@ from apps.app_order.handlers.price_handler import DescribePriceHandler, ScanTask
 from apps.app_order import serializers
 from apps.app_order.models import ResourceType, Order, Period
 from apps.app_order.handlers.order_handler import OrderHandler, CASH_COUPON_BALANCE
-from apps.servers.serializers import PeriodSerializer
+from apps.app_servers.serializers import PeriodSerializer
 from core import errors
 
 

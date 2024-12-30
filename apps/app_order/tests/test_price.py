@@ -5,9 +5,9 @@ from datetime import timedelta, timezone
 from django.urls import reverse
 from django.utils import timezone as dj_timezone
 
-from apps.servers.models import Flavor, Disk
-from apps.servers.tests.test_disk import create_disk_metadata
-from apps.servers.tests import create_server_metadata
+from apps.app_servers.models import Flavor, Disk
+from apps.app_servers.tests.test_disk import create_disk_metadata
+from apps.app_servers.tests import create_server_metadata
 from apps.app_order.models import Order
 from apps.app_order.managers import PriceManager
 from apps.app_order.handlers.price_handler import ScanTaskType

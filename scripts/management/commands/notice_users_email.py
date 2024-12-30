@@ -5,7 +5,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone as dj_timezone
 
 from apps.users.models import Email, UserProfile
-from apps.servers.models import Server
+from apps.app_servers.models import Server
 from apps.app_vo.models import VoMember
 from apps.app_wallet.models import CashCoupon, OwnerType
 

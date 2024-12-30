@@ -8,7 +8,7 @@ from utils.test import MyAPITransactionTestCase, get_or_create_user, get_or_crea
 from apps.app_storage.models import ObjectsService
 from apps.app_monitor.models import MonitorJobCeph, MonitorJobServer, MonitorJobTiDB, LogSite, LogSiteType
 from apps.app_wallet.models import PayAppService, PayApp
-from apps.servers.models import ServiceConfig
+from apps.app_servers.models import ServiceConfig
 from apps.service.models import OrgDataCenter
 from ..odc_manager import OrgDataCenterManager
 

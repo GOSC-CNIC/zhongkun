@@ -10,7 +10,7 @@ from utils.model import OwnerType, PayType
 from utils import rand_utils
 from apps.app_vo.managers import VoManager
 from core import errors
-from apps.servers.managers import ServiceManager
+from apps.app_servers.managers import ServiceManager
 from apps.app_order.models import Order, Resource, ResourceType
 from .instance_configs import (
     BaseConfig, ServerConfig, DiskConfig, BucketConfig, ScanConfig, ServerSnapshotConfig

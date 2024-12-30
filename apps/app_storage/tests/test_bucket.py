@@ -10,7 +10,7 @@ from utils.model import OwnerType
 from apps.app_storage.managers import BucketManager
 from apps.app_storage.models import ObjectsService, Bucket
 from apps.app_storage.bucket_handler import BucketHandler
-from apps.servers.models import ResourceActionLog
+from apps.app_servers.models import ResourceActionLog
 
 
 class BucketTests(MyAPITestCase):

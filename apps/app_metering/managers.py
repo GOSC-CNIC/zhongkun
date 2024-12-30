@@ -4,10 +4,10 @@ from django.utils.translation import gettext as _
 from django.db.models import Subquery, Sum, Count
 
 from core import errors
-from apps.servers.managers import ServiceManager
-from apps.servers.models import ServiceConfig
-from apps.servers.managers import ServerManager, DiskManager
-from apps.servers.models import Server, ServerArchive, Disk
+from apps.app_servers.managers import ServiceManager
+from apps.app_servers.models import ServiceConfig
+from apps.app_servers.managers import ServerManager, DiskManager
+from apps.app_servers.models import Server, ServerArchive, Disk
 from utils.model import OwnerType
 from apps.users.models import UserProfile
 from apps.app_vo.models import VirtualOrganization

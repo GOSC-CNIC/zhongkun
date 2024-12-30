@@ -19,7 +19,7 @@ from utils.model import OwnerType, ResourceType, PayType
 from apps.api.viewsets import NormalGenericViewSet, serializer_error_msg
 from apps.api.paginations import NewPageNumberPagination100
 from apps.app_vo.managers import VoManager
-from apps.servers.managers import ServiceManager as ServerServiceManager
+from apps.app_servers.managers import ServiceManager as ServerServiceManager
 from apps.app_storage.managers import ObjectsServiceManager
 from apps.app_monitor.models import MonitorWebsiteVersion
 from apps.app_monitor.models import ErrorLog

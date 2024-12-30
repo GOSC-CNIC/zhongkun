@@ -10,8 +10,8 @@ from core import errors
 from utils.model import PayType
 from apps.api.viewsets import CustomGenericViewSet
 from apps.api.paginations import NewPageNumberPagination
-from apps.servers.managers import ServerManager
-from apps.servers.serializers import ServerSerializer
+from apps.app_servers.managers import ServerManager
+from apps.app_servers.serializers import ServerSerializer
 from apps.app_metering import metering_serializers
 from apps.app_metering.models import MeteringServer, DailyStatementServer
 from apps.app_wallet.models import PaymentHistory, CashCouponPaymentHistory

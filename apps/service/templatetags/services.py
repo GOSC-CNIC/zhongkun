@@ -2,7 +2,7 @@ from django import template
 from django.core.cache import cache
 from django.utils.translation import gettext as _, get_language
 
-from apps.servers.models import ServiceConfig
+from apps.app_servers.models import ServiceConfig
 
 register = template.Library()
 

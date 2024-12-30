@@ -8,11 +8,11 @@ from core import errors as exceptions
 from core.quota import QuotaAPI
 from core import request as core_request
 from core.taskqueue import server_build_status, Future
-from apps.servers.models import Server, Disk, ServerArchive, DiskChangeLog, ServiceConfig, ServerSnapshot
-from apps.servers.managers import ServerManager, DiskManager, ServiceManager
-from apps.servers.evcloud_perms import EVCloudPermsSynchronizer
-from apps.servers import format_who_action_str
-from apps.servers.tasks import update_services_server_count
+from apps.app_servers.models import Server, Disk, ServerArchive, DiskChangeLog, ServiceConfig, ServerSnapshot
+from apps.app_servers.managers import ServerManager, DiskManager, ServiceManager
+from apps.app_servers.evcloud_perms import EVCloudPermsSynchronizer
+from apps.app_servers import format_who_action_str
+from apps.app_servers.tasks import update_services_server_count
 from core.adapters import inputs, outputs
 from utils.model import PayType, OwnerType, ResourceType
 from apps.app_order.models import Order, Resource

@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.db.models import Count
 
-from apps.servers.models import Server, ServiceConfig
+from apps.app_servers.models import Server, ServiceConfig
 
 
 def to_int_or_default(val, default=None):

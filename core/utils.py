@@ -1,4 +1,4 @@
-from apps.servers.models import ServiceConfig
+from apps.app_servers.models import ServiceConfig
 from core.adapters import exceptions, client, inputs
 
 

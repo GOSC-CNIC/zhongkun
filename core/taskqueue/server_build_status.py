@@ -3,7 +3,7 @@ import time
 from concurrent.futures import Future
 
 from core import request
-from apps.servers.models import Disk
+from apps.app_servers.models import Disk
 from . import submit_task
 
 

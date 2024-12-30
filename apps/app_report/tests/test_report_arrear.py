@@ -13,8 +13,8 @@ from apps.app_vo.models import VirtualOrganization
 from apps.app_wallet.models import PayApp, PayAppService
 from apps.app_wallet.managers import PaymentManager, CashCouponManager
 from apps.app_storage.models import ObjectsService, Bucket
-from apps.servers.models import Server, ServiceConfig
-from apps.servers.tests import create_server_metadata
+from apps.app_servers.models import Server, ServiceConfig
+from apps.app_servers.tests import create_server_metadata
 from apps.app_report.models import ArrearBucket, ArrearServer
 from apps.app_report.workers.storage_trend import ArrearBucketReporter
 from apps.app_report.workers.server_notifier import ArrearServerReporter

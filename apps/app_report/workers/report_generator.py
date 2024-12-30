@@ -21,7 +21,7 @@ from apps.app_order.models import Order, Resource, ResourceType
 from utils.model import OwnerType, PayType
 from utils.time import utc
 from apps.app_wallet.models import CashCoupon, CashCouponPaymentHistory
-from apps.servers.models import Server, ServerArchive, Disk, ServerSnapshot
+from apps.app_servers.models import Server, ServerArchive, Disk, ServerSnapshot
 from core import site_configs_manager as site_configs
 from core.loggers import config_script_logger
 from apps.app_scan.models import VtTask
