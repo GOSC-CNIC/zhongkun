@@ -2,10 +2,10 @@ from apps.app_alert.models import AlertModel
 from apps.app_alert.models import ResolvedAlertModel
 from django.db.models import Q
 from django.forms.models import model_to_dict
-from apps.monitor.models import MonitorJobServer
-from apps.monitor.models import MonitorWebsite
-from apps.monitor.models import MonitorJobCeph
-from apps.monitor.models import MonitorJobTiDB
+from apps.app_monitor.models import MonitorJobServer
+from apps.app_monitor.models import MonitorWebsite
+from apps.app_monitor.models import MonitorJobCeph
+from apps.app_monitor.models import MonitorJobTiDB
 from apps.app_alert.utils.utils import DateUtils
 from django.db.utils import IntegrityError
 

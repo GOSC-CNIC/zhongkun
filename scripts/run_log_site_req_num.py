@@ -12,7 +12,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_site.settings')
 setup()
 
 from django.utils import timezone as dj_timezone
-from apps.monitor.req_workers import LogSiteReqCounter
+from apps.app_monitor.req_workers import LogSiteReqCounter
 from apps.app_global.task_locks import monitor_log_time_count_lock
 
 

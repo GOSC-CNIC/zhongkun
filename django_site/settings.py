@@ -64,7 +64,7 @@ INSTALLED_APPS = [
     'apps.app_report',
     'apps.app_vo',
     'apps.app_ticket',
-    'apps.monitor',
+    'apps.app_monitor',
     'apps.app_scan',
     'apps.app_vpn',
     'apps.api',

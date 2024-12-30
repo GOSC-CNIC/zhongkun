@@ -12,7 +12,7 @@ from apps.app_global.configs_manager import IPAccessWhiteListManager
 from apps.api.viewsets import CustomGenericViewSet
 from apps.api.paginations import DefaultPageNumberPagination
 from apps.users.managers import filter_user_queryset
-from apps.monitor.models import TotalReqNum
+from apps.app_monitor.models import TotalReqNum
 
 
 class PortalIPRestrictor(IPRestrictor):

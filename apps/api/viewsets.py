@@ -15,7 +15,7 @@ from apps.servers.managers import ServiceManager
 from apps.storage.request import request_service as storage_request_service
 from apps.storage.models import ObjectsService
 from apps.storage.managers import ObjectsServiceManager
-from apps.monitor.models import ErrorLog
+from apps.app_monitor.models import ErrorLog
 from . import request_logger as logger
 
 

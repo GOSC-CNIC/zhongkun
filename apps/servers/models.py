@@ -335,7 +335,7 @@ class ServiceConfig(BaseService):
             change  # 更新
             delete  # 删除
         """
-        from apps.monitor.managers import MonitorWebsiteManager
+        from apps.app_monitor.managers import MonitorWebsiteManager
 
         act = ''
         monitor_url = self.endpoint_url
@@ -396,7 +396,7 @@ class ServiceConfig(BaseService):
         """
         请在创建任务前，确认没有对应监控任务存在
         """
-        from apps.monitor.managers import MonitorWebsiteManager
+        from apps.app_monitor.managers import MonitorWebsiteManager
 
         scheme, hostname, uri = MonitorWebsiteManager.parse_http_url(http_url=http_url)
         if not uri:
@@ -415,7 +415,7 @@ class ServiceConfig(BaseService):
         """
         删除对应监控任务
         """
-        from apps.monitor.managers import MonitorWebsiteManager
+        from apps.app_monitor.managers import MonitorWebsiteManager
 
         with transaction.atomic():
             MonitorWebsiteManager.do_delete_website_task(user_website=task)

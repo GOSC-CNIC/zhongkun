@@ -323,7 +323,7 @@ class OrgDataCenterManager:
             change  # 更新
             delete  # 删除
         """
-        from apps.monitor.managers import MonitorWebsiteManager
+        from apps.app_monitor.managers import MonitorWebsiteManager
 
         act = ''
         odc_id = odc.id
@@ -378,7 +378,7 @@ class OrgDataCenterManager:
         """
         请在创建任务前，确认没有对应监控任务存在
         """
-        from apps.monitor.managers import MonitorWebsiteManager
+        from apps.app_monitor.managers import MonitorWebsiteManager
 
         scheme, hostname, uri = MonitorWebsiteManager.parse_http_url(http_url=http_url)
         if not uri:
@@ -403,7 +403,7 @@ class OrgDataCenterManager:
             change  # 更新
             delete  # 删除
         """
-        from apps.monitor.managers import MonitorWebsiteManager
+        from apps.app_monitor.managers import MonitorWebsiteManager
 
         act = ''
         odc_id = odc.id
@@ -458,7 +458,7 @@ class OrgDataCenterManager:
         """
         请在创建任务前，确认没有对应监控任务存在
         """
-        from apps.monitor.managers import MonitorWebsiteManager
+        from apps.app_monitor.managers import MonitorWebsiteManager
 
         scheme, hostname, uri = MonitorWebsiteManager.parse_http_url(http_url=http_url)
         if not uri:

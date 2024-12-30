@@ -21,8 +21,8 @@ from apps.api.paginations import NewPageNumberPagination100
 from apps.app_vo.managers import VoManager
 from apps.servers.managers import ServiceManager as ServerServiceManager
 from apps.storage.managers import ObjectsServiceManager
-from apps.monitor.models import MonitorWebsiteVersion
-from apps.monitor.models import ErrorLog
+from apps.app_monitor.models import MonitorWebsiteVersion
+from apps.app_monitor.models import ErrorLog
 from apps.app_order.models import Order
 from apps.app_order.managers import OrderManager, OrderPaymentManager
 from apps.app_order.deliver_resource import OrderResourceDeliverer

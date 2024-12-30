@@ -11,7 +11,7 @@ from apps.app_alert.models import AlertModel
 from apps.app_alert.utils.utils import DateUtils
 from django.utils import timezone
 from apps.app_alert.alert_status_flow import AlertStatusFlow
-from apps.monitor.models import WebsiteDetectionPoint
+from apps.app_monitor.models import WebsiteDetectionPoint
 
 
 class AlertReceiver(object):

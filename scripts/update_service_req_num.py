@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_site.settings')
 setup()
 
-from apps.monitor.req_workers import ServiceReqCounter
+from apps.app_monitor.req_workers import ServiceReqCounter
 from apps.app_global.task_locks import monitor_req_count_lock
 
 

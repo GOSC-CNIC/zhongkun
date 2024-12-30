@@ -17,7 +17,7 @@ from utils.model import PayType, OwnerType
 from core import site_configs_manager as site_configs
 from core.loggers import config_script_logger
 from apps.app_report.managers import ArrearServerManager
-from apps.monitor.models import ErrorLog
+from apps.app_monitor.models import ErrorLog
 
 
 UserServerTuple = namedtuple(

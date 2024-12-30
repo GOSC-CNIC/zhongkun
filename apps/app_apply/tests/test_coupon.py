@@ -18,7 +18,7 @@ from apps.app_vo.models import VirtualOrganization, VoMember
 from apps.app_wallet.models import CashCoupon, PayAppService, PayApp
 from apps.servers.models import ServiceConfig
 from apps.storage.models import ObjectsService
-from apps.monitor.models import MonitorWebsiteVersion
+from apps.app_monitor.models import MonitorWebsiteVersion
 from apps.app_scan.models import VtScanService, VtTask
 from apps.app_order.tests import create_price
 from apps.app_order.managers import OrderManager, ScanConfig

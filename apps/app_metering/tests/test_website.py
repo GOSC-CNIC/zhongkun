@@ -8,7 +8,7 @@ from utils.test import get_or_create_user, get_or_create_organization
 from utils.decimal_utils import quantize_10_2
 from utils.time import utc
 from utils.model import OwnerType
-from apps.monitor.models import MonitorWebsite, MonitorWebsiteRecord, MonitorWebsiteBase, MonitorWebsiteVersion
+from apps.app_monitor.models import MonitorWebsite, MonitorWebsiteRecord, MonitorWebsiteBase, MonitorWebsiteVersion
 from apps.app_order.tests import create_price
 from apps.app_metering.measurers import MonitorWebsiteMeasurer
 from apps.app_metering.models import MeteringMonitorWebsite, PaymentStatus, DailyStatementMonitorWebsite
