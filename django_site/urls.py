@@ -76,7 +76,7 @@ else:
         path('api/', include('apps.metering.api_urls', namespace='metering-api')),
         path('api/', include('apps.app_wallet.api_urls', namespace='wallet-api')),
         path('api/app_global/', include('apps.app_global.api_urls', namespace='app-global-api')),
-        path('api/report/', include('apps.report.api_urls', namespace='report-api')),
+        path('api/report/', include('apps.app_report.api_urls', namespace='report-api')),
         path('api/monitor/', include('apps.monitor.api_urls', namespace='monitor-api')),
         path('api/app_net_manage/', include('apps.app_net_manage.api_urls', namespace='net_manage-api')),
         path('api/app_net_link/', include('apps.app_net_link.api_urls', namespace='net_link-api')),
@@ -92,7 +92,7 @@ else:
         path('servers/', include('apps.servers.urls', namespace='servers')),
         path('service/', include('apps.service.urls', namespace='service')),
         path('vpn/', include('apps.vpn.urls', namespace='vpn')),
-        path('report/', include('apps.report.urls', namespace='report')),
+        path('report/', include('apps.app_report.urls', namespace='report')),
         path('probe/', include('apps.app_probe.urls', namespace='probe'))
     ]
 

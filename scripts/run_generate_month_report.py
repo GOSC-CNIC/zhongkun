@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_site.settings')
 setup()
 
-from apps.report.workers.report_generator import MonthlyReportGenerator
+from apps.app_report.workers.report_generator import MonthlyReportGenerator
 
 if __name__ == "__main__":
     MonthlyReportGenerator(log_stdout=True).run()

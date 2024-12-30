@@ -11,8 +11,8 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_site.settings')
 setup()
 
 
-from apps.report.workers.server_notifier import ArrearServerReporter
-from apps.report.workers.storage_trend import ArrearBucketReporter
+from apps.app_report.workers.server_notifier import ArrearServerReporter
+from apps.app_report.workers.storage_trend import ArrearBucketReporter
 
 
 if __name__ == "__main__":

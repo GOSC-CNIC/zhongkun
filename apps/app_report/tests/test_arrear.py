@@ -8,7 +8,7 @@ from django.utils import timezone as dj_timezone
 from apps.vo.models import VirtualOrganization
 from apps.servers.models import ServiceConfig
 from apps.storage.models import Bucket, ObjectsService
-from apps.report.managers import (
+from apps.app_report.managers import (
     ArrearServerQueryOrderBy, ArrearServerManager,
     ArrearBucketQueryOrderBy, ArrearBucketManager
 )

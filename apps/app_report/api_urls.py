@@ -1,8 +1,8 @@
 from django.urls import path, include
 from rest_framework.routers import SimpleRouter
 
-from apps.report import report_storage_views
-from apps.report.api_viewsets import arrear_views
+from apps.app_report import report_storage_views
+from apps.app_report.api_viewsets import arrear_views
 
 
 app_name = 'report'

@@ -15,7 +15,7 @@ from apps.metering.managers import (
     MeteringDiskManager, StatementDiskManager, MeteringMonitorSiteManager
 )
 from apps.metering.models import PaymentStatus, MeteringServer, MeteringDisk
-from apps.report.models import MonthlyReport, BucketMonthlyReport
+from apps.app_report.models import MonthlyReport, BucketMonthlyReport
 from apps.storage.models import Bucket, BucketArchive
 from apps.order.models import Order, Resource, ResourceType
 from utils.model import OwnerType, PayType

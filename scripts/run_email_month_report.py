@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_site.settings')
 setup()
 
-from apps.report.workers.report_generator import MonthlyReportNotifier
+from apps.app_report.workers.report_generator import MonthlyReportNotifier
 
 if __name__ == "__main__":
     MonthlyReportNotifier(log_stdout=True).run()

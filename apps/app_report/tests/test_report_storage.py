@@ -6,8 +6,8 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.storage.models import Bucket, ObjectsService
-from apps.report.models import BucketStatsMonthly
-from apps.report.managers import BktStatsMonthQueryOrderBy, StorageAggQueryOrderBy
+from apps.app_report.models import BucketStatsMonthly
+from apps.app_report.managers import BktStatsMonthQueryOrderBy, StorageAggQueryOrderBy
 from utils.test import get_or_create_user, get_or_create_storage_service, MyAPITestCase
 
 

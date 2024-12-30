@@ -61,7 +61,7 @@ INSTALLED_APPS = [
     'apps.order',
     'apps.app_wallet',
     'apps.metering',
-    'apps.report',
+    'apps.app_report',
     'apps.vo',
     'apps.ticket',
     'apps.monitor',

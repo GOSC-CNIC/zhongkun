@@ -17,7 +17,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_site.settings')
 setup()
 
 
-from apps.report.workers.server_notifier import ServerArrearNotifier
+from apps.app_report.workers.server_notifier import ServerArrearNotifier
 
 
 if __name__ == "__main__":

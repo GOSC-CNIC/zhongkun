@@ -12,14 +12,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_site.settings')
 setup()
 
-from apps.report.workers.report_generator import MonthlyReportGenerator, MonthlyReportNotifier
+from apps.app_report.workers.report_generator import MonthlyReportGenerator, MonthlyReportNotifier
 from apps.app_global.task_locks import report_monthly_lock
 
 
 def run_task():
     try:
-        from apps.report.workers.server_notifier import ArrearServerReporter
-        from apps.report.workers.storage_trend import ArrearBucketReporter
+        from apps.app_report.workers.server_notifier import ArrearServerReporter
+        from apps.app_report.workers.storage_trend import ArrearBucketReporter
         ArrearServerReporter().run()
         ArrearBucketReporter().run()
     except Exception as exc:

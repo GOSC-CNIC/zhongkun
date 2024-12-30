@@ -4,7 +4,7 @@ from django.http.response import JsonResponse, HttpResponse
 from django.template import loader
 
 from utils.paginators import NumsPaginator
-from apps.report.workers.server_notifier import ServerNotifier, PersonalServersNotifier
+from apps.app_report.workers.server_notifier import ServerNotifier, PersonalServersNotifier
 from apps.servers.models import ServiceConfig
 from .managers import ServerManager
 

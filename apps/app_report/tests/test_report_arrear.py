@@ -15,9 +15,9 @@ from apps.app_wallet.managers import PaymentManager, CashCouponManager
 from apps.storage.models import ObjectsService, Bucket
 from apps.servers.models import Server, ServiceConfig
 from apps.servers.tests import create_server_metadata
-from apps.report.models import ArrearBucket, ArrearServer
-from apps.report.workers.storage_trend import ArrearBucketReporter
-from apps.report.workers.server_notifier import ArrearServerReporter
+from apps.app_report.models import ArrearBucket, ArrearServer
+from apps.app_report.workers.storage_trend import ArrearBucketReporter
+from apps.app_report.workers.server_notifier import ArrearServerReporter
 
 
 PAY_APP_ID = site_configs_manager.get_pay_app_id(settings)

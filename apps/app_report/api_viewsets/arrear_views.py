@@ -9,8 +9,8 @@ from drf_yasg import openapi
 from core import errors
 from apps.api.viewsets import NormalGenericViewSet
 from apps.api.paginations import NewPageNumberPagination100
-from apps.report import serializers as report_serializers
-from apps.report.managers import (
+from apps.app_report import serializers as report_serializers
+from apps.app_report.managers import (
     ArrearServerQueryOrderBy, ArrearServerManager,
     ArrearBucketQueryOrderBy, ArrearBucketManager
 )

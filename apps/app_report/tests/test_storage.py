@@ -8,8 +8,8 @@ from utils.test import get_or_create_user, get_or_create_org_data_center
 from utils.time import utc
 from apps.storage.models import ObjectsService, Bucket, BucketArchive
 from apps.metering.models import MeteringObjectStorage
-from apps.report.models import BucketStatsMonthly
-from apps.report.workers.storage_trend import (
+from apps.app_report.models import BucketStatsMonthly
+from apps.app_report.workers.storage_trend import (
     StorageSizeCounter, get_report_period_start_and_end,
 )
 
