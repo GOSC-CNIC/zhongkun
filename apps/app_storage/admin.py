@@ -4,11 +4,11 @@ from django.utils.html import format_html
 from django.db import transaction
 from django.contrib.admin.filters import SimpleListFilter
 
-from apps.storage.request import request_service
-from apps.storage.adapter import inputs
+from apps.app_storage.request import request_service
+from apps.app_storage.adapter import inputs
 from core import errors
 from utils.model import NoDeleteSelectModelAdmin, BaseModelAdmin
-from apps.storage.managers import ObjectsServiceManager
+from apps.app_storage.managers import ObjectsServiceManager
 from apps.service.odc_manager import OrgDataCenterManager
 from . import models
 from . import forms

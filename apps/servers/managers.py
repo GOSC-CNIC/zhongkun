@@ -14,8 +14,8 @@ from core import request as core_request
 from apps.app_vo.managers import VoManager
 from apps.app_wallet.managers import PaymentManager
 from utils.model import PayType, OwnerType
-from apps.storage.serializers import BucketSerializer
-from apps.storage.models import Bucket
+from apps.app_storage.serializers import BucketSerializer
+from apps.app_storage.models import Bucket
 from apps.servers.disk_serializers import DiskSerializer
 from apps.servers.serializers import ServerSerializer
 from apps.servers.models import (

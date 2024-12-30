@@ -6,7 +6,7 @@ from django.test.testcases import TransactionTestCase
 
 from utils.test import get_or_create_user, get_or_create_org_data_center
 from utils.time import utc
-from apps.storage.models import ObjectsService, Bucket, BucketArchive
+from apps.app_storage.models import ObjectsService, Bucket, BucketArchive
 from apps.app_metering.models import MeteringObjectStorage
 from apps.app_report.models import BucketStatsMonthly
 from apps.app_report.workers.storage_trend import (

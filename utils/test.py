@@ -4,7 +4,7 @@ from rest_framework.test import APITestCase, APITransactionTestCase
 from apps.service.models import DataCenter, OrgDataCenter
 from apps.servers.models import ServiceConfig
 from apps.users.models import UserProfile
-from apps.storage.models import ObjectsService
+from apps.app_storage.models import ObjectsService
 
 
 def get_test_case_settings():

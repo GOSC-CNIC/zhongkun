@@ -1,8 +1,8 @@
 from datetime import datetime
 from threading import local
 
-from apps.storage.adapter import inputs, client
-from apps.storage.models import ObjectsService
+from apps.app_storage.adapter import inputs, client
+from apps.app_storage.models import ObjectsService
 from core import errors
 
 

@@ -9,7 +9,7 @@ from apps.users.models import UserProfile
 from apps.app_vo.models import VirtualOrganization
 from apps.servers.models import Server
 from apps.servers.models import ServiceConfig
-from apps.storage.models import ObjectsService
+from apps.app_storage.models import ObjectsService
 from apps.app_monitor.models import MonitorWebsiteVersion
 
 

@@ -7,7 +7,7 @@ from django.urls import reverse
 from utils.test import get_or_create_user, get_or_create_storage_service, MyAPITestCase
 from apps.app_metering.models import MeteringObjectStorage
 
-from apps.storage.models import Bucket, BucketArchive, ObjectsService
+from apps.app_storage.models import Bucket, BucketArchive, ObjectsService
 from django.utils import timezone
 
 

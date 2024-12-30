@@ -9,9 +9,9 @@ from drf_yasg import openapi
 
 from apps.api.viewsets import StorageGenericViewSet
 from apps.api.paginations import DefaultPageNumberPagination
-from apps.storage.models import Bucket
-from apps.storage.bucket_handler import BucketHandler
-from apps.storage import serializers as storage_serializers
+from apps.app_storage.models import Bucket
+from apps.app_storage.bucket_handler import BucketHandler
+from apps.app_storage import serializers as storage_serializers
 
 
 class BucketViewSet(StorageGenericViewSet):

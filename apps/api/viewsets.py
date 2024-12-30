@@ -12,9 +12,9 @@ from utils.iprestrict import IPRestrictor
 from core.request import request_service, request_vpn_service
 from core import errors as exceptions
 from apps.servers.managers import ServiceManager
-from apps.storage.request import request_service as storage_request_service
-from apps.storage.models import ObjectsService
-from apps.storage.managers import ObjectsServiceManager
+from apps.app_storage.request import request_service as storage_request_service
+from apps.app_storage.models import ObjectsService
+from apps.app_storage.managers import ObjectsServiceManager
 from apps.app_monitor.models import ErrorLog
 from . import request_logger as logger
 

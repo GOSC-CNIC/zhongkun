@@ -70,7 +70,7 @@ else:
         path('api/', include('apps.app_vo.api_urls', namespace='vo-api')),
         path('api/', include('apps.service.api_urls', namespace='service-api')),
         path('api/', include('apps.servers.api_urls', namespace='servers-api')),
-        path('api/', include('apps.storage.api_urls', namespace='storage-api')),
+        path('api/', include('apps.app_storage.api_urls', namespace='storage-api')),
         path('api/', include('apps.app_ticket.api_urls', namespace='ticket-api')),
         path('api/', include('apps.app_order.api_urls', namespace='order-api')),
         path('api/', include('apps.app_metering.api_urls', namespace='metering-api')),

@@ -8,10 +8,10 @@ from rest_framework.response import Response
 from core import errors as exceptions
 from apps.api.viewsets import StorageGenericViewSet, serializer_error_msg
 from apps.app_wallet.managers import PaymentManager
-from apps.storage.adapter import inputs
-from apps.storage.managers import BucketManager, ObjectsServiceManager
-from apps.storage.models import Bucket, ObjectsService
-from apps.storage import serializers as storage_serializers
+from apps.app_storage.adapter import inputs
+from apps.app_storage.managers import BucketManager, ObjectsServiceManager
+from apps.app_storage.models import Bucket, ObjectsService
+from apps.app_storage import serializers as storage_serializers
 from apps.servers.managers import ResourceActionLogManager
 
 

@@ -14,9 +14,9 @@ from utils.decimal_utils import quantize_10_2
 from utils.model import PayType, OwnerType
 from apps.app_vo.models import VirtualOrganization
 from apps.users.models import UserProfile
-from apps.storage.models import Bucket
-from apps.storage.adapter import inputs
-from apps.storage import request
+from apps.app_storage.models import Bucket
+from apps.app_storage.adapter import inputs
+from apps.app_storage import request
 from core import errors
 
 

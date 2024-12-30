@@ -15,7 +15,7 @@ from apps.app_metering.models import (
     MeteringDisk, DailyStatementDisk, MeteringMonitorWebsite, DailyStatementMonitorWebsite
 )
 from apps.app_wallet.models import PayApp, PayAppService, CashCoupon
-from apps.storage.models import ObjectsService, Bucket, BucketArchive
+from apps.app_storage.models import ObjectsService, Bucket, BucketArchive
 from apps.app_vo.models import VirtualOrganization, VoMember
 from apps.app_report.models import MonthlyReport, BucketMonthlyReport
 from apps.app_report.workers.report_generator import (

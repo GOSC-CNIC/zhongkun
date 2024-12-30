@@ -1,4 +1,4 @@
-from apps.storage.adapter import client as clients
+from apps.app_storage.adapter import client as clients
 from .adapter.auths import auth_handler
 from core import errors
 

@@ -6,8 +6,8 @@ from django.utils import timezone as dj_timezone
 from django.db.models import Q
 
 from core import errors
-from apps.storage.models import ObjectsService
-from apps.storage.request import request_service as storage_request_service
+from apps.app_storage.models import ObjectsService
+from apps.app_storage.request import request_service as storage_request_service
 from apps.service.models import OrgDataCenterAdminUser
 
 

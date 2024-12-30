@@ -56,7 +56,7 @@ INSTALLED_APPS = [
     'apps.app_alert',
 
     'apps.service',
-    'apps.storage',
+    'apps.app_storage',
     'apps.servers',
     'apps.app_order',
     'apps.app_wallet',

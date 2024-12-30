@@ -7,9 +7,9 @@ from django.utils import timezone as dj_timezone
 from apps.app_wallet.models import PayApp, PayAppService
 from utils.test import get_or_create_user, get_or_create_storage_service, get_or_create_organization, MyAPITestCase
 from utils.model import OwnerType
-from apps.storage.managers import BucketManager
-from apps.storage.models import ObjectsService, Bucket
-from apps.storage.bucket_handler import BucketHandler
+from apps.app_storage.managers import BucketManager
+from apps.app_storage.models import ObjectsService, Bucket
+from apps.app_storage.bucket_handler import BucketHandler
 from apps.servers.models import ResourceActionLog
 
 

@@ -15,7 +15,7 @@ from apps.app_metering.models import PaymentStatus, MeteringObjectStorage, Daily
 from apps.app_metering.payment import MeteringPaymentManager
 from apps.app_metering.statement_generators import GenerateDailyStatementObjectStorage
 from apps.users.models import UserProfile
-from apps.storage.models import Bucket, ObjectsService
+from apps.app_storage.models import Bucket, ObjectsService
 
 
 utc = dt_timezone.utc

@@ -13,8 +13,8 @@ from apps.service.models import OrgDataCenter
 from apps.service.odc_manager import OrgDataCenterManager
 from apps.servers.models import ServiceConfig
 from apps.servers.serializers import AdminServiceSerializer
-from apps.storage.models import ObjectsService
-from apps.storage.serializers import AdminObjectsServiceSerializer
+from apps.app_storage.models import ObjectsService
+from apps.app_storage.serializers import AdminObjectsServiceSerializer
 from apps.app_monitor.models import MonitorJobServer, MonitorJobCeph, MonitorJobTiDB, LogSite
 from apps.app_monitor.serializers import (
     MonitorUnitServerSerializer, MonitorUnitCephSerializer, MonitorUnitTiDBSerializer, LogSiteSerializer

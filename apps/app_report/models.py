@@ -7,7 +7,7 @@ from django.utils import timezone as dj_timezone
 from utils.model import UuidModel, OwnerType, PayType
 from apps.users.models import UserProfile
 from apps.app_vo.models import VirtualOrganization
-from apps.storage.models import ObjectsService, BucketBase
+from apps.app_storage.models import ObjectsService, BucketBase
 from apps.servers.models import Server, ServiceConfig
 
 

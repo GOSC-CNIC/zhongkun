@@ -12,8 +12,8 @@ from utils.model import OwnerType
 from apps.users.models import UserProfile
 from apps.app_vo.models import VirtualOrganization
 from apps.app_vo.managers import VoManager
-from apps.storage.managers.objects_service import ObjectsServiceManager
-from apps.storage.models import Bucket, BucketArchive, ObjectsService
+from apps.app_storage.managers.objects_service import ObjectsServiceManager
+from apps.app_storage.models import Bucket, BucketArchive, ObjectsService
 
 from .models import (
     MeteringServer, MeteringObjectStorage, MeteringDisk, MeteringMonitorWebsite,

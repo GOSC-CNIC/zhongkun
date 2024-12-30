@@ -9,7 +9,7 @@ from apps.service.models import OrgDataCenter, OrgDataCenterAdminUser, DataCente
 from apps.servers.models import ServiceConfig
 from core import errors
 from apps.app_wallet.models import PayAppService
-from apps.storage.models import ObjectsService
+from apps.app_storage.models import ObjectsService
 
 
 class OrgDataCenterManager:

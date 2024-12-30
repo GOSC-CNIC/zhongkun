@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from utils.model import PayType, OwnerType
 from utils.test import get_or_create_service, get_or_create_user, get_or_create_storage_service, MyAPITestCase
-from apps.storage.models import ObjectsService
+from apps.app_storage.models import ObjectsService
 from apps.app_vo.models import VirtualOrganization
 from apps.app_metering.models import (
     MeteringServer, DailyStatementServer, PaymentStatus, MeteringObjectStorage, DailyStatementObjectStorage,
