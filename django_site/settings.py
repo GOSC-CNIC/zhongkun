@@ -66,7 +66,7 @@ INSTALLED_APPS = [
     'apps.app_ticket',
     'apps.monitor',
     'apps.app_scan',
-    'apps.vpn',
+    'apps.app_vpn',
     'apps.api',
     'apps.app_apply',
     'apps.app_net_flow',

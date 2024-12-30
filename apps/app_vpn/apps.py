@@ -2,5 +2,5 @@ from django.apps import AppConfig
 
 
 class VpnConfig(AppConfig):
-    name = 'apps.vpn'
+    name = 'apps.app_vpn'
     label = 'vpn'

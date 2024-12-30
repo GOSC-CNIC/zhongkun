@@ -17,7 +17,6 @@ from apps.servers import format_who_action_str
 from core import errors as exceptions
 from apps.api.serializers import serializers
 from apps.api.viewsets import CustomGenericViewSet
-from apps.api.paginations import DefaultPageNumberPagination
 from apps.api.handlers import (
     handlers, VPNHandler,
 )

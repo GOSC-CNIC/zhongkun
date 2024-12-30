@@ -91,7 +91,7 @@ else:
         # views url
         path('servers/', include('apps.servers.urls', namespace='servers')),
         path('service/', include('apps.service.urls', namespace='service')),
-        path('vpn/', include('apps.vpn.urls', namespace='vpn')),
+        path('vpn/', include('apps.app_vpn.urls', namespace='vpn')),
         path('report/', include('apps.app_report.urls', namespace='report')),
         path('probe/', include('apps.app_probe.urls', namespace='probe'))
     ]
