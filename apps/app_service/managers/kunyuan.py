@@ -4,7 +4,7 @@ import requests
 from django.utils import timezone as dj_timezone
 
 from core import errors
-from apps.service.models import KunYuanService
+from apps.app_service.models import KunYuanService
 
 
 class KunYuanServiceManager:

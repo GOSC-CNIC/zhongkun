@@ -22,7 +22,7 @@ from apps.app_servers.models import (
     Server, ServerArchive, Flavor, Disk, ResourceActionLog, ServiceConfig, ServicePrivateQuota, ServiceShareQuota,
     ServerSnapshot
 )
-from apps.service.models import OrgDataCenterAdminUser
+from apps.app_service.models import OrgDataCenterAdminUser
 from .server_instance import ServerInstance
 
 

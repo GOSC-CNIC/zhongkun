@@ -3,7 +3,7 @@ from collections import namedtuple
 from django.utils.translation import gettext as _
 
 from core import errors
-from apps.service.models import OrgDataCenter
+from apps.app_service.models import OrgDataCenter
 from utils.iprestrict import IPRestrictor, load_allowed_ips
 
 

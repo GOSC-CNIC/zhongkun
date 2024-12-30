@@ -8,7 +8,7 @@ from openpyxl import load_workbook
 from openpyxl.cell import MergedCell
 from openpyxl.worksheet.worksheet import Worksheet
 
-from apps.service.models import DataCenter
+from apps.app_service.models import DataCenter
 from apps.app_net_manage.models import OrgVirtualObject
 from apps.app_net_ipam.models import (
     ASN, IPv4Range, ipv4_str_to_int, ipv6_str_to_bytes, IPv6Range

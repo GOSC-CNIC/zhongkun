@@ -2,7 +2,7 @@
 
 from django.db import migrations, connection
 
-from apps.service.models import DataCenter, OrgDataCenter
+from apps.app_service.models import DataCenter, OrgDataCenter
 from apps.app_storage.models import ObjectsService
 
 

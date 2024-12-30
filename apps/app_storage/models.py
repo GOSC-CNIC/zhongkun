@@ -9,7 +9,7 @@ from core import site_configs_manager
 from utils.model import UuidModel, get_encryptor
 from utils.validators import http_url_validator
 from apps.app_wallet.models import PayAppService
-from apps.service.models import DataCenter, OrgDataCenter
+from apps.app_service.models import DataCenter, OrgDataCenter
 
 
 User = get_user_model()

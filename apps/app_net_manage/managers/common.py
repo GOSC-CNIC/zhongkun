@@ -7,7 +7,7 @@ from django.utils.translation import gettext as _
 from django.core.exceptions import ValidationError
 
 from core import errors
-from apps.service.models import DataCenter as Organization
+from apps.app_service.models import DataCenter as Organization
 from apps.app_net_manage.models import (
     NetManageUserRole, OrgVirtualObject, ContactPerson
 )

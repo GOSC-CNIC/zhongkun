@@ -5,7 +5,7 @@ from utils.test import get_or_create_user, get_or_create_service, MyAPITransacti
 
 from apps.app_servers.models import ServiceConfig
 from apps.app_servers.managers import ServicePrivateQuotaManager, ServiceShareQuotaManager
-from apps.service.models import OrgDataCenterAdminUser
+from apps.app_service.models import OrgDataCenterAdminUser
 
 
 class VmServiceQuotaTests(MyAPITransactionTestCase):

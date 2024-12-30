@@ -2,7 +2,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 
-from apps.service.models import OrgDataCenter
+from apps.app_service.models import OrgDataCenter
 
 
 def get_org_data_center_dict(odc: OrgDataCenter):

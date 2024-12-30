@@ -1,7 +1,7 @@
 from django.conf import settings
 from rest_framework.test import APITestCase, APITransactionTestCase
 
-from apps.service.models import DataCenter, OrgDataCenter
+from apps.app_service.models import DataCenter, OrgDataCenter
 from apps.app_servers.models import ServiceConfig
 from apps.users.models import UserProfile
 from apps.app_storage.models import ObjectsService

@@ -13,7 +13,7 @@ from drf_yasg.utils import no_body
 from apps.api.viewsets import CustomGenericViewSet
 from apps.api.paginations import MonitorPageNumberPagination, MonitorWebsiteTaskPagination
 from utils.paginators import NoPaginatorInspector
-from apps.service.models import OrgDataCenter
+from apps.app_service.models import OrgDataCenter
 from core import errors
 from apps.app_monitor.managers import VideoMeetingQueryChoices, WebsiteQueryChoices
 from apps.app_monitor.utils import MonitorEmailAddressIPRestrictor

@@ -18,7 +18,7 @@ from apps.app_metering.pay_metering import PayMeteringWebsite
 from apps.users.models import UserProfile
 from apps.app_wallet.models import PayApp, PayAppService, PaymentHistory, CashCoupon
 from core import errors
-from apps.service.models import OrgDataCenter
+from apps.app_service.models import OrgDataCenter
 
 
 def create_website_metadata(

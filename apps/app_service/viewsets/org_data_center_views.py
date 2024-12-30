@@ -9,8 +9,8 @@ from drf_yasg import openapi
 from core import errors as exceptions
 from apps.api.paginations import NewPageNumberPagination100
 from apps.api.viewsets import NormalGenericViewSet, serializer_error_msg
-from apps.service.models import OrgDataCenter
-from apps.service.odc_manager import OrgDataCenterManager
+from apps.app_service.models import OrgDataCenter
+from apps.app_service.odc_manager import OrgDataCenterManager
 from apps.app_servers.models import ServiceConfig
 from apps.app_servers.serializers import AdminServiceSerializer
 from apps.app_storage.models import ObjectsService

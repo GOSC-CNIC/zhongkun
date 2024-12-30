@@ -9,7 +9,7 @@ from django.core.validators import URLValidator
 from django.core.exceptions import ValidationError
 
 from core import errors
-from apps.service.odc_manager import OrgDataCenterManager
+from apps.app_service.odc_manager import OrgDataCenterManager
 from apps.app_monitor.models import (
     MonitorProvider, MonitorJobVideoMeeting,
     MonitorWebsite, MonitorWebsiteTask, MonitorWebsiteVersion, get_str_hash,

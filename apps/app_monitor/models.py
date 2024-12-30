@@ -7,7 +7,7 @@ from django.utils.translation import gettext, gettext_lazy as _
 from django.utils import timezone as dj_timezone
 from django.core.validators import URLValidator
 
-from apps.service.models import OrgDataCenter
+from apps.app_service.models import OrgDataCenter
 from utils.model import UuidModel, get_encryptor
 from apps.users.models import UserProfile
 

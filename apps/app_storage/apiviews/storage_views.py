@@ -15,7 +15,7 @@ from apps.app_storage.managers import ObjectsServiceManager
 from apps.app_storage.models import ObjectsService, Bucket, BucketArchive
 from utils.paginators import NoPaginatorInspector
 from utils.time import iso_utc_to_datetime
-from apps.service.odc_manager import OrgDataCenterManager
+from apps.app_service.odc_manager import OrgDataCenterManager
 
 
 class ObjectsServiceViewSet(StorageGenericViewSet):

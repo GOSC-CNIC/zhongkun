@@ -9,7 +9,7 @@ from apps.app_storage.models import ObjectsService
 from apps.app_monitor.models import MonitorJobCeph, MonitorJobServer, MonitorJobTiDB, LogSite, LogSiteType
 from apps.app_wallet.models import PayAppService, PayApp
 from apps.app_servers.models import ServiceConfig
-from apps.service.models import OrgDataCenter
+from apps.app_service.models import OrgDataCenter
 from ..odc_manager import OrgDataCenterManager
 
 

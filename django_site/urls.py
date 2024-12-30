@@ -68,7 +68,7 @@ else:
         # api url
         path('api/', include('apps.api.urls', namespace='api')),
         path('api/', include('apps.app_vo.api_urls', namespace='vo-api')),
-        path('api/', include('apps.service.api_urls', namespace='service-api')),
+        path('api/', include('apps.app_service.api_urls', namespace='service-api')),
         path('api/', include('apps.app_servers.api_urls', namespace='servers-api')),
         path('api/', include('apps.app_storage.api_urls', namespace='storage-api')),
         path('api/', include('apps.app_ticket.api_urls', namespace='ticket-api')),
@@ -90,7 +90,7 @@ else:
 
         # views url
         path('servers/', include('apps.app_servers.urls', namespace='servers')),
-        path('service/', include('apps.service.urls', namespace='service')),
+        path('service/', include('apps.app_service.urls', namespace='service')),
         path('vpn/', include('apps.app_vpn.urls', namespace='vpn')),
         path('report/', include('apps.app_report.urls', namespace='report')),
         path('probe/', include('apps.app_probe.urls', namespace='probe'))

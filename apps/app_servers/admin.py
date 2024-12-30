@@ -16,8 +16,8 @@ from apps.app_servers.models import (
 )
 from apps.app_servers.managers import ServiceManager
 from apps.app_servers.tasks import update_services_server_count
-from apps.service.odc_manager import OrgDataCenterManager
-from apps.service.models import OrgDataCenter
+from apps.app_service.odc_manager import OrgDataCenterManager
+from apps.app_service.models import OrgDataCenter
 
 
 class ServerOrgOdcShowMixin:

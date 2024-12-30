@@ -8,7 +8,7 @@ from django.db.models import Q
 from core import errors
 from apps.app_storage.models import ObjectsService
 from apps.app_storage.request import request_service as storage_request_service
-from apps.service.models import OrgDataCenterAdminUser
+from apps.app_service.models import OrgDataCenterAdminUser
 
 
 class ObjectsServiceManager:

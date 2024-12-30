@@ -5,8 +5,8 @@ from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 
 from core import errors
-from apps.service.models import DataCenter as Organization
-from apps.service import serializers as org_serializers
+from apps.app_service.models import DataCenter as Organization
+from apps.app_service import serializers as org_serializers
 from apps.api.paginations import NewPageNumberPagination100
 
 

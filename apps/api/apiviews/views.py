@@ -12,7 +12,7 @@ from rest_framework import parsers
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
-from apps.service.models import DataCenter
+from apps.app_service.models import DataCenter
 from apps.app_servers import format_who_action_str
 from core import errors as exceptions
 from apps.api.serializers import serializers

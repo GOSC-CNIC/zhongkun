@@ -9,7 +9,7 @@ from core import errors
 from utils.model import UuidModel
 from utils.iprestrict import convert_iprange
 from apps.users.models import UserProfile
-from apps.service.models import DataCenter
+from apps.app_service.models import DataCenter
 
 
 class ContactPerson(UuidModel):

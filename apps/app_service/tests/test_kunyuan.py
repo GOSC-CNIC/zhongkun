@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.utils import timezone as dj_timezone
 
 from utils.test import MyAPITransactionTestCase, get_or_create_user, get_or_create_organization
-from apps.service.models import KunYuanService
+from apps.app_service.models import KunYuanService
 from ..odc_manager import OrgDataCenterManager
 
 

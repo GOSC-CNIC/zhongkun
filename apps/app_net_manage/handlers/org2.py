@@ -3,7 +3,7 @@ from rest_framework.response import Response
 
 from core import errors
 from apps.api.viewsets import NormalGenericViewSet, serializer_error_msg
-from apps.service.models import DataCenter as Organization
+from apps.app_service.models import DataCenter as Organization
 from apps.app_net_manage.managers import NetManageUserRoleWrapper, OrgVirtualObjectManager, ContactPersonManager
 from apps.app_net_manage import serializers as common_serializers
 

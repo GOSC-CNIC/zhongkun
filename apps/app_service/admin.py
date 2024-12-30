@@ -8,12 +8,12 @@ from django.forms import ModelForm
 from django_json_widget.widgets import JSONEditorWidget
 
 from utils.model import NoDeleteSelectModelAdmin, BaseModelAdmin
-from apps.service.odc_manager import OrgDataCenterManager
-from apps.service.models import (
+from apps.app_service.odc_manager import OrgDataCenterManager
+from apps.app_service.models import (
     DataCenter, Contacts, OrgDataCenter, OrgDataCenterAdminUser, KunYuanService
 )
-from apps.service.forms import KunYuanServiceForm
-from apps.service.managers.kunyuan import KunYuanServiceManager
+from apps.app_service.forms import KunYuanServiceForm
+from apps.app_service.managers.kunyuan import KunYuanServiceManager
 
 
 class ODCModelForm(ModelForm):

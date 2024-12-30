@@ -23,7 +23,7 @@ from utils.test import (
     get_or_create_user, get_test_case_settings, get_or_create_organization,
     MyAPITestCase, get_or_create_org_data_center
 )
-from apps.service.models import OrgDataCenter
+from apps.app_service.models import OrgDataCenter
 
 from .tests import (
     get_or_create_monitor_job_meeting, get_or_create_monitor_provider

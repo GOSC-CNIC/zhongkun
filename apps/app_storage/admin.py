@@ -9,7 +9,7 @@ from apps.app_storage.adapter import inputs
 from core import errors
 from utils.model import NoDeleteSelectModelAdmin, BaseModelAdmin
 from apps.app_storage.managers import ObjectsServiceManager
-from apps.service.odc_manager import OrgDataCenterManager
+from apps.app_service.odc_manager import OrgDataCenterManager
 from . import models
 from . import forms
 

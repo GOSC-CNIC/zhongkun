@@ -11,9 +11,9 @@ from core import errors
 from apps.api.paginations import NewPageNumberPagination100
 from apps.api.viewsets import NormalGenericViewSet
 
-from apps.service.models import KunYuanService
-from apps.service import serializers
-from apps.service.managers.kunyuan import KunYuanServiceManager
+from apps.app_service.models import KunYuanService
+from apps.app_service import serializers
+from apps.app_service.managers.kunyuan import KunYuanServiceManager
 
 
 class KunYuanServiceViewSet(NormalGenericViewSet):

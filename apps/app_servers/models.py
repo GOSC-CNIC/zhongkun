@@ -10,7 +10,7 @@ from django.core.exceptions import ValidationError
 from django.conf import settings
 
 from core import site_configs_manager
-from apps.service.models import OrgDataCenter, DataCenter
+from apps.app_service.models import OrgDataCenter, DataCenter
 from utils.model import get_encryptor, PayType, UuidModel, OwnerType
 from utils.validators import json_string_validator, http_url_validator
 from utils import rand_utils

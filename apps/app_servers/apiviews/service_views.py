@@ -9,7 +9,7 @@ from drf_yasg import openapi
 
 from apps.api.viewsets import CustomGenericViewSet
 from apps.api.paginations import DefaultPageNumberPagination
-from apps.service.odc_manager import OrgDataCenterManager
+from apps.app_service.odc_manager import OrgDataCenterManager
 from apps.app_servers.managers import ServiceManager
 from apps.app_servers.models import ServiceConfig
 from apps.app_servers.handlers import service_handlers as handlers

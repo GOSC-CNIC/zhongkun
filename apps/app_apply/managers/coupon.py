@@ -9,8 +9,8 @@ from django.db import transaction
 from core import errors
 from utils.model import OwnerType
 from apps.users.managers import get_user_by_id
-from apps.service.models import OrgDataCenter
-from apps.service.odc_manager import OrgDataCenterManager
+from apps.app_service.models import OrgDataCenter
+from apps.app_service.odc_manager import OrgDataCenterManager
 from apps.app_wallet.managers.cash_coupon import CashCouponManager
 from apps.app_wallet.models import CashCoupon
 from apps.app_vo.managers import VoManager
