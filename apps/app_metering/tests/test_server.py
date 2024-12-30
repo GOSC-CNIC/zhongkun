@@ -21,7 +21,7 @@ from apps.app_metering.measurers import ServerMeasurer
 from apps.app_metering.models import MeteringServer, PaymentStatus, DailyStatementServer
 from apps.app_metering.payment import MeteringPaymentManager
 from apps.app_metering.statement_generators import GenerateDailyStatementServer
-from apps.users.models import UserProfile
+from apps.app_users.models import UserProfile
 
 utc = dt_timezone.utc
 PAY_APP_ID = site_configs_manager.get_pay_app_id(settings)

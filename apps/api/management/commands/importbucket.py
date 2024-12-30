@@ -5,7 +5,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 from rest_framework import serializers
 from apps.app_storage.models import ObjectsService, Bucket
-from apps.users.models import UserProfile
+from apps.app_users.models import UserProfile
 
 
 class Command(BaseCommand):

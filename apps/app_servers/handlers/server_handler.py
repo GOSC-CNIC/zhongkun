@@ -31,7 +31,7 @@ from apps.app_order.models import ResourceType, Order
 from apps.app_order.managers import OrderManager, ServerConfig, OrderPaymentManager
 from apps.app_wallet.managers import PaymentManager
 from apps.app_servers.handlers.disk_handler import DiskHandler
-from apps.users.managers import get_user_by_name
+from apps.app_users.managers import get_user_by_name
 from apps.app_servers.evcloud_perms import EVCloudPermsSynchronizer
 from apps.app_servers.tasks import update_services_server_count
 

@@ -4,7 +4,7 @@ from django.db import migrations, connection, transaction
 
 # from apps.app_netbox.models import NetBoxUserRole
 from apps.app_net_link.managers import NetLinkUserRoleWrapper
-from apps.users.models import UserProfile
+from apps.app_users.models import UserProfile
 
 
 def dictfetchall(cursor):

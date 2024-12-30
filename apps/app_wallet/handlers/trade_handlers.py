@@ -14,7 +14,7 @@ from apps.app_wallet.trade_serializers import PaymentHistorySerializer
 from apps.app_wallet.managers.payment import PaymentManager
 from apps.app_wallet.managers.bill import PaymentHistoryManager, RefundRecordManager
 from apps.app_wallet.models import PaymentHistory
-from apps.users.models import UserProfile
+from apps.app_users.models import UserProfile
 from utils.decimal_utils import quantize_10_2
 
 

@@ -8,7 +8,7 @@ from django.template.loader import get_template
 from django.core.mail import send_mail
 from django.conf import settings
 
-from apps.users.models import UserProfile, Email
+from apps.app_users.models import UserProfile, Email
 from apps.app_vo.models import VirtualOrganization, VoMember
 from apps.app_metering.managers import (
     MeteringServerManager, MeteringStorageManager, StatementStorageManager, StatementServerManager,

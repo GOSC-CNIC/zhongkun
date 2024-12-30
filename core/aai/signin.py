@@ -7,7 +7,7 @@ from django.utils import timezone as dj_timezone
 from django.contrib.auth import login
 from django.core.validators import URLValidator, ValidationError
 
-from apps.users.models import UserProfile
+from apps.app_users.models import UserProfile
 from apps.app_global.configs_manager import global_configs
 
 

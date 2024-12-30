@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from utils.model import UuidModel, OwnerType, CustomIdModel, get_encryptor
 from utils import rand_utils
-from apps.users.models import UserProfile
+from apps.app_users.models import UserProfile
 from apps.app_vo.models import VirtualOrganization
 from apps.app_service.models import DataCenter
 from core import errors

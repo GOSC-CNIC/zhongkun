@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.core import mail
 
 from utils.test import get_or_create_user
-from apps.users.models import Email
+from apps.app_users.models import Email
 from apps.api.apiviews.email_views import EmailIPRestrictor
 from . import MyAPITransactionTestCase
 

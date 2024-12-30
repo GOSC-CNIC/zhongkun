@@ -11,7 +11,7 @@ from django.template import Template, Context
 from apps.app_wallet.managers.payment import PaymentManager
 from apps.app_servers.models import ServiceConfig, Server
 from apps.app_servers.managers import ServerManager
-from apps.users.models import Email, UserProfile
+from apps.app_users.models import Email, UserProfile
 from apps.app_vo.models import VirtualOrganization, VoMember
 from utils.model import PayType, OwnerType
 from core import site_configs_manager as site_configs

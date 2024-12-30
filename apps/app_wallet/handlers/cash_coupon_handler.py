@@ -8,8 +8,8 @@ from django.utils.translation import gettext as _
 from django.db.models import TextChoices, Count, Sum, Q
 from rest_framework.response import Response
 
-from apps.users.managers import get_user_by_name
-from apps.users.models import UserProfile
+from apps.app_users.managers import get_user_by_name
+from apps.app_users.models import UserProfile
 from apps.app_vo.models import VirtualOrganization
 from apps.app_vo.managers import VoManager
 from core import errors

@@ -15,7 +15,7 @@ from utils.model import get_encryptor, PayType, UuidModel, OwnerType
 from utils.validators import json_string_validator, http_url_validator
 from utils import rand_utils
 from apps.app_vo.models import VirtualOrganization
-from apps.users.models import UserProfile as User
+from apps.app_users.models import UserProfile as User
 from core.adapters.outputs import ImageSysType, ImageSysArch, ImageSysRelease
 from apps.app_wallet.models import CashCoupon
 

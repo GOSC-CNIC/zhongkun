@@ -12,7 +12,7 @@ from apps.app_order.managers import OrderManager, OrderPaymentManager
 from utils.time import iso_to_datetime
 from apps.api import request_logger
 from apps.app_servers. managers import ServerManager
-from apps.users import managers as user_managers
+from apps.app_users import managers as user_managers
 
 
 CASH_COUPON_BALANCE = 'coupon_balance'

@@ -5,7 +5,7 @@ from django.utils.translation import gettext, gettext_lazy as _
 
 from utils.model import OwnerType, PayType, CustomIdModel
 from utils import rand_utils
-from apps.users.models import UserProfile
+from apps.app_users.models import UserProfile
 from apps.app_vo.models import VirtualOrganization
 from apps.app_servers.models import Server
 from apps.app_servers.models import ServiceConfig

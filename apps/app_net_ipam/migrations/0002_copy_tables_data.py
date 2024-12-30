@@ -3,7 +3,7 @@
 from django.db import migrations, connection, transaction
 
 from apps.app_net_ipam.managers import NetIPamUserRoleWrapper
-from apps.users.models import UserProfile
+from apps.app_users.models import UserProfile
 # from apps.app_netbox.models import NetBoxUserRole
 
 

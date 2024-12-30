@@ -9,7 +9,7 @@ from apps.app_servers.models import ServiceConfig
 from apps.app_servers.managers import ServerManager, DiskManager
 from apps.app_servers.models import Server, ServerArchive, Disk
 from utils.model import OwnerType
-from apps.users.models import UserProfile
+from apps.app_users.models import UserProfile
 from apps.app_vo.models import VirtualOrganization
 from apps.app_vo.managers import VoManager
 from apps.app_storage.managers.objects_service import ObjectsServiceManager

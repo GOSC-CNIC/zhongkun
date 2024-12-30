@@ -100,7 +100,7 @@ urlpatterns += [
     path('', views.home, name='index'),
     path('home/', views.home, name='home'),
     path('about/', views.about, name='about'),
-    path('accounts/', include('apps.users.urls', namespace='users')),
+    path('accounts/', include('apps.app_users.urls', namespace='users')),
     path('apidocs/', login_required(schema_view.with_ui('swagger', cache_timeout=0)), name='apidocs'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='redoc'),
     path('docs/', include('docs.urls', namespace='docs')),

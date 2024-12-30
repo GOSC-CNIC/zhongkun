@@ -8,8 +8,8 @@ from django.utils import timezone as dj_timezone
 from django.utils.translation import gettext as _
 
 from core import site_configs_manager
-from apps.users.models import Email
-from apps.users import managers as user_manager
+from apps.app_users.models import Email
+from apps.app_users import managers as user_manager
 from apps.app_global.models import TimedTaskLock
 
 

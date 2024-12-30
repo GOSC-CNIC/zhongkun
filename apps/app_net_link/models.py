@@ -3,7 +3,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.functional import cached_property
 
 from utils.model import UuidModel
-from apps.users.models import UserProfile
+from apps.app_users.models import UserProfile
 from apps.app_net_manage.models import OrgVirtualObject
 
 

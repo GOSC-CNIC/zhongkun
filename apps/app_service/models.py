@@ -8,7 +8,7 @@ from utils.model import UuidModel, get_encryptor
 from utils.validators import http_url_validator
 from apps.app_vo.models import VirtualOrganization
 
-from apps.users.models import UserProfile as User
+from apps.app_users.models import UserProfile as User
 
 
 app_name = 'service'

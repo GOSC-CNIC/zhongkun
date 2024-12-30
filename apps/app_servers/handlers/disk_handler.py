@@ -26,7 +26,7 @@ from apps.app_servers.managers import ServiceManager
 from apps.app_servers.managers import ServerManager, DiskManager, ResourceActionLogManager
 from apps.app_servers.models import Server, Disk
 from apps.app_servers import disk_serializers, format_who_action_str
-from apps.users.managers import get_user_by_name
+from apps.app_users.managers import get_user_by_name
 
 
 class DiskHandler:

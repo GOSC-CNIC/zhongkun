@@ -9,7 +9,7 @@ from apps.app_ticket.models import Ticket, TicketChange, TicketRating
 from apps.app_ticket.managers import TicketManager
 from apps.app_ticket.notifiers import TicketEmailNotifier
 from apps.app_ticket import serializers as ticket_serializers
-from apps.users.managers import get_user_by_name
+from apps.app_users.managers import get_user_by_name
 
 
 class TicketHandler:

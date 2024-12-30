@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError
 
 from utils.model import UuidModel
 from utils.iprestrict import convert_iprange
-from apps.users.models import UserProfile
+from apps.app_users.models import UserProfile
 from .prometheus_configs_default_template import prometheus_blackbox_http_default, prometheus_blackbox_tcp_default, \
     prometheus_exporter_node_default, prometheus_base_default, prometheus_exporter_ceph_default, prometheus_exporter_tidb_default
 

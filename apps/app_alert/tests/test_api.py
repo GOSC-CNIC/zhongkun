@@ -1,11 +1,7 @@
 from django.urls import reverse
-from django.conf import settings
-from django.core.exceptions import ValidationError
-from utils.test import get_or_create_user
-from utils.test import MyAPITestCase
 from utils.test import MyAPITransactionTestCase
 from apps.app_alert.permission import AlertAPIIPRestrictor
-from apps.users.models import UserProfile
+from apps.app_users.models import UserProfile
 from apps.app_alert.models import AlertModel
 
 

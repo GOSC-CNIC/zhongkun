@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_site.settings')
 setup()
 
-from apps.users.models import UserProfile
+from apps.app_users.models import UserProfile
 
 
 class Command(BaseCommand):

@@ -12,7 +12,7 @@ from utils.paginators import NoPaginatorInspector
 from utils.iprestrict import IPRestrictor
 from core import errors
 from core.taskqueue import submit_task
-from apps.users.models import Email
+from apps.app_users.models import Email
 from apps.app_global.configs_manager import IPAccessWhiteListManager
 
 

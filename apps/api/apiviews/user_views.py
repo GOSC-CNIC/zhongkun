@@ -10,7 +10,7 @@ from apps.api.viewsets import CustomGenericViewSet
 from apps.api.serializers import serializers
 from apps.app_servers.managers import ServiceManager
 from apps.api.paginations import DefaultPageNumberPagination
-from apps.users.managers import filter_user_queryset
+from apps.app_users.managers import filter_user_queryset
 from core import errors
 from utils.paginators import NoPaginatorInspector
 from utils.time import iso_utc_to_datetime

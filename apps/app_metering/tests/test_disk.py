@@ -18,7 +18,7 @@ from apps.app_metering.measurers import DiskMeasurer
 from apps.app_metering.models import PaymentStatus, DailyStatementDisk, MeteringDisk
 from apps.app_metering.payment import MeteringPaymentManager
 from apps.app_metering.statement_generators import DiskDailyStatementGenerater
-from apps.users.models import UserProfile
+from apps.app_users.models import UserProfile
 
 
 def create_disk_metadata(

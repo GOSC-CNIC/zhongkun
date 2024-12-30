@@ -8,7 +8,7 @@ from django.utils import timezone as dj_timezone
 from core import errors
 from utils.model import UuidModel
 from utils.iprestrict import convert_iprange
-from apps.users.models import UserProfile
+from apps.app_users.models import UserProfile
 from apps.app_service.models import DataCenter
 
 

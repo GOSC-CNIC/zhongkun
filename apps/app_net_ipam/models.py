@@ -9,7 +9,7 @@ from django.core.exceptions import ValidationError
 from django.utils.functional import cached_property
 
 from utils.model import UuidModel
-from apps.users.models import UserProfile
+from apps.app_users.models import UserProfile
 from apps.app_service.models import DataCenter as Organization
 from apps.app_net_manage.models import OrgVirtualObject
 from apps.app_net_ipam.fields import ByteField

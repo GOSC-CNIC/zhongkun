@@ -15,7 +15,7 @@ from apps.app_metering.models import MeteringMonitorWebsite, PaymentStatus, Dail
 from apps.app_metering.statement_generators import WebsiteMonitorStatementGenerater
 from apps.app_metering.payment import MeteringPaymentManager
 from apps.app_metering.pay_metering import PayMeteringWebsite
-from apps.users.models import UserProfile
+from apps.app_users.models import UserProfile
 from apps.app_wallet.models import PayApp, PayAppService, PaymentHistory, CashCoupon
 from core import errors
 from apps.app_service.models import OrgDataCenter

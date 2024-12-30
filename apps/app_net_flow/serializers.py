@@ -4,9 +4,8 @@ from apps.app_net_flow.models import ChartModel
 from apps.app_net_flow.models import Menu2Chart
 from apps.app_net_flow.models import Menu2Member
 from apps.app_net_flow.models import GlobalAdminModel
-from apps.users.models import UserProfile
 from apps.app_net_flow.permission import PermissionManager
-from apps.users.models import UserProfile
+from apps.app_users.models import UserProfile
 from django.utils.translation import gettext_lazy as _
 from apps.app_alert.utils.errors import GroupMemberExistedError
 

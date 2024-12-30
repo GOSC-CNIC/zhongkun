@@ -2,7 +2,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from utils.model import UuidModel, OwnerType
-from apps.users.models import UserProfile
+from apps.app_users.models import UserProfile
 from apps.app_service.models import OrgDataCenter
 from apps.app_order.models import Order
 

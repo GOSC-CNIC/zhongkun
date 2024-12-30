@@ -5,7 +5,7 @@ from django.utils import timezone
 from django.db.models import Q
 
 from apps.app_wallet.models import CashCoupon
-from apps.users.models import Email
+from apps.app_users.models import Email
 from apps.app_vo.models import VirtualOrganization, VoMember
 from utils.model import OwnerType
 from core import site_configs_manager as site_configs

@@ -15,7 +15,7 @@ from apps.app_metering.models import (
 )
 from apps.app_servers.models import Server, ServerArchive, Disk, ServiceConfig
 from apps.app_servers.tests.test_disk import create_disk_metadata
-from apps.users.models import UserProfile
+from apps.app_users.models import UserProfile
 
 
 class MeteringServerTests(MyAPITestCase):

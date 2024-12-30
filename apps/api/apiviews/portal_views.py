@@ -11,7 +11,7 @@ from utils.iprestrict import IPRestrictor
 from apps.app_global.configs_manager import IPAccessWhiteListManager
 from apps.api.viewsets import CustomGenericViewSet
 from apps.api.paginations import DefaultPageNumberPagination
-from apps.users.managers import filter_user_queryset
+from apps.app_users.managers import filter_user_queryset
 from apps.app_monitor.models import TotalReqNum
 
 

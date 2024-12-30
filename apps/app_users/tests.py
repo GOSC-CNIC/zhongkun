@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.core import mail
 
-from apps.users.models import Email
+from apps.app_users.models import Email
 
 
 class EmailTest(TestCase):

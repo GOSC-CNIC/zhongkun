@@ -9,7 +9,7 @@ from django.core.validators import URLValidator
 
 from apps.app_service.models import OrgDataCenter
 from utils.model import UuidModel, get_encryptor
-from apps.users.models import UserProfile
+from apps.app_users.models import UserProfile
 
 
 def get_str_hash(s: str):

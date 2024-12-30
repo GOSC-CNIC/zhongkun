@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_site.settings')
 setup()
 
-from apps.users.models import UserProfile
+from apps.app_users.models import UserProfile
 from apps.app_net_flow.models import Menu2Member
 from apps.app_net_flow.models import MenuModel
 

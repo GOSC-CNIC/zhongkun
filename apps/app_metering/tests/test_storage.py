@@ -14,7 +14,7 @@ from apps.app_metering.measurers import StorageMeasurer
 from apps.app_metering.models import PaymentStatus, MeteringObjectStorage, DailyStatementObjectStorage
 from apps.app_metering.payment import MeteringPaymentManager
 from apps.app_metering.statement_generators import GenerateDailyStatementObjectStorage
-from apps.users.models import UserProfile
+from apps.app_users.models import UserProfile
 from apps.app_storage.models import Bucket, ObjectsService
 
 

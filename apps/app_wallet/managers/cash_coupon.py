@@ -11,7 +11,7 @@ from core import errors
 from utils.model import OwnerType
 from apps.app_vo.managers import VoManager
 from apps.app_wallet.models import CashCoupon, CashCouponPaymentHistory, CashCouponActivity, PayAppService
-from apps.users.models import UserProfile
+from apps.app_users.models import UserProfile
 
 
 def get_app_service_by_admin(_id: str, user):

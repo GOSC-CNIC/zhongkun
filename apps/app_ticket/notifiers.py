@@ -1,5 +1,5 @@
-from apps.users import managers as user_manager
-from apps.users.models import Email
+from apps.app_users import managers as user_manager
+from apps.app_users.models import Email
 from core import taskqueue, site_configs_manager as site_configs
 from apps.app_ticket.models import Ticket, FollowUp
 

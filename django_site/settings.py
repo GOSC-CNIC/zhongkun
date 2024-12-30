@@ -50,7 +50,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_json_widget',
 
-    'apps.users',
+    'apps.app_users',
     'apps.app_global',
     'apps.app_screenvis',
     'apps.app_alert',
