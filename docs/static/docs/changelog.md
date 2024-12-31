@@ -1,3 +1,11 @@
+## v3.1.1
+发布时间： 2024-12-31  
+发布人： yushunwang  
+
+* app统一命名规范app_xxx，app service、storage、monitor、vo、order、vpn、ticket、metering、report、servers、users目录重命名；提交人：yushunwang
+* 邮件通知脚本修改，通过ContentType访问邮件模型类方式改为显式的直接导入类方式；提交人：yushunwang
+
+
 ## v3.1.0
 发布时间： 2024-12-26  
 发布人： yushunwang  
