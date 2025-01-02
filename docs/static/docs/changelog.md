@@ -1,3 +1,11 @@
+## v3.1.2
+发布时间： 2025-01-02  
+发布人： yushunwang  
+
+* python环境依赖包文件requirements.txt路径修改，并且只锁定直接依赖包版本；提交人：yushunwang
+* 依赖包升级，django-baton=4.2.2；提交人：yushunwang
+
+
 ## v3.1.1
 发布时间： 2024-12-31  
 发布人： yushunwang  
