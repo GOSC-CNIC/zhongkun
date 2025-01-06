@@ -63,3 +63,24 @@ def get_pay_app_id(dj_settings, check_valid: bool = True) -> str:
         return app_id
 
     raise Error(message='配置参数PAYMENT_BALANCE app_id不是一个有效值')
+
+
+def get_wallet_rsa_keys():
+    """
+    获取钱包的密钥对
+
+    :raises: Error
+    """
+    try:
+        private_key = global_configs.get(global_configs.ConfigName.WALLET_RSA_PRIVATE_KEY.value)
+        public_key = global_configs.get(global_configs.ConfigName.WALLET_RSA_PUBLIC_KEY.value)
+    except Exception as exc:
+        raise Error(message=str(exc))
+
+    if not private_key:
+        raise Error(message='Not set wallet RSA2048 private_key')
+
+    if not public_key:
+        raise Error(message='Not set wallet RSA2048 public_key')
+
+    return private_key, public_key

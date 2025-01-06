@@ -27,7 +27,9 @@ class Migration(migrations.Migration):
                     ('prometheus_exporter_node', 'promtheus exporter node 配置文件'),
                     ('prometheus_exporter_tidb', 'promtheus exporter tidb 配置文件'),
                     ('prometheus_exporter_ceph', 'promtheus exporter ceph 配置文件'),
-                    ('sales_customer_service_info', '销售客服人员联系信息')
+                    ('sales_customer_service_info', '销售客服人员联系信息'),
+                    ('wallet_rsa_private_key', '钱包签名验签RSA密钥对私钥'),
+                    ('wallet_rsa_public_key', '钱包签名验签RSA密钥对公钥'),
                 ], max_length=32, verbose_name='配置名称')),
                 ('value', models.CharField(default='', max_length=255, verbose_name='配置内容')),
                 ('remark', models.CharField(blank=True, max_length=255, verbose_name='备注')),

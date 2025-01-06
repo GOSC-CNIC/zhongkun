@@ -1,5 +1,4 @@
 # 敏感信息配置文件security.py的demo
-# from .settings import PASSPORT_JWT
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'xxx'
@@ -26,19 +25,6 @@ DATABASES = {
     },
 }
 
-# 第三方应用登录认证敏感信息
-# THIRD_PARTY_APP_AUTH_SECURITY = {
-#     # 科技云通行证
-#     'SCIENCE_CLOUD': {
-#         'client_id': 0,
-#         'client_secret': 'xxx',
-#     },
-#     # AAI
-#     'AAI': {
-#         'client_id': 'xxx',
-#         'client_secret': 'xxx',
-#     },
-# }
 
 # 邮箱配置
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -48,22 +34,6 @@ EMAIL_HOST = 'xxx'
 EMAIL_HOST_USER = 'xxx'
 EMAIL_HOST_PASSWORD = 'xxx'
 
-# 科技云通行证JWT认证公钥
-# PASSPORT_JWT['VERIFYING_KEY'] = 'xxx'
-
-# 钱包结算服务RSA Key，加签验签
-PAYMENT_RSA2048 = {
-    'private_key': """
------BEGIN PRIVATE KEY-----
-xxx
------END PRIVATE KEY-----
-""",
-    'public_key': """
------BEGIN PUBLIC KEY-----
-xxx
------END PUBLIC KEY-----  
-"""
-}
 
 # 余额支付配置
 PAYMENT_BALANCE = {

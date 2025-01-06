@@ -1,11 +1,12 @@
 import ipaddress
 
 from django.db import models
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext, gettext_lazy as _
 from django.core.exceptions import ValidationError
 
 from utils.model import UuidModel
 from utils.iprestrict import convert_iprange
+from utils.crypto.rsa import SHA256WithRSA
 from apps.app_users.models import UserProfile
 from .prometheus_configs_default_template import prometheus_blackbox_http_default, prometheus_blackbox_tcp_default, \
     prometheus_exporter_node_default, prometheus_base_default, prometheus_exporter_ceph_default, prometheus_exporter_tidb_default
@@ -77,6 +78,8 @@ class GlobalConfig(models.Model):
         PROMETHEUS_EXPORTER_TIDB = 'prometheus_exporter_tidb', _('promtheus exporter tidb 配置文件')
         PROMETHEUS_EXPORTER_CEPH = 'prometheus_exporter_ceph', _('promtheus exporter ceph 配置文件')
         SALES_CUSTOMER_SERVICE_INFO = 'sales_customer_service_info', _('销售客服人员联系信息')
+        WALLET_RSA_PRIVATE_KEY = 'wallet_rsa_private_key', _('钱包签名验签RSA密钥对私钥')
+        WALLET_RSA_PUBLIC_KEY = 'wallet_rsa_public_key', _('钱包签名验签RSA密钥对公钥')
 
     # 配置的默认值，自动创建配置参数记录时填充的默认值
     value_defaults = {
@@ -98,7 +101,9 @@ class GlobalConfig(models.Model):
         ConfigName.PROMETHEUS_EXPORTER_NODE.value: prometheus_exporter_node_default,
         ConfigName.PROMETHEUS_EXPORTER_TIDB.value: prometheus_exporter_tidb_default,
         ConfigName.PROMETHEUS_EXPORTER_CEPH.value: prometheus_exporter_ceph_default,
-        ConfigName.SALES_CUSTOMER_SERVICE_INFO.value: ''
+        ConfigName.SALES_CUSTOMER_SERVICE_INFO.value: '',
+        ConfigName.WALLET_RSA_PRIVATE_KEY.value: '',
+        ConfigName.WALLET_RSA_PUBLIC_KEY.value: ''
     }
 
     id = models.BigAutoField(primary_key=True)
@@ -118,7 +123,29 @@ class GlobalConfig(models.Model):
         ]
 
     def __str__(self):
-        return f'[{self.name}] {self.value}'
+        return self.name
+        # return f'[{self.name}] {self.value}'
+
+    def clean(self):
+        if self.name == self.ConfigName.WALLET_RSA_PRIVATE_KEY.value and self.value != '':
+            try:
+                SHA256WithRSA.load_pem_private_key(private_key=self.value)
+            except Exception as exc:
+                raise ValidationError({'value': gettext('无效的钱包私钥。')})
+        elif self.name == self.ConfigName.WALLET_RSA_PUBLIC_KEY.value and self.value != '':
+            try:
+                SHA256WithRSA.load_pem_public_key(public_key=self.value)
+            except Exception as exc:
+                raise ValidationError({'value': gettext('无效的钱包公钥。')})
+
+            pri_obj = GlobalConfig.objects.filter(name=GlobalConfig.ConfigName.WALLET_RSA_PRIVATE_KEY.value).first()
+            if pri_obj is None or not pri_obj.value:
+                raise ValidationError({'value': gettext('请先配置钱包私钥，后配置公钥。')})
+
+            signer = SHA256WithRSA(private_key=pri_obj.value, public_key=self.value)
+            signature = signer.sign(b'test')
+            if not signer.verify(signature=signature, data=b'test'):
+                raise ValidationError({'value': gettext('公钥与已配置的钱包私钥不匹配')})
 
 
 class IPAccessWhiteList(models.Model):

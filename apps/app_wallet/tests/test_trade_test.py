@@ -5,7 +5,6 @@ from decimal import Decimal
 
 from django.urls import reverse
 from django.utils import timezone
-from django.conf import settings
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
 from jwt import PyJWT
@@ -21,6 +20,7 @@ from utils.model import OwnerType
 from apps.app_vo.models import VirtualOrganization
 from apps.app_global.models import GlobalConfig
 from apps.app_global.configs_manager import global_configs
+from . import set_wallet_rsa_keys_for_test
 
 
 def response_sign_assert(test_case, r, wallet_public_key: str):
@@ -58,7 +58,8 @@ class TradeTestTests(MyAPITestCase):
         )
         self.app.save(force_insert=True)
 
-        self.vms_public_key = settings.PAYMENT_RSA2048['public_key']
+        wallet_private_key, wallet_public_key = set_wallet_rsa_keys_for_test()
+        self.vms_public_key = wallet_public_key
 
     def test_trade_test(self):
         body = {
@@ -136,7 +137,8 @@ class TradeTests(MyAPITransactionTestCase):
         )
         self.app.save(force_insert=True)
 
-        self.vms_public_key = settings.PAYMENT_RSA2048['public_key']
+        wallet_private_key, wallet_public_key = set_wallet_rsa_keys_for_test()
+        self.vms_public_key = wallet_public_key
 
         # 余额支付有关配置
         self.po = get_or_create_organization(name='机构')
@@ -572,7 +574,8 @@ class RefundRecordTests(MyAPITransactionTestCase):
         )
         self.app.save(force_insert=True)
 
-        self.vms_public_key = settings.PAYMENT_RSA2048['public_key']
+        wallet_private_key, wallet_public_key = set_wallet_rsa_keys_for_test()
+        self.vms_public_key = wallet_public_key
 
     @staticmethod
     def do_request(testcase, client, app_id: str, private_key: str, method: str,
@@ -1298,7 +1301,8 @@ class AppTradeBillTests(MyAPITestCase):
         )
         self.app.save(force_insert=True)
 
-        self.vms_public_key = settings.PAYMENT_RSA2048['public_key']
+        wallet_private_key, wallet_public_key = set_wallet_rsa_keys_for_test()
+        self.vms_public_key = wallet_public_key
 
     @staticmethod
     def do_request(testcase, client, app_id: str, private_key: str, method: str,

@@ -1,8 +1,9 @@
 import base64
 
 from django.utils.translation import gettext as _
-from django.conf import settings
+
 from core import errors as exceptions
+from core import site_configs_manager
 from apps.app_wallet.signers import SignatureResponse, SignatureRequest, SignatureParser
 from apps.app_wallet.models import PayApp
 from apps.api.viewsets import CustomGenericViewSetMixin, BaseGenericViewSet
@@ -15,9 +16,15 @@ class PaySignGenericViewSet(CustomGenericViewSetMixin, BaseGenericViewSet):
     from django.db.models import QuerySet
     queryset = QuerySet().none()
 
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        # 处理请求之前，确保钱包密钥已配置
+        site_configs_manager.get_wallet_rsa_keys()
+
     def finalize_response(self, request, response, *args, **kwargs):
         response = super().finalize_response(request, response, *args, **kwargs)
-        signer = SignatureResponse(private_key=settings.PAYMENT_RSA2048['private_key'])
+        private_key, public_key = site_configs_manager.get_wallet_rsa_keys()
+        signer = SignatureResponse(private_key=private_key)
         response = signer.add_sign(response=response)
         return response
 

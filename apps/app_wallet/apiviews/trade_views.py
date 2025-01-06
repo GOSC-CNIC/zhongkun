@@ -10,6 +10,7 @@ from apps.app_wallet.apiviews import PaySignGenericViewSet
 from apps.app_wallet import trade_serializers
 from apps.app_wallet.handlers.trade_handlers import TradeHandler
 from core import errors
+from core import site_configs_manager
 
 
 class TradeChargeViewSet(PaySignGenericViewSet):
@@ -315,7 +316,7 @@ class TradeSignKeyViewSet(PaySignGenericViewSet):
             except errors.Error as exc:
                 return self.exception_response(exc)
 
-        private_key = getattr(settings, 'PAYMENT_RSA2048', {}).get('public_key')
+        private_key, private_key = site_configs_manager.get_wallet_rsa_keys()
         if not private_key:
             return self.exception_response(errors.ConflictError(message='结算服务未配置RSA公钥'))
 

@@ -5,8 +5,6 @@ from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from cryptography.hazmat.primitives import serialization
 from cryptography.exceptions import InvalidSignature
 
-from .b64 import base64url_decode, base64url_encode
-
 
 def generate_rsa_key(key_size: int = 2048):
     pri_rsa = rsa.generate_private_key(public_exponent=65537, key_size=key_size)
@@ -37,15 +35,13 @@ class SHA256WithRSA:
         self.private_key = private_key
         self.public_key = public_key
         if private_key:
-            self.private_rsa = serialization.load_pem_private_key(
-                private_key.encode('utf-8'),
-                password=private_key_password if private_key_password is None else private_key_password.encode('utf-8')
-            )
+            self.private_rsa = self.load_pem_private_key(
+                private_key=private_key, private_key_password=private_key_password)
         else:
             self.private_rsa = None
 
         if public_key:
-            self.public_rsa = serialization.load_pem_public_key(public_key.encode('utf-8'))
+            self.public_rsa = self.load_pem_public_key(public_key=public_key)
         else:
             self.public_rsa = None
 
@@ -71,3 +67,20 @@ class SHA256WithRSA:
             return True
         except InvalidSignature:
             return False
+
+    @staticmethod
+    def load_pem_private_key(private_key: str, private_key_password: str = None):
+        return serialization.load_pem_private_key(
+            private_key.encode('utf-8'),
+            password=private_key_password if private_key_password is None else private_key_password.encode('utf-8')
+        )
+
+    @staticmethod
+    def load_pem_public_key(public_key: str):
+        return serialization.load_pem_public_key(public_key.encode('utf-8'))
+
+    @staticmethod
+    def check_keys(private_key: str, public_key: str, private_key_password: str = None):
+        pri_key = SHA256WithRSA.load_pem_private_key(private_key=private_key, private_key_password=private_key_password)
+        pub_key = SHA256WithRSA.load_pem_public_key(public_key=public_key)
+
