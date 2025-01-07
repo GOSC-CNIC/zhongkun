@@ -5,9 +5,7 @@ from urllib.parse import urlencode
 
 from django.urls import reverse
 from django.utils import timezone
-from django.conf import settings
 
-from core import site_configs_manager
 from apps.app_servers.managers import ServicePrivateQuotaManager
 from apps.app_servers.models import ServiceConfig, Disk, Server, ResourceActionLog, DiskChangeLog
 from apps.app_servers.tests import create_server_metadata
@@ -22,12 +20,10 @@ from apps.app_order.models import Order, Resource
 from apps.app_order.managers import DiskConfig
 from apps.app_order.tests import create_price
 from apps.app_wallet.managers import PaymentManager
-from apps.app_wallet.models import PayApp, PayAppService
+from apps.app_wallet.models import PayAppService
+from apps.app_wallet.tests import register_and_set_app_id_for_test
 from apps.app_metering.measurers import DiskMeasurer
 from apps.app_metering.models import MeteringDisk
-
-
-PAY_APP_ID = site_configs_manager.get_pay_app_id(settings)
 
 
 def create_disk_metadata(
@@ -150,6 +146,8 @@ class DiskOrderTests(MyAPITransactionTestCase):
         member.save(force_insert=True)
 
     def test_disk_create(self):
+        app = register_and_set_app_id_for_test()
+
         url = reverse('servers-api:disks-list')
         response = self.client.post(url)
         self.assertEqual(response.status_code, 401)
@@ -1425,8 +1423,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
 
     def test_renew_disk(self):
         # 余额支付有关配置
-        app = PayApp(name='app', id=PAY_APP_ID)
-        app.save()
+        app = register_and_set_app_id_for_test()
         po = get_or_create_organization(name='机构')
         po.save()
         app_service1 = PayAppService(
@@ -1690,8 +1687,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
 
     def test_modify_pay_type(self):
         # 余额支付有关配置
-        app = PayApp(name='app', id=PAY_APP_ID)
-        app.save()
+        app = register_and_set_app_id_for_test()
         po = get_or_create_organization(name='机构')
         po.save()
         app_service1 = PayAppService(

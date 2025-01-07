@@ -1,7 +1,6 @@
 from datetime import datetime
 
 from django.utils.translation import gettext as _
-from django.conf import settings
 from rest_framework.response import Response
 
 from core import errors
@@ -36,7 +35,7 @@ class RefundOrderHandler:
                 errors.InvalidArgument(message=_('退订原因不能超过255个字符')))
 
         try:
-            app_id = get_pay_app_id(dj_settings=settings, check_valid=True)
+            app_id = get_pay_app_id(check_valid=True)
             order = OrderManager().get_permission_order(
                 order_id=order_id, user=request.user, check_permission=True, read_only=False)
             OrderManager.can_deliver_or_refund_for_order(order)

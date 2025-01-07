@@ -3,24 +3,20 @@ from decimal import Decimal
 
 from django.utils import timezone as dj_timezone
 from django.test.testcases import TransactionTestCase
-from django.conf import settings
 
-from core import site_configs_manager
 from utils.test import get_or_create_user, get_or_create_organization, get_or_create_org_data_center
 from utils.time import utc
 from utils.model import PayType, OwnerType
 from apps.app_vo.models import VirtualOrganization
-from apps.app_wallet.models import PayApp, PayAppService
+from apps.app_wallet.models import PayAppService
 from apps.app_wallet.managers import PaymentManager, CashCouponManager
+from apps.app_wallet.tests import register_and_set_app_id_for_test
 from apps.app_storage.models import ObjectsService, Bucket
 from apps.app_servers.models import Server, ServiceConfig
 from apps.app_servers.tests import create_server_metadata
 from apps.app_report.models import ArrearBucket, ArrearServer
 from apps.app_report.workers.storage_trend import ArrearBucketReporter
 from apps.app_report.workers.server_notifier import ArrearServerReporter
-
-
-PAY_APP_ID = site_configs_manager.get_pay_app_id(settings)
 
 
 class ArrearServerReporterTests(TransactionTestCase):
@@ -34,8 +30,7 @@ class ArrearServerReporterTests(TransactionTestCase):
         self.vo2.save(force_insert=True)
 
         # 余额支付有关配置
-        self.app = PayApp(name='app', id=PAY_APP_ID)
-        self.app.save(force_insert=True)
+        self.app = register_and_set_app_id_for_test()
         self.org1 = get_or_create_organization(name='机构')
         self.app_service1 = PayAppService(
             id='123', name='service1', app=self.app, orgnazition=self.org1,
@@ -260,8 +255,7 @@ class ArrearBucketReporterTests(TransactionTestCase):
         self.user3 = get_or_create_user(username='zhangsan@qq.com')
 
         # 余额支付有关配置
-        self.app = PayApp(name='app', id=PAY_APP_ID)
-        self.app.save(force_insert=True)
+        self.app = register_and_set_app_id_for_test()
         self.po = get_or_create_organization(name='机构')
         self.po.save()
         self.app_service1 = PayAppService(

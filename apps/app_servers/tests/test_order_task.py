@@ -5,7 +5,6 @@ from datetime import timedelta
 
 from django.urls import reverse
 from django.utils import timezone as dj_timezone
-from django.conf import settings
 
 from apps.app_servers.managers import ServicePrivateQuotaManager
 from apps.app_servers.models import ServiceConfig
@@ -20,13 +19,10 @@ from apps.app_order.managers import OrderManager
 from apps.app_order.models import Order
 from apps.app_order.managers import ServerConfig
 from apps.app_order.tests import create_price
-from apps.app_wallet.models import PayApp, PayAppService, CashCoupon, PaymentHistory
-from core import site_configs_manager
+from apps.app_wallet.models import PayAppService, CashCoupon, PaymentHistory
+from apps.app_wallet.tests import register_and_set_app_id_for_test
 from apps.app_servers.apiviews.res_order_deliver_task_views import ResTaskManager
 from apps.app_servers.models import ResourceOrderDeliverTask
-
-
-PAY_APP_ID = site_configs_manager.get_pay_app_id(settings)
 
 
 # 替换任务订单资源交付处理方法，防止测试用例真实去创建资源
@@ -51,8 +47,7 @@ class ResOrderTaskTests(MyAPITransactionTestCase):
         self.price = create_price()
 
         # 余额支付有关配置
-        self.app = PayApp(name='app', id=PAY_APP_ID)
-        self.app.save(force_insert=True)
+        self.app = register_and_set_app_id_for_test()
         self.po = get_or_create_organization(name='机构')
         self.po.save()
         app_service1 = PayAppService(

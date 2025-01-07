@@ -7,7 +7,6 @@ from django.db.models import ObjectDoesNotExist
 from django.utils.translation import gettext, gettext_lazy as _
 from django.utils import timezone
 from django.core.exceptions import ValidationError
-from django.conf import settings
 
 from core import site_configs_manager
 from apps.app_service.models import OrgDataCenter, DataCenter
@@ -180,7 +179,7 @@ class ServiceConfig(BaseService):
         from apps.app_wallet.models import PayAppService
 
         try:
-            app_id = site_configs_manager.get_pay_app_id(dj_settings=settings, check_valid=True)
+            app_id = site_configs_manager.get_pay_app_id(check_valid=True)
         except Exception as exc:
             raise ValidationError(message=str(exc))
 

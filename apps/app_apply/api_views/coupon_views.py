@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 from decimal import Decimal
 
-from django.conf import settings
 from django.utils import timezone as dj_timezone
 from django.utils.translation import gettext_lazy, gettext as _
 from django.db import transaction
@@ -824,7 +823,7 @@ class CouponApplyViewSet(NormalGenericViewSet):
             order = apply.order
             subject = order.build_subject()
             order = OrderPaymentManager().pay_order(
-                order=order, app_id=site_configs_manager.get_pay_app_id(settings), subject=subject,
+                order=order, app_id=site_configs_manager.get_pay_app_id(), subject=subject,
                 executor=apply.username, remark='',
                 coupon_ids=[apply.coupon_id], only_coupon=True,
                 required_enough_balance=True

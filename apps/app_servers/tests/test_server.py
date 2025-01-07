@@ -5,14 +5,13 @@ from datetime import datetime, timedelta, timezone
 
 from django.urls import reverse
 from django.utils import timezone as dj_timezone
-from django.conf import settings
 
 from apps.app_servers.managers import ServicePrivateQuotaManager, ServerSnapshotManager
 from apps.app_servers.models import ServiceConfig, EVCloudPermsLog
 from apps.app_servers.models import Flavor, Server, ServerArchive, Disk, ResourceActionLog, ServerSnapshot
 from utils.test import (
     get_or_create_user, get_or_create_service, get_or_create_organization,
-    MyAPITransactionTestCase, MyAPITestCase
+    MyAPITransactionTestCase
 )
 from utils.model import PayType, OwnerType, ResourceType
 from utils.time import iso_utc_to_datetime
@@ -24,17 +23,16 @@ from apps.app_order.models import Order, Resource
 from apps.app_order.managers import ServerConfig
 from apps.app_order.tests import create_price
 from apps.app_wallet.managers import PaymentManager
-from apps.app_wallet.models import PayApp, PayAppService
+from apps.app_wallet.models import PayAppService
+from apps.app_wallet.tests import register_and_set_app_id_for_test
 from apps.app_metering.measurers import ServerMeasurer
 from apps.app_metering.models import MeteringServer
 from core.adapters.evcloud import EVCloudAdapter
 from core.adapters import outputs
-from core import site_configs_manager
 from . import create_server_metadata
 
 
 utc = timezone.utc
-PAY_APP_ID = site_configs_manager.get_pay_app_id(settings)
 
 
 class ServerOrderTests(MyAPITransactionTestCase):
@@ -51,6 +49,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         )
         self.vo.save(force_insert=True)
         self.price = create_price()
+        self.pay_app = register_and_set_app_id_for_test()
 
     def test_server_create_bad_request(self):
         url = reverse('servers-api:servers-list')
@@ -719,8 +718,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
 
     def test_renew_server(self):
         # 余额支付有关配置
-        app = PayApp(name='app', id=PAY_APP_ID)
-        app.save()
+        app = self.pay_app
         po = get_or_create_organization(name='机构')
         po.save()
         app_service1 = PayAppService(
@@ -1031,8 +1029,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
 
     def test_modify_pay_type(self):
         # 余额支付有关配置
-        app = PayApp(name='app', id=PAY_APP_ID)
-        app.save()
+        app = self.pay_app
         po = get_or_create_organization(name='机构')
         po.save()
         app_service1 = PayAppService(

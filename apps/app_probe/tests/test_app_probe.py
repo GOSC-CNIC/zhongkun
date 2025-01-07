@@ -69,6 +69,8 @@ class ProbeTestClass(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['version', 'server'], response.data)
 
+        GlobalConfig.objects.filter(name__startswith='prometheus').delete()
+
         base_url = reverse('probe-api:task-sbumit_probe')
         data = {
             "operate": "add",

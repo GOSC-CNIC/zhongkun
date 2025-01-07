@@ -3,7 +3,6 @@ from datetime import datetime, timedelta, time, timezone as dt_timezone
 
 from django.test import TransactionTestCase
 from django.utils import timezone as dj_timezone
-from django.conf import settings
 from django.urls import reverse
 
 from utils.test import get_or_create_user, get_or_create_service, get_or_create_organization, MyAPITransactionTestCase
@@ -22,9 +21,10 @@ from apps.app_metering.models import MeteringServer, PaymentStatus, DailyStateme
 from apps.app_metering.payment import MeteringPaymentManager
 from apps.app_metering.statement_generators import GenerateDailyStatementServer
 from apps.app_users.models import UserProfile
+from apps.app_wallet.tests import register_and_set_app_id_for_test
+
 
 utc = dt_timezone.utc
-PAY_APP_ID = site_configs_manager.get_pay_app_id(settings)
 
 
 def create_server_metadata(
@@ -1191,8 +1191,7 @@ class ServerStatementTests(MyAPITransactionTestCase):
         self.price = create_price()
 
         # 余额支付有关配置
-        self.app = PayApp(name='app', id=PAY_APP_ID)
-        self.app.save(force_insert=True)
+        self.app = register_and_set_app_id_for_test()
         app_service1 = PayAppService(
             id='123', name='service1', app=self.app,
             orgnazition=self.service.org_data_center.organization, service_id=self.service.id
@@ -1264,7 +1263,7 @@ class ServerStatementTests(MyAPITransactionTestCase):
         resource_list[0].save(update_fields=['instance_id'])
         subject = order.build_subject()
         order = OrderPaymentManager().pay_order(
-            order=order, app_id=site_configs_manager.get_pay_app_id(settings), subject=subject,
+            order=order, app_id=site_configs_manager.get_pay_app_id(), subject=subject,
             executor=self.user.username, remark='',
             coupon_ids=[], only_coupon=False,
             required_enough_balance=False
@@ -1318,7 +1317,8 @@ class ServerStatementTests(MyAPITransactionTestCase):
         dss2.save(force_insert=True)
         metering2.set_daily_statement_id(dss2.id)
         MeteringPaymentManager().pay_daily_statement_bill(
-            daily_statement=dss2, app_id=PAY_APP_ID, subject='metering', executor='metering', remark='',
+            daily_statement=dss2, app_id=site_configs_manager.get_pay_app_id(),
+            subject='metering', executor='metering', remark='',
             required_enough_balance=True
         )
 

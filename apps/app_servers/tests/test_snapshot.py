@@ -16,6 +16,7 @@ from apps.app_vo.models import VirtualOrganization, VoMember
 from apps.app_servers.managers import ServerSnapshotManager
 from apps.app_servers.models import ServiceConfig, ServerSnapshot, Server
 from apps.app_servers.tests import create_server_metadata
+from apps.app_wallet.tests import register_and_set_app_id_for_test
 
 
 class ServerSnapshotTests(MyAPITransactionTestCase):
@@ -700,6 +701,7 @@ class ServerSnapshotTests(MyAPITransactionTestCase):
         self.assertErrorResponse(status_code=409, code='ResourceLocked', response=response)
 
     def test_create(self):
+        register_and_set_app_id_for_test()
         server1 = create_server_metadata(
             service=self.service, user=self.user, ram=8, vcpus=6, disk_size=0,
             default_user='user', default_password='password',
@@ -991,6 +993,7 @@ class ServerSnapshotTests(MyAPITransactionTestCase):
         self.assertEqual(order4.trading_status, order4.TradingStatus.UNDELIVERED.value)
 
     def test_renew(self):
+        register_and_set_app_id_for_test()
         server1 = create_server_metadata(
             service=self.service, user=self.user, ram=8, vcpus=6,
             default_user='user', default_password='password', disk_size=88,

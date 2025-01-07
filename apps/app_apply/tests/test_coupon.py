@@ -5,17 +5,16 @@ import time
 
 from django.urls import reverse
 from django.utils import timezone as dj_timezone
-from django.conf import settings
 from django.core import mail as dj_mail
 
 from core import errors
-from core import site_configs_manager
 from utils.model import OwnerType, ResourceType
 from utils.time import utc
 from utils.decimal_utils import quantize_10_2
 from utils.test import get_or_create_org_data_center, get_or_create_user, MyAPITestCase
 from apps.app_vo.models import VirtualOrganization, VoMember
-from apps.app_wallet.models import CashCoupon, PayAppService, PayApp
+from apps.app_wallet.models import CashCoupon, PayAppService
+from apps.app_wallet.tests import register_and_set_app_id_for_test
 from apps.app_servers.models import ServiceConfig
 from apps.app_storage.models import ObjectsService
 from apps.app_monitor.models import MonitorWebsiteVersion
@@ -1363,9 +1362,7 @@ class CouponApplyTests(MyAPITestCase):
 
     def test_pass(self):
         # 余额支付有关配置
-        app = PayApp(name='app')
-        app.save()
-        app = app
+        app = register_and_set_app_id_for_test()
         app_service1 = PayAppService(
             name='service1', app=app, orgnazition=self.odc1.organization, service_id='',
             category=PayAppService.Category.VMS_SERVER.value
@@ -1508,8 +1505,7 @@ class CouponApplyTests(MyAPITestCase):
 
     def test_order_apply(self):
         # 余额支付有关配置
-        app = PayApp(name='app', id=site_configs_manager.get_pay_app_id(dj_settings=settings))
-        app.save(force_insert=True)
+        app = register_and_set_app_id_for_test()
         app_service1 = PayAppService(
             name='scan app s1', app=app, orgnazition=self.odc1.organization
         )

@@ -6,7 +6,10 @@ from django.urls import reverse
 from django.utils import timezone
 
 from utils.model import PayType, OwnerType
-from utils.test import get_or_create_service, get_or_create_user, get_or_create_storage_service, MyAPITestCase
+from utils.test import (
+    get_or_create_service, get_or_create_user, get_or_create_storage_service,
+    MyAPITestCase, MyAPITransactionTestCase
+)
 from apps.app_storage.models import ObjectsService
 from apps.app_vo.models import VirtualOrganization
 from apps.app_metering.models import (
@@ -18,7 +21,7 @@ from apps.app_servers.tests.test_disk import create_disk_metadata
 from apps.app_users.models import UserProfile
 
 
-class MeteringServerTests(MyAPITestCase):
+class MeteringServerTests(MyAPITransactionTestCase):
     def setUp(self):
         self.user = get_or_create_user()
         self.client.force_login(self.user)
@@ -2299,7 +2302,7 @@ def create_disk_metering(
     return metering
 
 
-class MeteringDiskTests(MyAPITestCase):
+class MeteringDiskTests(MyAPITransactionTestCase):
     def setUp(self):
         self.user = get_or_create_user(username='lilei@cnic.cn')
         self.service = get_or_create_service()

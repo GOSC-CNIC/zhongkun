@@ -80,7 +80,7 @@ class VtScanService(UuidModel):
         """
         from apps.app_wallet.models import PayAppService
 
-        app_id = site_configs_manager.get_pay_app_id(dj_settings=settings)
+        app_id = site_configs_manager.get_pay_app_id()
 
         if self.pay_app_service_id:
             app_service = self.check_pay_app_service_id(self.pay_app_service_id)

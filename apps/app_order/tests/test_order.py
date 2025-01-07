@@ -5,7 +5,6 @@ from datetime import timedelta
 
 from django.urls import reverse
 from django.utils import timezone
-from django.conf import settings
 
 from core import site_configs_manager
 from utils.model import PayType, OwnerType, ResourceType
@@ -17,13 +16,11 @@ from utils.decimal_utils import quantize_10_2
 from utils.test import get_or_create_user, get_or_create_service, get_or_create_organization, MyAPITestCase
 from apps.app_vo.models import VirtualOrganization, VoMember
 from apps.app_wallet.managers import PaymentManager
-from apps.app_wallet.models import PaymentHistory, CashCoupon, PayAppService, PayApp, TransactionBill
+from apps.app_wallet.models import PaymentHistory, CashCoupon, PayAppService, TransactionBill
+from apps.app_wallet.tests import register_and_set_app_id_for_test
 from apps.app_servers.models import ServiceConfig, Flavor
 from apps.app_servers.managers import ServicePrivateQuotaManager
 from . import create_price
-
-
-PAY_APP_ID = site_configs_manager.get_pay_app_id(settings)
 
 
 class OrderTests(MyAPITestCase):
@@ -41,8 +38,7 @@ class OrderTests(MyAPITestCase):
         self.service = get_or_create_service()
 
         # 余额支付有关配置
-        self.app = PayApp(name='app', id=PAY_APP_ID)
-        self.app.save(force_insert=True)
+        self.app = register_and_set_app_id_for_test()
         self.po = get_or_create_organization(name='机构')
         self.po.save()
         app_service1 = PayAppService(
@@ -1048,7 +1044,7 @@ class OrderTests(MyAPITestCase):
         self.assertEqual(pay_history1.payment_account, '')
         self.assertEqual(pay_history1.app_service_id, self.service.pay_app_service_id)
         self.assertEqual(pay_history1.instance_id, '')
-        self.assertEqual(pay_history1.app_id, PAY_APP_ID)
+        self.assertEqual(pay_history1.app_id, site_configs_manager.get_pay_app_id())
         self.assertEqual(pay_history1.subject, order1.build_subject())
 
         # 券支付记录
@@ -1149,7 +1145,7 @@ class OrderTests(MyAPITestCase):
         self.assertEqual(pay_history2.payment_account, self.user.userpointaccount.id)
         self.assertEqual(pay_history2.app_service_id, self.service.pay_app_service_id)
         self.assertEqual(pay_history2.instance_id, '')
-        self.assertEqual(pay_history2.app_id, PAY_APP_ID)
+        self.assertEqual(pay_history2.app_id, site_configs_manager.get_pay_app_id())
         self.assertEqual(pay_history2.subject, order2.build_subject())
         # 券支付记录
         cc_historys = pay_history2.cashcouponpaymenthistory_set.all().order_by('creation_time')

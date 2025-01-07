@@ -4,9 +4,8 @@ from datetime import timedelta
 
 from django.urls import reverse
 from django.utils import timezone as dj_timezone
-from django.conf import settings
 
-from core import errors, site_configs_manager
+from core import errors
 from utils.model import PayType, OwnerType, ResourceType
 from apps.app_order.models import Order, Resource, OrderRefund
 from apps.app_order.managers import OrderManager, OrderPaymentManager
@@ -14,7 +13,8 @@ from apps.app_order.managers.instance_configs import ServerConfig
 from utils.test import get_or_create_user, get_or_create_service, get_or_create_organization, MyAPITestCase
 from apps.app_vo.models import VirtualOrganization
 from apps.app_wallet.managers import PaymentManager
-from apps.app_wallet.models import CashCoupon, PayAppService, PayApp
+from apps.app_wallet.models import CashCoupon, PayAppService
+from apps.app_wallet.tests import register_and_set_app_id_for_test
 from apps.app_servers.models import ServiceConfig, Flavor
 from . import create_price
 
@@ -33,8 +33,7 @@ class OrderRefundTests(MyAPITestCase):
         self.service = get_or_create_service()
 
         # 余额支付有关配置
-        self.app = PayApp(name='app', id=site_configs_manager.get_pay_app_id(dj_settings=settings))
-        self.app.save(force_insert=True)
+        self.app = register_and_set_app_id_for_test()
         self.po = get_or_create_organization(name='机构')
         self.po.save()
         app_service1 = PayAppService(

@@ -1,13 +1,12 @@
 from urllib import parse
 
 from django.urls import reverse
-from django.conf import settings
 
-from core import site_configs_manager
 from utils.test import MyAPITransactionTestCase, get_or_create_user, get_or_create_organization
 from apps.app_storage.models import ObjectsService
 from apps.app_monitor.models import MonitorJobCeph, MonitorJobServer, MonitorJobTiDB, LogSite, LogSiteType
-from apps.app_wallet.models import PayAppService, PayApp
+from apps.app_wallet.models import PayAppService
+from apps.app_wallet.tests import register_and_set_app_id_for_test
 from apps.app_servers.models import ServiceConfig
 from apps.app_service.models import OrgDataCenter
 from ..odc_manager import OrgDataCenterManager
@@ -549,8 +548,7 @@ class AdminODCTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['users'][0]['id'], user2.id)
 
     def test_add_admin(self):
-        app = PayApp(name='APP', id=site_configs_manager.get_pay_app_id(dj_settings=settings))
-        app.save(force_insert=True)
+        app = register_and_set_app_id_for_test()
 
         user2 = get_or_create_user(username='test2@163.com')
         user3 = get_or_create_user(username='test3@qq.com')
@@ -685,8 +683,7 @@ class AdminODCTests(MyAPITransactionTestCase):
         self.assertTrue(pay1_obj.users.filter(username=user3.username).exists())
 
     def test_remove_admin(self):
-        app = PayApp(name='APP', id=site_configs_manager.get_pay_app_id(dj_settings=settings))
-        app.save(force_insert=True)
+        app = register_and_set_app_id_for_test()
 
         user2 = get_or_create_user(username='test2@163.com')
         user3 = get_or_create_user(username='test3@qq.com')

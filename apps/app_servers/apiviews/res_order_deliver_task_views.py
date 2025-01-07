@@ -3,7 +3,6 @@ from datetime import timedelta
 
 from django.utils.translation import gettext_lazy, gettext as _
 from django.utils import timezone as dj_timezone
-from django.conf import settings
 from django.db import transaction
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -177,7 +176,7 @@ class ResTaskManager:
             # 支付订单
             subject = order.build_subject()
             order = OrderPaymentManager().pay_order(
-                order=order, app_id=site_configs_manager.get_pay_app_id(settings), subject=subject,
+                order=order, app_id=site_configs_manager.get_pay_app_id(), subject=subject,
                 executor=executor, remark=_('管理员任务，发券支付'),
                 coupon_ids=[coupon.id], only_coupon=True,
                 required_enough_balance=True
@@ -326,7 +325,8 @@ class ResOdDeliverTaskViewSet(CustomGenericViewSet):
             if pay_type != PayType.PREPAID.value:
                 raise exceptions.BadRequest(message=_('付费模式参数"pay_type"值无效'), code='InvalidPayType')
 
-            pay_app_id = site_configs_manager.get_pay_app_id(settings, check_valid=True)
+            # 确保已配置app_id
+            site_configs_manager.get_pay_app_id(check_valid=True)
             auth_user = request.user
             od_desc = _('管理员（%(name)s）以管理员身份请求订购') % {'name': auth_user.username}
             service = data['service']

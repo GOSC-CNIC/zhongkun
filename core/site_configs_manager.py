@@ -44,17 +44,16 @@ def get_about_us():
     return s
 
 
-def get_pay_app_id(dj_settings, check_valid: bool = True) -> str:
+def get_pay_app_id(check_valid: bool = True) -> str:
     """
     本服务订单、计量结算 在钱包中对应的 app id
     """
-    payment_balance = getattr(dj_settings, 'PAYMENT_BALANCE', {})
-    app_id = payment_balance.get('app_id', None)
+    app_id = global_configs.get(global_configs.ConfigName.PAYMENT_APP_ID.value)
     if not app_id:
-        raise Error(message='Not set PAYMENT_BALANCE app_id')
+        raise Error(message=gettext('没有在后台站点参数中配置支付结算对应的钱包app_id'))
 
     if not isinstance(app_id, str):
-        raise Error(message='配置参数PAYMENT_BALANCE app_id 必须是一个字符串')
+        raise Error(message='站点参数中配置支付结算对应的钱包app_id必须是一个字符串')
 
     if not check_valid:
         return app_id
@@ -62,7 +61,7 @@ def get_pay_app_id(dj_settings, check_valid: bool = True) -> str:
     if len(app_id) >= 14 and app_id[1:].isdigit():
         return app_id
 
-    raise Error(message='配置参数PAYMENT_BALANCE app_id不是一个有效值')
+    raise Error(message='站点参数中配置的支付结算对应的钱包app_id不是一个有效值')
 
 
 def get_wallet_rsa_keys():

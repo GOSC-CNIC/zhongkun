@@ -90,11 +90,10 @@ class JWTTestCase(TestCase):
         token2 = jwt.Token(token=token, backend=token_backend)
         self.assertEqual(token2["username"], 'test')
 
-        obj = GlobalConfig(
+        obj, created = GlobalConfig.objects.update_or_create(
             name=GlobalConfig.ConfigName.AAI_JWT_VERIFYING_KEY.value,
-            value=self.public_key, remark=''
+            defaults={'value': self.public_key}
         )
-        obj.save(force_insert=True)
         jwt.global_configs.clear_cache()
         token3 = jwt.Token(token=token)
         self.assertEqual(token3["username"], 'test')

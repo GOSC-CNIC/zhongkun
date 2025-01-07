@@ -140,7 +140,7 @@ class ObjectsService(UuidModel):
         :raises: ValidationError
         """
         try:
-            app_id = site_configs_manager.get_pay_app_id(dj_settings=settings, check_valid=True)
+            app_id = site_configs_manager.get_pay_app_id(check_valid=True)
         except Exception as exc:
             raise ValidationError(message=str(exc))
 

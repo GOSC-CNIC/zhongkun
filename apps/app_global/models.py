@@ -80,6 +80,7 @@ class GlobalConfig(models.Model):
         SALES_CUSTOMER_SERVICE_INFO = 'sales_customer_service_info', _('销售客服人员联系信息')
         WALLET_RSA_PRIVATE_KEY = 'wallet_rsa_private_key', _('钱包签名验签RSA密钥对私钥')
         WALLET_RSA_PUBLIC_KEY = 'wallet_rsa_public_key', _('钱包签名验签RSA密钥对公钥')
+        PAYMENT_APP_ID = 'payment_app_id', _('本服务内支付结算对应的钱包app_id')
 
     # 配置的默认值，自动创建配置参数记录时填充的默认值
     value_defaults = {
@@ -103,7 +104,8 @@ class GlobalConfig(models.Model):
         ConfigName.PROMETHEUS_EXPORTER_CEPH.value: prometheus_exporter_ceph_default,
         ConfigName.SALES_CUSTOMER_SERVICE_INFO.value: '',
         ConfigName.WALLET_RSA_PRIVATE_KEY.value: '',
-        ConfigName.WALLET_RSA_PUBLIC_KEY.value: ''
+        ConfigName.WALLET_RSA_PUBLIC_KEY.value: '',
+        ConfigName.PAYMENT_APP_ID.value: '',
     }
 
     id = models.BigAutoField(primary_key=True)

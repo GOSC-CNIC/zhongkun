@@ -2,7 +2,6 @@ from decimal import Decimal
 from datetime import datetime
 
 from django.utils.translation import gettext as _
-from django.conf import settings
 from django.db.models import TextChoices
 from django.db import transaction
 from rest_framework.response import Response
@@ -164,7 +163,7 @@ class DiskHandler:
         """
         try:
             data = DiskHandler._disk_create_validate_params(view=view, request=request)
-            pay_app_id = site_configs_manager.get_pay_app_id(settings, check_valid=True)
+            pay_app_id = site_configs_manager.get_pay_app_id(check_valid=True)
         except exceptions.Error as exc:
             return view.exception_response(exc)
 

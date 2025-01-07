@@ -18,7 +18,6 @@ setup()
 
 
 from django.utils import timezone as dj_timezone
-from django.conf import settings
 
 from core.site_configs_manager import get_pay_app_id
 from apps.app_global.task_locks import metering_lock
@@ -126,7 +125,7 @@ def run_task_use_lock(app_id: str):
 
 if __name__ == "__main__":
     try:
-        pay_app_id = get_pay_app_id(dj_settings=settings)
+        pay_app_id = get_pay_app_id()
     except Exception as exc:
         print(str(exc))
         exit(1)

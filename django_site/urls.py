@@ -31,7 +31,7 @@ from apps.app_alert.views import AlertReceiverAPIView
 
 # 是否只使用大屏展示功能
 screenvis_only = getattr(settings, 'SCREEN_VIS_USE_ONLY', False)
-check.check_setting(screenvis_only=screenvis_only)
+check.check_setting()
 
 
 class BothHttpAndHttpsSchemaGenerator(OpenAPISchemaGenerator):
