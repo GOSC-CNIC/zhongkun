@@ -144,9 +144,7 @@ class GlobalConfig(models.Model):
             if pri_obj is None or not pri_obj.value:
                 raise ValidationError({'value': gettext('请先配置钱包私钥，后配置公钥。')})
 
-            signer = SHA256WithRSA(private_key=pri_obj.value, public_key=self.value)
-            signature = signer.sign(b'test')
-            if not signer.verify(signature=signature, data=b'test'):
+            if not SHA256WithRSA.is_key_pair_match(private_key=pri_obj.value, public_key=self.value):
                 raise ValidationError({'value': gettext('公钥与已配置的钱包私钥不匹配')})
 
 

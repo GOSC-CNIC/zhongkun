@@ -46,7 +46,11 @@ class SHA256WithRSA:
             self.public_rsa = None
 
     def sign(self, data: bytes) -> str:
-        signature = self.private_rsa.sign(
+        return self._sign(private_rsa=self.private_rsa, data=data)
+
+    @staticmethod
+    def _sign(private_rsa, data: bytes) -> str:
+        signature = private_rsa.sign(
             data=data,
             padding=padding.PKCS1v15(),
             algorithm=hashes.SHA256()
@@ -56,9 +60,13 @@ class SHA256WithRSA:
         return signature
 
     def verify(self, signature: str, data: bytes):
+        return self._verify(public_rsa=self.public_rsa, signature=signature, data=data)
+
+    @staticmethod
+    def _verify(public_rsa, signature: str, data: bytes):
         signature = base64.b64decode(signature.encode('utf-8'))
         try:
-            self.public_rsa.verify(
+            public_rsa.verify(
                 signature=signature,
                 data=data,
                 padding=padding.PKCS1v15(),
@@ -69,18 +77,27 @@ class SHA256WithRSA:
             return False
 
     @staticmethod
-    def load_pem_private_key(private_key: str, private_key_password: str = None):
+    def load_pem_private_key(private_key: str, private_key_password: str = None) -> rsa.RSAPrivateKey:
         return serialization.load_pem_private_key(
             private_key.encode('utf-8'),
             password=private_key_password if private_key_password is None else private_key_password.encode('utf-8')
         )
 
     @staticmethod
-    def load_pem_public_key(public_key: str):
+    def load_pem_public_key(public_key: str) -> rsa.RSAPublicKey:
         return serialization.load_pem_public_key(public_key.encode('utf-8'))
 
     @staticmethod
-    def check_keys(private_key: str, public_key: str, private_key_password: str = None):
-        pri_key = SHA256WithRSA.load_pem_private_key(private_key=private_key, private_key_password=private_key_password)
-        pub_key = SHA256WithRSA.load_pem_public_key(public_key=public_key)
+    def is_key_pair_match(private_key: str, public_key: str, private_key_password: str = None) -> bool:
+        """
+        是否是一对匹配的密钥对
+        """
+        try:
+            pri_key = SHA256WithRSA.load_pem_private_key(
+                private_key=private_key, private_key_password=private_key_password)
+            pub_key = SHA256WithRSA.load_pem_public_key(public_key=public_key)
+        except Exception as exc:
+            return False
 
+        signature = SHA256WithRSA._sign(private_rsa=pri_key, data=b'test')
+        return SHA256WithRSA._verify(public_rsa=pub_key, signature=signature, data=b'test')
