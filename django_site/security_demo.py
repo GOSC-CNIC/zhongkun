@@ -8,7 +8,7 @@ SECRET_KEY = 'xxx'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',  # MySQL数据库
-        # 'ENGINE': 'django_tidb',    # TiDB数据库，6.5.5，推荐7.1.1及以上
+        # 'ENGINE': 'django_tidb',    # TiDB数据库，推荐7.5+及以上
         'NAME': 'xxx',  # 数据的库名，事先要创建之
         'HOST': '127.0.0.1',  # 主机
         'PORT': '3306',  # 数据库使用的端口
@@ -34,11 +34,6 @@ EMAIL_HOST = 'xxx'
 EMAIL_HOST_USER = 'xxx'
 EMAIL_HOST_PASSWORD = 'xxx'
 
-
-# 余额支付配置
-PAYMENT_BALANCE = {
-    'app_id': 'xxx'     # 例如'20240610186309'，第一次部署服务时先设置一个类似有效值，然后后台添加一个结算app后，再修改为正确的
-}
 
 # api限制客户端ip访问设置
 # X-Forwarded-For 可能伪造，需要在服务一级代理防范处理

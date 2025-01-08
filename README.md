@@ -21,14 +21,13 @@ pipenv install
 ```
 #### （2） 使用系统python环境
 在代码工程根目录下，即文件requirements.txt同目录下运行命令：  
-```pip3 install -r requirements.txt```
+```pip3 install -r 00_script/depend/requirements.txt```
 
 ### 3 安全敏感信息配置文件
-安全信息配置demo文件security_demo.py修改文件名为security.py，根据自己情况完成配置。   
-余额结算支付配置PAYMENT_BALANCE需要启动服务后配置，具体请看下面“余额结算”小节说明；
+安全信息配置demo文件security_demo.py修改文件名为security.py，根据自己情况完成配置。配置项主要包括 数据库、邮箱配置；  
 
 ### 4 数据库安装
-请自行安装mysql、Mariadb或TiDB数据库，根据自己的情况修改security.py文件中数据库的配置项。 
+数据库和版本支持MySQL（8.0+）、MariaDB（10.4+）和TiDB（7.5.0+）；请自行安装mysql、Mariadb或TiDB数据库，根据自己的情况修改security.py文件中数据库的配置项。 
   ```
 DATABASES = {
     'default': {
@@ -46,6 +45,11 @@ DATABASES = {
     },
 }
 ```   
+* 特别注意  
+> 创建数据库时，数据库字符集（CHARACTER）使用“utf8mb4”，字符集校对（COLLATION）推荐“utf8mb4_bin”。  
+> 通过sql导入旧数据库数据时请一定确保旧数据库和新建数据库的字符集校对一致，例如必须同时为“utf8mb4_bin”，或者同时为“utf8mb4_general_ci”。
+因为表主键id是字符串型，后续新建表外键字符集校对会跟随新数据库，如果通过sql导入的旧表和新表字符集校对不一致，创建外键约束会失败。
+
 ### 5 运行服务
 如果使用python虚拟环境，先激活python虚拟环境  
 ```
@@ -62,21 +66,25 @@ python3 manage.py runserver 0:80
 如果一切正常，打开浏览器输入url(主机IP, 如：127.0.0.1)即可查看站点;
 
 
-### 余额结算
-服务启动时会检测钱包结算配置参数PAYMENT_BALANCE中的app_id，第一次部署服务时app_id未配置会无法启动服务，
-需要先设置一个类似“20240610186309”的有效值，然后启动服务后再后台添加一个结算app后，再修改为正确的。  
-钱包可以支持多个外部服务接入结算，一个服务接入钱包都需要在钱包中先注册一个APP，用于钱包接口的权限验证和交易流水所属记录。  
+### 站点参数配置
+一些站点服务的配置项需要在admin后台（全局配置 > 站点参数）完成配置，包括服务名称、AAI认证、钱包等相关配置。
+
+* 支付钱包配置
+>钱包可以支持多个外部服务接入结算，一个服务接入钱包都需要在钱包中先注册一个APP，用于钱包接口的权限验证和交易流水所属记录。  
 本服务中云主机、云硬盘等功能模块的资源订购支付和计量扣费依赖钱包结算模块，
-本服务需要在钱包结算模块中注册一个应用APP，启动服务后，在后台添加一个APP。然后配置安全信息配置文件security.py中余额结算支付
-配置项PAYMENT_BALANCE，"app_id"需要配置成上面注册的云服务器APP的id。   
+本服务需要在钱包结算模块中注册一个应用APP，启动服务后，在后台钱包添加一个APP，然后配置站点参数“本服务内支付结算对应的钱包app_id”，需要配置成上面注册的云服务器APP的id。   
 因为钱包在本服务中，所以本服务的结算不会通过钱包网络接口调用，会直接在服务内部函数接口调用。
+> 钱包接口加签验签需要配置钱包的密钥对（私钥和公钥），可以通过命令`python3 manage.py generat_rsa_key --keysize=2048`生成一个密钥对。
+
+* AAI登录认证
+> 需要先去AAI认证服务提交接人申请，然后完成AAI登录相关的参数配置。
 
 
 ### 生成环境部署
 部署方式不是唯一的，下面推荐一种方式，Python3.9+、Nginx、uwsgi。
 
-* 项目代码必须放在路径/home/uwsgi/下，项目根目录下00_shell目录中有uwsgi的配置文件和几个sh脚本可以方便控制uwsgi启动关闭；
-* 也可以使用systemctl管理服务，执行一下脚本config_systemctl.sh，会配置好zhongkun.service服务；
+* 项目代码必须放在路径/home/uwsgi/下，项目根目录下00_script目录中有uwsgi的配置文件和几个sh脚本可以方便控制uwsgi启动关闭；
+* 也可以使用systemctl管理服务，执行一下脚本00_script/config_systemctl.sh，会配置好zhongkun.service服务；
 ```
 systemctl start/stop/reload zhongkun.service
 ```
