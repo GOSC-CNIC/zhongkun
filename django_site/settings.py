@@ -107,8 +107,6 @@ ADMIN_SORTED_APP_LIST = [
     'auth',
 ]
 
-# 是否只使用大屏展示功能
-SCREEN_VIS_USE_ONLY = False
 
 # 指定home视图重定向到那个view
 # HOME_PAGE_REDIRECT_VIEW = reverse_lazy('about')

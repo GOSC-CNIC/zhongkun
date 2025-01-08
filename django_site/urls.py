@@ -29,8 +29,7 @@ from . import admin_site
 from . import check
 from apps.app_alert.views import AlertReceiverAPIView
 
-# 是否只使用大屏展示功能
-screenvis_only = getattr(settings, 'SCREEN_VIS_USE_ONLY', False)
+
 check.check_setting()
 
 
@@ -58,43 +57,37 @@ schema_view = get_schema_view(
     permission_classes=[permissions.AllowAny],
 )
 
-if screenvis_only:
-    urlpatterns = [
-        path('api/app_screenvis/', include('apps.app_screenvis.api_urls', namespace='screenvis-api')),
-        path('api/app_alert/', include('apps.app_alert.api_urls', namespace='alert-api')),
-    ]
-else:
-    urlpatterns = [
-        # api url
-        path('api/', include('apps.api.urls', namespace='api')),
-        path('api/', include('apps.app_vo.api_urls', namespace='vo-api')),
-        path('api/', include('apps.app_service.api_urls', namespace='service-api')),
-        path('api/', include('apps.app_servers.api_urls', namespace='servers-api')),
-        path('api/', include('apps.app_storage.api_urls', namespace='storage-api')),
-        path('api/', include('apps.app_ticket.api_urls', namespace='ticket-api')),
-        path('api/', include('apps.app_order.api_urls', namespace='order-api')),
-        path('api/', include('apps.app_metering.api_urls', namespace='metering-api')),
-        path('api/', include('apps.app_wallet.api_urls', namespace='wallet-api')),
-        path('api/app_global/', include('apps.app_global.api_urls', namespace='app-global-api')),
-        path('api/report/', include('apps.app_report.api_urls', namespace='report-api')),
-        path('api/monitor/', include('apps.app_monitor.api_urls', namespace='monitor-api')),
-        path('api/app_net_manage/', include('apps.app_net_manage.api_urls', namespace='net_manage-api')),
-        path('api/app_net_link/', include('apps.app_net_link.api_urls', namespace='net_link-api')),
-        path('api/app_net_ipam/', include('apps.app_net_ipam.api_urls', namespace='net_ipam-api')),
-        path('api/scan/', include('apps.app_scan.api_urls', namespace='scan-api')),
-        path('api/apply/', include('apps.app_apply.api_urls', namespace='apply-api')),
-        path('api/app_screenvis/', include('apps.app_screenvis.api_urls', namespace='screenvis-api')),
-        path('api/app_netflow/', include('apps.app_net_flow.api_urls', namespace='netflow-api')),
-        path('api/app_alert/', include('apps.app_alert.api_urls', namespace='alert-api')),
-        path('api/app_probe/', include('apps.app_probe.api_urls', namespace='probe-api')),
+urlpatterns = [
+    # api url
+    path('api/', include('apps.api.urls', namespace='api')),
+    path('api/', include('apps.app_vo.api_urls', namespace='vo-api')),
+    path('api/', include('apps.app_service.api_urls', namespace='service-api')),
+    path('api/', include('apps.app_servers.api_urls', namespace='servers-api')),
+    path('api/', include('apps.app_storage.api_urls', namespace='storage-api')),
+    path('api/', include('apps.app_ticket.api_urls', namespace='ticket-api')),
+    path('api/', include('apps.app_order.api_urls', namespace='order-api')),
+    path('api/', include('apps.app_metering.api_urls', namespace='metering-api')),
+    path('api/', include('apps.app_wallet.api_urls', namespace='wallet-api')),
+    path('api/app_global/', include('apps.app_global.api_urls', namespace='app-global-api')),
+    path('api/report/', include('apps.app_report.api_urls', namespace='report-api')),
+    path('api/monitor/', include('apps.app_monitor.api_urls', namespace='monitor-api')),
+    path('api/app_net_manage/', include('apps.app_net_manage.api_urls', namespace='net_manage-api')),
+    path('api/app_net_link/', include('apps.app_net_link.api_urls', namespace='net_link-api')),
+    path('api/app_net_ipam/', include('apps.app_net_ipam.api_urls', namespace='net_ipam-api')),
+    path('api/scan/', include('apps.app_scan.api_urls', namespace='scan-api')),
+    path('api/apply/', include('apps.app_apply.api_urls', namespace='apply-api')),
+    path('api/app_screenvis/', include('apps.app_screenvis.api_urls', namespace='screenvis-api')),
+    path('api/app_netflow/', include('apps.app_net_flow.api_urls', namespace='netflow-api')),
+    path('api/app_alert/', include('apps.app_alert.api_urls', namespace='alert-api')),
+    path('api/app_probe/', include('apps.app_probe.api_urls', namespace='probe-api')),
 
-        # views url
-        path('servers/', include('apps.app_servers.urls', namespace='servers')),
-        path('service/', include('apps.app_service.urls', namespace='service')),
-        path('vpn/', include('apps.app_vpn.urls', namespace='vpn')),
-        path('report/', include('apps.app_report.urls', namespace='report')),
-        path('probe/', include('apps.app_probe.urls', namespace='probe'))
-    ]
+    # views url
+    path('servers/', include('apps.app_servers.urls', namespace='servers')),
+    path('service/', include('apps.app_service.urls', namespace='service')),
+    path('vpn/', include('apps.app_vpn.urls', namespace='vpn')),
+    path('report/', include('apps.app_report.urls', namespace='report')),
+    path('probe/', include('apps.app_probe.urls', namespace='probe'))
+]
 
 urlpatterns += [
     path('', views.home, name='index'),
