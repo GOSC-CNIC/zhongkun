@@ -59,7 +59,8 @@ class ServiceConfig(BaseService):
         db_constraint=False, blank=True, default=None)
     name = models.CharField(max_length=255, verbose_name=_('服务名称'))
     name_en = models.CharField(verbose_name=_('服务英文名称'), max_length=255, default='')
-    region_id = models.CharField(max_length=128, default='', blank=True, verbose_name=_('服务区域/分中心ID'))
+    region_id = models.CharField(max_length=128, default='', blank=True, verbose_name=_('服务区域/分中心ID'),
+                                 help_text=_('EVCloud和OpenStack服务必填'))
     endpoint_url = models.CharField(max_length=255, verbose_name=_('服务地址url'),
                                     help_text='http(s)://{hostname}:{port}/')
     api_version = models.CharField(max_length=64, default='v3', verbose_name=_('API版本'),
@@ -227,6 +228,11 @@ class ServiceConfig(BaseService):
             http_url_validator(self.endpoint_url)
         except ValidationError:
             raise ValidationError(message={'endpoint_url': gettext('不是一个有效的网址')})
+
+        if not self.region_id and self.service_type in [
+            self.ServiceType.EVCLOUD.value, self.ServiceType.OPENSTACK.value,
+        ]:
+            raise ValidationError({'region_id': gettext('当前服务单元类型需要填写区域/分中心id')})
 
         if self.pay_app_service_id and self.status == self.Status.ENABLE.value:
             self.check_pay_app_service_id(self.pay_app_service_id)

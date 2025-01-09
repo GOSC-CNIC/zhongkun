@@ -27,7 +27,7 @@ class Migration(migrations.Migration):
                                   max_length=32, verbose_name='云服务类型')),
                 ('name', models.CharField(max_length=255, verbose_name='服务名称')),
                 ('name_en', models.CharField(default='', max_length=255, verbose_name='服务英文名称')),
-                ('region_id', models.CharField(blank=True, default='', max_length=128, verbose_name='服务区域/分中心ID')),
+                ('region_id', models.CharField(blank=True, default='', help_text='EVCloud和OpenStack服务必填', max_length=128, verbose_name='服务区域/分中心ID')),
                 ('endpoint_url',
                  models.CharField(help_text='http(s)://{hostname}:{port}/', max_length=255, verbose_name='服务地址url')),
                 ('api_version',
