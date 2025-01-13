@@ -33,6 +33,9 @@ class UserProfile(AbstractUser):
         verbose_name=_('第三方应用登录'), choices=ThirdApp.choices, default=ThirdApp.LOCAL_USER.value)
     last_active = models.DateTimeField(verbose_name=_('最后活跃日期'), db_index=True, auto_now=True)
     is_fed_admin = models.BooleanField(verbose_name=_('联邦管理员'), default=False)
+    organization = models.ForeignKey(
+        verbose_name=_('机构'), to='service.DataCenter', related_name='+',
+        on_delete=models.SET_NULL, null=True, blank=True, default=None)
     # supporter_role = models.CharField(
     #     verbose_name=_('客服支持人员角色'), max_length=32, choices=SupporterRole.choices, default=SupporterRole.NONE.value)
 

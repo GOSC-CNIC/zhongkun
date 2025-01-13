@@ -17,14 +17,16 @@ class UserProfileAdmin(UserAdmin):
     form = UserModelForm
 
     list_display = ('id', 'username', 'fullname', 'company', 'telephone', 'is_active', 'is_superuser',
-                    'is_staff', 'is_fed_admin', 'date_joined', 'last_active')
+                    'is_staff', 'is_fed_admin', 'date_joined', 'last_active', 'organization')
     list_display_links = ('id', 'username')
     list_filter = ('is_superuser', 'is_staff', 'is_fed_admin', 'is_active')
     search_fields = ('username', 'company', 'first_name', 'last_name')  # 搜索字段
+    list_select_related = ('organization',)
+    raw_id_fields = ('organization',)
 
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
-        (_('个人信息'), {'fields': ('first_name', 'last_name', 'email', 'company', 'telephone')}),
+        (_('个人信息'), {'fields': ('first_name', 'last_name', 'email', 'company', 'telephone', 'organization')}),
         (_('权限信息'), {'fields': ('is_active', 'is_staff', 'is_superuser', 'is_fed_admin', 'groups', 'user_permissions')}),
         (_('重要日期'), {'fields': ('date_joined',)}),
     )

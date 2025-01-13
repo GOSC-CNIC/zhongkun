@@ -80,6 +80,7 @@ urlpatterns = [
     path('api/app_netflow/', include('apps.app_net_flow.api_urls', namespace='netflow-api')),
     path('api/app_alert/', include('apps.app_alert.api_urls', namespace='alert-api')),
     path('api/app_probe/', include('apps.app_probe.api_urls', namespace='probe-api')),
+    path('api/app_users/', include('apps.app_users.api_urls', namespace='users-api')),
 
     # views url
     path('servers/', include('apps.app_servers.urls', namespace='servers')),
