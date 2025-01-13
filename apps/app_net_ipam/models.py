@@ -18,7 +18,36 @@ from apps.app_net_ipam.fields import ByteField
 _IPRangeItem = namedtuple('IPRangeItem', ['start', 'end', 'mask'])
 
 
-class IPRangeItem(_IPRangeItem):
+class IPv4RangeItem(_IPRangeItem):
+    def __str__(self):
+        return f'{self.start}-{self.end} /{self.mask}'
+
+    @cached_property
+    def start_address_obj(self):
+        return ipaddress.IPv4Address(self.start)
+
+    @cached_property
+    def end_address_obj(self):
+        return ipaddress.IPv4Address(self.end)
+
+    @property
+    def start_int(self):
+        return int(self.start_address_obj)
+
+    @property
+    def end_int(self):
+        return int(self.end_address_obj)
+
+    @property
+    def start_str(self):
+        return str(self.start_address_obj)
+
+    @property
+    def end_str(self):
+        return str(self.end_address_obj)
+
+
+class IPRangeItem(IPv4RangeItem):
     """
     start: '127.0.0.1'
     end: '127.0.0.255'
@@ -28,10 +57,7 @@ class IPRangeItem(_IPRangeItem):
         return f'{self.start}-{self.end} /{self.mask}'
 
 
-_IPRangeItem = namedtuple('IPRangeItem', ['start', 'end', 'mask'])
-
-
-class IPRangeIntItem(_IPRangeItem):
+class IPRangeIntItem(IPv4RangeItem):
     """
     start: int
     end: int

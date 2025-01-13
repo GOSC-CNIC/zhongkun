@@ -1,3 +1,4 @@
+import ipaddress
 import datetime
 from pathlib import Path
 
@@ -11,7 +12,8 @@ from openpyxl.worksheet.worksheet import Worksheet
 from apps.app_service.models import DataCenter
 from apps.app_net_manage.models import OrgVirtualObject
 from apps.app_net_ipam.models import (
-    ASN, IPv4Range, ipv4_str_to_int, ipv6_str_to_bytes, IPv6Range
+    ASN, IPv4Range, ipv4_str_to_int, ipv6_str_to_bytes, IPv6Range,
+    IPv4RangeItem, IPv6RangeStrItem
 )
 
 
@@ -55,6 +57,15 @@ class Command(BaseCommand):
         v6_len = len(ipv6_rows)
         self.stdout.write(self.style.WARNING(
             f'All: {v4_len + v6_len}; ipv4 range rows: {v4_len}; ipv6 range rows: {v6_len};'))
+
+        # 检查ip段有效性，是否重叠
+        try:
+            self.check_ipv4range_overlapping(ipv4_rows=ipv4_rows)
+            self.check_ipv6range_overlapping(ipv6_rows=ipv6_rows)
+        except Exception as exc:
+            self.stdout.write(self.style.ERROR(str(exc)))
+            raise CommandError("cancelled.")
+
         if is_test:
             self.stdout.write(self.style.NOTICE('In mode Test'))
 
@@ -102,7 +113,7 @@ class Command(BaseCommand):
             if not ('.' in li[0] or ':' in li[0]):
                 continue
 
-            ip_version, row_data = self.parse_row(row=li)
+            ip_version, row_data = self.parse_row(row=li, row_num=row_num)
             if ip_version == 4:
                 ipv4_rows.append(row_data)
             else:
@@ -110,7 +121,7 @@ class Command(BaseCommand):
 
         return ipv4_rows, ipv6_rows
 
-    def parse_row(self, row: list):
+    def parse_row(self, row: list, row_num: int):
         ip_version = 4
         start_ip = row[0]
         end_ip = row[1]
@@ -137,7 +148,8 @@ class Command(BaseCommand):
             'model_type': row[8],
             'virt_obj_name': row[9],
             'remark': row[10] if row[10] else '',
-            'org_name': row[11]
+            'org_name': row[11],
+            'row_num': row_num
         }
 
     def import_ipv4_range_rows(self, ipv4_rows: list, is_test: bool):
@@ -354,3 +366,119 @@ class Command(BaseCommand):
             return self.STATUS_CODE_MAP[status]
 
         return ''
+
+    def check_ipv4range_overlapping(self, ipv4_rows: list):
+        """
+        检查所有ip网段之间是否有重叠
+
+        :raises: Exception, CommandError
+        """
+        items = []
+        for row in ipv4_rows:
+            row_num = row['row_num']
+            row_msg = f'Row {row_num}'
+            item = IPv4RangeItem(start=row['start_ip'], end=row['end_ip'], mask=row['mask_len'])
+            item.row_num = row_num
+            try:
+                start_net_str = f'{item.start_address_obj}/{item.mask}'
+                start_net = ipaddress.IPv4Network(start_net_str, strict=False)
+            except ipaddress.AddressValueError as exc:
+                raise CommandError(f'{row_msg}，Invalid start of subnet {item}')
+            except ipaddress.NetmaskValueError as exc:
+                raise CommandError(f'{row_msg}，Invalid network, start and mask of subnet {item}')
+
+            try:
+                end_net_str = f'{item.end_address_obj}/{item.mask}'
+                end_net = ipaddress.IPv4Network(end_net_str, strict=False)
+            except ipaddress.AddressValueError as exc:
+                raise CommandError(f'{row_msg}，Invalid end of subnet {item}')
+            except ipaddress.NetmaskValueError as exc:
+                raise CommandError(f'{row_msg}，Invalid network, end and mask of subnet {item}')
+
+            if start_net != end_net:
+                msg = f"{row_msg}，起始地址网络号({start_net})和结束地址网络号({end_net})不一致"
+                raise CommandError(msg)
+
+            items.append(item)
+
+        if len(items) < 2:
+            return
+
+        for idx, item1 in enumerate(items[0:len(items)], 0):
+            for item2 in items[idx+1:]:
+                if self.is_overlapping_ipv4range(ip_range1=item1, ip_range2=item2):
+                    raise CommandError(f'Row {item1.row_num} and {item2.row_num}，{item1} 和 {item2} 有范围重叠')
+
+    @staticmethod
+    def is_overlapping_ipv4range(ip_range1: IPv4RangeItem, ip_range2: IPv4RangeItem):
+        # ip_range1的start在新ip_range2段内部
+        if ip_range2.start_int <= ip_range1.start_int <= ip_range2.end_int:
+            return True
+
+        # ip_range1的end在新ip_range2段内部
+        if ip_range2.start_int <= ip_range1.end_int <= ip_range2.end_int:
+            return True
+
+        # ip_range1 包含 ip_range2
+        if ip_range1.start_int <= ip_range2.start_int and ip_range1.end_int >= ip_range2.end_int:
+            return True
+
+        return False
+
+    def check_ipv6range_overlapping(self, ipv6_rows: list):
+        """
+        检查所有ip网段之间是否有重叠
+
+        :raises: Exception, CommandError
+        """
+        items = []
+        for row in ipv6_rows:
+            row_num = row['row_num']
+            row_msg = f'Row {row_num}'
+            item = IPv6RangeStrItem(start=row['start_ip'], end=row['end_ip'], prefix=row['mask_len'])
+            item.row_num = row_num
+            try:
+                start_net_str = f'{item.start_address_obj}/{item.prefix}'
+                start_net = ipaddress.IPv6Network(start_net_str, strict=False)
+            except ipaddress.AddressValueError as exc:
+                raise CommandError(f'{row_msg}，Invalid start of subnet {item}')
+            except ipaddress.NetmaskValueError as exc:
+                raise CommandError(f'{row_msg}，Invalid network, start and mask of subnet {item}')
+
+            try:
+                end_net_str = f'{item.end_address_obj}/{item.prefix}'
+                end_net = ipaddress.IPv6Network(end_net_str, strict=False)
+            except ipaddress.AddressValueError as exc:
+                raise CommandError(f'{row_msg}，Invalid end of subnet {item}')
+            except ipaddress.NetmaskValueError as exc:
+                raise CommandError(f'{row_msg}，Invalid network, end and mask of subnet {item}')
+
+            if start_net != end_net:
+                msg = f"{row_msg}，起始地址网络号({start_net})和结束地址网络号({end_net})不一致"
+                raise CommandError(msg)
+
+            items.append(item)
+
+        if len(items) < 2:
+            return
+
+        for idx, item1 in enumerate(items[0:len(items)], 0):
+            for item2 in items[idx+1:]:
+                if self.is_overlapping_ipv6range(ip_range1=item1, ip_range2=item2):
+                    raise CommandError(f'Row {item1.row_num} and {item2.row_num}，{item1} 和 {item2} 有范围重叠')
+
+    @staticmethod
+    def is_overlapping_ipv6range(ip_range1: IPv6RangeStrItem, ip_range2: IPv6RangeStrItem):
+        # ip_range1的start在新ip_range2段内部
+        if ip_range2.start_int <= ip_range1.start_int <= ip_range2.end_int:
+            return True
+
+        # ip_range1的end在新ip_range2段内部
+        if ip_range2.start_int <= ip_range1.end_int <= ip_range2.end_int:
+            return True
+
+        # ip_range1 包含 ip_range2
+        if ip_range1.start_int <= ip_range2.start_int and ip_range1.end_int >= ip_range2.end_int:
+            return True
+
+        return False

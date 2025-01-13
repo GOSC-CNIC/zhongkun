@@ -531,6 +531,10 @@ class ServerBase(models.Model):
         CENTOS = ImageSysRelease.CENTOS, 'CentOS'
         DEEPIN = ImageSysRelease.DEEPIN, 'Deepin'
         DEBIAN = ImageSysRelease.DEBIAN, 'Debian'
+        OPEN_EULER = ImageSysRelease.OPEN_EULER, 'openEuler'
+        KALI = ImageSysRelease.KALI, 'Kali'
+        OPEN_SUSE = ImageSysRelease.OPEN_SUSE, 'openSUSE'
+        MANJARO = ImageSysRelease.MANJARO, 'Manjaro'
         UNKNOWN = '', 'Unknown'
 
     class SysArch(models.TextChoices):
