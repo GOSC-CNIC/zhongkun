@@ -11,6 +11,7 @@ from utils.paginators import NoPaginatorInspector
 from apps.api.viewsets import CustomGenericViewSet
 from apps.api.paginations import NewPageNumberPagination100
 from apps.app_users import serializers
+from apps.app_users.managers import filter_user_queryset
 from apps.app_service.models import DataCenter as Organization
 
 
@@ -102,5 +103,84 @@ class UserViewSet(CustomGenericViewSet):
         serializer = serializers.UserSerializer(instance=request.user)
         return Response(data=serializer.data)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举用户'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='search',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('关键字查询，用户名')
+            ),
+            openapi.Parameter(
+                name='federal_admin',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_BOOLEAN,
+                required=False,
+                description=gettext_lazy('联邦管理员用户角色查询')
+            ),
+        ],
+        responses={
+            200: ''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        联邦管理员列举用户
+
+            200 ok:
+            {
+              "count": 1,
+              "page_num": 1,
+              "page_size": 100,
+              "results": [
+                {
+                  "id": "1",
+                  "username": "shun",
+                  "fullname": "",
+                  "is_fed_admin": true, # true(联邦管理员)
+                  "organization": {
+                    "id": "xx",
+                    "name": "xx",
+                    "name_en": "xx"
+                  }
+                }
+              ]
+            }
+        """
+        search = request.query_params.get('search', None)
+        federal_admin = request.query_params.get('federal_admin', None)
+
+        if federal_admin:
+            federal_admin = federal_admin.lower()
+            if federal_admin == 'true':
+                federal_admin = True
+            elif federal_admin == 'false':
+                return self.exception_response(
+                    exc=errors.InvalidArgument(message=_("false不支持")))
+            else:
+                return self.exception_response(
+                    exc=errors.InvalidArgument(message=_('参数“federal_admin”的值无效。')))
+        else:
+            federal_admin = None
+
+        if not request.user.is_federal_admin():
+            return self.exception_response(
+                exc=errors.AccessDenied(message=_('你没有访问权限。')))
+
+        queryset = filter_user_queryset(search=search, is_federal_admin=federal_admin)
+        queryset = queryset.select_related('organization')
+        paginator = self.paginator
+        try:
+            page = paginator.paginate_queryset(queryset, request, view=self)
+            serializer = self.get_serializer(page, many=True)
+            return paginator.get_paginated_response(data=serializer.data)
+        except Exception as exc:
+            return self.exception_response(errors.convert_to_error(exc))
+
     def get_serializer_class(self):
+        if self.action == 'list':
+            return serializers.UserSerializer
+
         return Serializer

@@ -26,6 +26,7 @@ class UserViewSet(CustomGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('获取用户个人信息'),
+        deprecated=True,
         responses={
             200: ''
         }
@@ -54,6 +55,7 @@ class UserViewSet(CustomGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('获取用户角色和权限策略信息'),
+        deprecated=True,
         responses={
             200: ''
         }
@@ -91,6 +93,7 @@ class UserViewSet(CustomGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举用户'),
+        deprecated=True,
         manual_parameters=[
             openapi.Parameter(
                 name='search',

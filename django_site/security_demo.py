@@ -19,7 +19,7 @@ DATABASES = {
             'charset': 'utf8mb4'
         },
         'TEST': {
-            'NAME': 'testvms',  # unit test database
+            'NAME': 'test-zhongkun',  # unit test database
             'CHARSET': 'utf8mb4'
         },
     },
