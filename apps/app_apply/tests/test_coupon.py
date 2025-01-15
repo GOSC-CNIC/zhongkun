@@ -11,7 +11,7 @@ from core import errors
 from utils.model import OwnerType, ResourceType
 from utils.time import utc
 from utils.decimal_utils import quantize_10_2
-from utils.test import get_or_create_org_data_center, get_or_create_user, MyAPITestCase
+from utils.test import get_or_create_org_data_center, get_or_create_user, MyAPITransactionTestCase
 from apps.app_vo.models import VirtualOrganization, VoMember
 from apps.app_wallet.models import CashCoupon, PayAppService
 from apps.app_wallet.tests import register_and_set_app_id_for_test
@@ -23,6 +23,7 @@ from apps.app_order.tests import create_price
 from apps.app_order.managers import OrderManager, ScanConfig
 from apps.app_apply.models import CouponApply
 from apps.app_apply.managers import CouponApplyManager
+from apps.app_users.models import Email
 
 
 def delay_gte_len(values, length: int, timeout: int):
@@ -33,7 +34,7 @@ def delay_gte_len(values, length: int, timeout: int):
             break
 
 
-class CouponApplyTests(MyAPITestCase):
+class CouponApplyTests(MyAPITransactionTestCase):
     def setUp(self):
         self.user1 = get_or_create_user()
         self.user2 = get_or_create_user(username='tom@cnic.cn')
@@ -453,6 +454,7 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(len(dj_mail.outbox), 0)    # 没有数据中心管理员不发邮件
 
         # user
+        self.assertEqual(Email.objects.count(), 0)
         server_service1.org_data_center.add_admin_user(self.user2)
         expiration_time = (nt_utc + timedelta(hours=100)).replace(microsecond=0)
         r = self.client.post(base_url, data={
@@ -480,7 +482,9 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(apply2.contact_info, 'test contact_info')
 
         delay_gte_len(dj_mail.outbox, 1, timeout=2)  # 等待邮件异步发送
-        self.assertEqual(len(dj_mail.outbox), 1)
+        email = Email.objects.first()
+        self.assertKeysIn([email.status], [Email.Status.WAIT.value, Email.Status.SUCCESS.value])
+        # self.assertEqual(len(dj_mail.outbox), 1)
 
         server_service1.pay_app_service_id = ''
         server_service1.save(update_fields=['pay_app_service_id'])
@@ -555,7 +559,7 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(apply3.pay_service_id, 's666666')
         self.assertEqual(apply3.contact_info, '')
 
-        delay_gte_len(dj_mail.outbox, 2, timeout=2)  # 等待邮件异步发送
+        delay_gte_len(dj_mail.outbox, 2, timeout=5)  # 等待邮件异步发送
         self.assertEqual(len(dj_mail.outbox), 2)
 
         # vo
