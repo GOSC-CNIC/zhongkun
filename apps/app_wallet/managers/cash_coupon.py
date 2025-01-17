@@ -205,6 +205,7 @@ class CashCouponManager:
             expiration_time: datetime,
             coupon_num: int,
             issuer: str,
+            derive_type: str,
             use_scope: str,
             order_id: str = '',
             activity_id: str = None,
@@ -235,7 +236,8 @@ class CashCouponManager:
                     issuer=issuer,
                     remark=remark,
                     use_scope=use_scope,
-                    order_id=order_id
+                    order_id=order_id,
+                    derive_type=derive_type
                 )
                 return coupon, coupon_num
             except Exception as exc:
@@ -261,7 +263,8 @@ class CashCouponManager:
             issuer=issuer,
             remark=remark,
             use_scope=use_scope,
-            order_id=order_id
+            order_id=order_id,
+            derive_type=derive_type
         )
         return coupon, coupon_num
 
@@ -276,6 +279,7 @@ class CashCouponManager:
             remark: str = '',
             use_scope: str = CashCoupon.UseScope.SERVICE_UNIT.value,
             order_id: str = '',
+            derive_type: str = CashCoupon.DeriveType.OTHER.value,
     ):
         """
         创建一个券，并发放给指定user或vo
@@ -293,7 +297,8 @@ class CashCouponManager:
                 activity_id=activity_id,
                 coupon_num=num + 1,
                 issuer=issuer, remark=remark,
-                use_scope=use_scope, order_id=order_id
+                use_scope=use_scope, order_id=order_id,
+                derive_type=derive_type
             )
             self.ensure_wait_draw_cash_coupon(coupon=coupon)
             self._grant_coupon_to_user_or_vo(coupon=coupon, user=user, vo=vo)
@@ -797,6 +802,7 @@ class CashCouponActivityManager:
             activity_id=activity.id,
             issuer=issuer,
             use_scope=CashCoupon.UseScope.SERVICE_UNIT.value,
-            order_id=''
+            order_id='',
+            derive_type=CashCoupon.DeriveType.OTHER.value
         )
         return coupon, coupon_num

@@ -260,7 +260,7 @@ class CashCouponTests(MyAPITestCase):
         self.assertKeysIn([
             "id", "face_value", "creation_time", "effective_time", "expiration_time",
             "balance", "status", "granted_time", "issuer", 'use_scope', 'order_id',
-            "owner_type", "app_service", "user", "vo", "activity", 'remark'], results[0]
+            "owner_type", "app_service", "user", "vo", "activity", 'remark', 'derive_type'], results[0]
         )
         self.assertKeysIn([
             "id", "name", "name_en", "service_id", "category"], results[0]['app_service']
@@ -380,7 +380,7 @@ class CashCouponTests(MyAPITestCase):
         self.assertKeysIn([
             "id", "face_value", "creation_time", "effective_time", "expiration_time",
             "balance", "status", "granted_time", 'use_scope', 'order_id', 'remark',
-            "owner_type", "app_service", "user", "vo", "activity"], results[0]
+            "owner_type", "app_service", "user", "vo", "activity", 'derive_type'], results[0]
         )
         self.assertKeysIn([
             "id", "name", "name_en", "service_id", "category"], results[0]['app_service']
@@ -943,7 +943,7 @@ class CashCouponTests(MyAPITestCase):
         self.assertKeysIn([
             "id", "face_value", "creation_time", "effective_time", "expiration_time",
             "balance", "status", "granted_time", "issuer", 'use_scope', 'order_id',
-            "owner_type", "app_service", "user", "vo", "activity", 'remark'], response.data
+            "owner_type", "app_service", "user", "vo", "activity", 'remark', 'derive_type'], response.data
         )
         self.assertKeysIn([
             "id", "name", "name_en", "service_id", "category"], response.data['app_service']
@@ -974,7 +974,7 @@ class CashCouponTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn([
             "id", "face_value", "creation_time", "effective_time", "expiration_time",
-            "balance", "status", "granted_time",
+            "balance", "status", "granted_time", 'derive_type',
             "owner_type", "app_service", "user", "vo", "activity"], response.data
         )
         self.assertKeysIn([
@@ -983,6 +983,7 @@ class CashCouponTests(MyAPITestCase):
         self.assertKeysIn(["id", "username"], response.data['user'])
         self.assertIsNone(response.data['vo'])
         self.assertIsNone(response.data['activity'])
+        self.assertEqual(response.data['derive_type'], CashCoupon.DeriveType.OTHER.value)
 
 
 class AdminCashCouponTests(MyAPITransactionTestCase):
@@ -1120,7 +1121,8 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(keys=[
             'id', 'face_value', 'creation_time', 'effective_time', 'expiration_time', 'balance', 'status',
-            'granted_time', 'owner_type', 'app_service', 'user', 'vo', 'activity', 'exchange_code', "issuer", 'remark'
+            'granted_time', 'owner_type', 'app_service', 'user', 'vo', 'activity', 'exchange_code', "issuer", 'remark',
+            'derive_type'
         ], container=r.data)
         self.assertKeysIn(keys=[
             'id', 'name', 'name_en', 'category', 'service_id'
@@ -1128,7 +1130,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assert_is_subdict_of(sub={
             'face_value': '66.88', 'balance': '66.88', 'owner_type': 'user', 'effective_time': now_time_str,
             'expiration_time': expiration_time_str, 'status': 'available', 'vo': None, 'activity': None,
-            'remark': 'test remark'
+            'remark': 'test remark', 'derive_type': CashCoupon.DeriveType.OTHER.value
         }, d=r.data)
         self.assertEqual(r.data['app_service']['id'], self.app_service1.id)
         self.assertEqual(r.data['app_service']['service_id'], self.service.id)
@@ -1339,8 +1341,9 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertKeysIn(keys=[
             'id', 'face_value', 'creation_time', 'effective_time', 'expiration_time', 'balance', 'status',
             'granted_time', 'owner_type', 'app_service', 'user', 'vo', 'activity', 'exchange_code', "issuer", 'remark',
-            'use_scope', 'order_id'
+            'use_scope', 'order_id', 'derive_type'
         ], container=r.data['results'][0])
+        self.assertEqual(r.data['results'][0]['derive_type'], CashCoupon.DeriveType.OTHER.value)
 
         # user has permission of app_service1, query "app_service_id", "status"
         query = parse.urlencode(query={
@@ -1697,12 +1700,13 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertKeysIn(keys=[
             'id', 'face_value', 'creation_time', 'effective_time', 'expiration_time', 'balance', 'status',
             'granted_time', 'owner_type', 'app_service', 'user', 'vo', 'activity', 'exchange_code', "issuer", 'remark',
-            'use_scope', 'order_id'
+            'use_scope', 'order_id', 'derive_type'
         ], container=response.data)
         self.assertKeysIn(keys=['id', 'name', 'service_id'], container=response.data['app_service'])
         self.assertKeysIn(keys=['id', 'username'], container=response.data['user'])
         self.assertEqual(response.data['id'], coupon2.id)
         self.assertEqual(response.data['face_value'], '66.60')
+        self.assertEqual(response.data['derive_type'], CashCoupon.DeriveType.OTHER.value)
 
         # get coupon3, AccessDenied
         url = reverse('wallet-api:admin-coupon-detail', kwargs={'id': coupon3.id})
@@ -1716,7 +1720,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertKeysIn(keys=[
             'id', 'face_value', 'creation_time', 'effective_time', 'expiration_time', 'balance', 'status',
             'granted_time', 'owner_type', 'app_service', 'user', 'vo', 'activity', 'exchange_code',
-            'use_scope', 'order_id'
+            'use_scope', 'order_id', 'derive_type'
         ], container=response.data)
         self.assertKeysIn(keys=['id', 'name', 'service_id'], container=response.data['app_service'])
         self.assertKeysIn(keys=['id', 'username'], container=response.data['user'])

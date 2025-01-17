@@ -101,10 +101,16 @@ class CashCouponViewSet(CustomGenericViewSet):
                         "issuer": "test@cnic.cn",
                         "remark": "",
                         "use_scope": "service", # service: 全结算单元; order: 指定订单
-                        "order_id": "xxx"   # use_scope=order时，指定券适用的订单编号
+                        "order_id": "xxx",   # use_scope=order时，指定券适用的订单编号
+                        "derive_type": "xx" # 券的来源类型,
                     }
                 ]
             }
+
+            * derive_type (券的来源类型):
+                other: 其他
+                trial: 试用
+                staff: 内部员工
         """
         return CashCouponHandler().list_cash_coupon(view=self, request=request)
 
@@ -354,7 +360,8 @@ class CashCouponViewSet(CustomGenericViewSet):
                 "issuer": "test@cnic.cn",
                 "remark": "",
                 "use_scope": "service", # service: 全结算单元; order: 指定订单
-                "order_id": "xxx"   # use_scope=order时，指定券适用的订单编号
+                "order_id": "xxx",   # use_scope=order时，指定券适用的订单编号
+                "derive_type": "xx" # 券的来源类型
             }
         """
         return CashCouponHandler().detail_cash_coupon(view=self, request=request, kwargs=kwargs)
@@ -511,10 +518,16 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
                         "issuer": "test@cnic.cn",
                         "remark": "",
                         "use_scope": "service", # service: 全结算单元; order: 指定订单
-                        "order_id": "xxx"   # use_scope=order时，指定券适用的订单编号
+                        "order_id": "xxx",   # use_scope=order时，指定券适用的订单编号
+                        "derive_type": "xx" # 券的来源类型
                     }
                 ]
             }
+
+            * derive_type (券的来源类型):
+                other: 其他
+                trial: 试用
+                staff: 内部员工
         """
         return CashCouponHandler().admin_list_cash_coupon(view=self, request=request)
 
@@ -627,7 +640,8 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
                 "issuer": "test@cnic.cn",
                 "remark": "",
                 "use_scope": "service", # service: 全结算单元; order: 指定订单
-                "order_id": "xxx"   # use_scope=order时，指定券适用的订单编号
+                "order_id": "xxx",   # use_scope=order时，指定券适用的订单编号
+                "derive_type": "xx" # 券的来源类型
             }
 
             http code 401, 403,404:

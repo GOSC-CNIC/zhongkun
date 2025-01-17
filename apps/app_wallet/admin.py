@@ -146,12 +146,12 @@ class CashCouponActivityAdmin(BaseModelAdmin):
 class CashCouponAdmin(BaseModelAdmin):
     list_display = ('id', 'activity', 'face_value', 'balance', 'effective_time', 'expiration_time', 'status',
                     'app_service', 'user', 'vo', 'owner_type', 'issuer', 'granted_time', 'use_scope', 'order_id',
-                    'exchange_code', 'creation_time', 'balance_notice_time', 'expire_notice_time', 'remark')
+                    'derive_type', 'exchange_code', 'creation_time', 'balance_notice_time', 'expire_notice_time', 'remark')
     list_display_links = ('id',)
     list_select_related = ('app_service', 'user', 'vo', 'activity')
     raw_id_fields = ('activity', 'user', 'vo')
     readonly_fields = ('_coupon_code',)
-    list_filter = ('app_service', 'app_service__category', 'owner_type', 'use_scope')
+    list_filter = ('app_service', 'app_service__category', 'owner_type', 'use_scope', 'derive_type')
     search_fields = ('id', 'order_id', 'user__username', 'remark')
 
     @admin.display(description=_('兑换码'))

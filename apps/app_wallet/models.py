@@ -231,6 +231,11 @@ class CashCoupon(CashCouponBase):
         SERVICE_UNIT = 'service', _('服务单元')
         ORDER = 'order', _('指定订单')
 
+    class DeriveType(models.TextChoices):
+        OTHER = 'other', _('其他')
+        TRIAL = 'trial', _('试用')
+        STAFF = 'staff', _('内部员工')
+
     id = models.CharField(verbose_name=_('编码'), max_length=32, primary_key=True, editable=False)
     app_service = models.ForeignKey(
         verbose_name=_('适用服务'), to=PayAppService, on_delete=models.SET_NULL, related_name='+',
@@ -259,6 +264,8 @@ class CashCoupon(CashCouponBase):
         verbose_name=_('使用范围'), max_length=16, choices=UseScope.choices, default=UseScope.SERVICE_UNIT.value)
     order_id = models.CharField(
         verbose_name=_('订单编号'), max_length=64, blank=True, default='', help_text=_('适用范围为指定订单时，指定订单编号'))
+    derive_type = models.CharField(
+        verbose_name=_('来源类型'), max_length=16, choices=DeriveType.choices, default=DeriveType.OTHER.value)
 
     class Meta:
         verbose_name = _('资源券')
@@ -336,6 +343,7 @@ class CashCoupon(CashCouponBase):
             coupon_num: int,
             issuer: str,
             use_scope: str,
+            derive_type: str,
             order_id: str = '',
             activity_id: str = None,
             remark: str = '',
@@ -360,6 +368,7 @@ class CashCoupon(CashCouponBase):
             remark=remark,
             use_scope=use_scope,
             order_id=order_id if order_id else '',
+            derive_type=derive_type
         )
 
         if coupon_num:

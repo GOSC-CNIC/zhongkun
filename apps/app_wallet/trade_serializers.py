@@ -252,6 +252,7 @@ class CashCouponSerializer(serializers.Serializer):
     remark = serializers.CharField(label=_('备注'))
     use_scope = serializers.CharField(label=_('使用范围'), max_length=16)
     order_id = serializers.CharField(label=_('订单编号'), max_length=64, help_text=_('适用范围为指定订单时，指定订单编号'))
+    derive_type = serializers.CharField(label=_('来源类型'), max_length=16)
 
     @staticmethod
     def get_app_service(obj):

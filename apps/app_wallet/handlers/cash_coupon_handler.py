@@ -387,7 +387,8 @@ class CashCouponHandler:
                     issuer=request.user.username,
                     remark=remark,
                     use_scope=CashCoupon.UseScope.SERVICE_UNIT.value,
-                    order_id=''
+                    order_id='',
+                    derive_type=CashCoupon.DeriveType.OTHER.value
                 )
 
         except Exception as exc:
