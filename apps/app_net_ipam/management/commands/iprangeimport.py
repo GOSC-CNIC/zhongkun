@@ -111,9 +111,15 @@ class Command(BaseCommand):
 
             # 不是ip段数据行，跳过
             if not ('.' in li[0] or ':' in li[0]):
+                self.stdout.write(self.style.WARNING(f'Row {row_num}, invalid, skip it.'))
                 continue
 
-            ip_version, row_data = self.parse_row(row=li, row_num=row_num)
+            try:
+                ip_version, row_data = self.parse_row(row=li, row_num=row_num)
+            except Exception as exc:
+                self.stdout.write(self.style.ERROR(str(exc)))
+                raise CommandError("cancelled.")
+
             if ip_version == 4:
                 ipv4_rows.append(row_data)
             else:
@@ -122,7 +128,6 @@ class Command(BaseCommand):
         return ipv4_rows, ipv6_rows
 
     def parse_row(self, row: list, row_num: int):
-        ip_version = 4
         start_ip = row[0]
         end_ip = row[1]
         if ':' in start_ip and ':' in end_ip:     # ipv6
@@ -130,18 +135,24 @@ class Command(BaseCommand):
         elif '.' in start_ip and '.' in end_ip:
             ip_version = 4
         else:
-            self.stdout.write(self.style.ERROR(f'ip range invalid "{start_ip} - {end_ip}"'))
+            raise Exception(f'Row {row_num}, ip range invalid "{start_ip} - {end_ip}"')
 
         status = row[7]
         if status not in self.STATUS_CODE_MAP:
-            self.stdout.write(self.style.ERROR(f'status "{status}" not in {self.STATUS_CODE_MAP.keys()}'))
+            raise Exception(f'Row {row_num}, status "{status}" not in {list(self.STATUS_CODE_MAP.keys())}')
+
+        try:
+            create_time = self.time_str_to_datetime(time_str=row[3])
+            update_time = self.time_str_to_datetime(time_str=row[4])
+        except Exception as exc:
+            raise Exception(f'Row {row_num}, invalid time, {str(exc)}')
 
         return ip_version, {
             'start_ip': row[0],
             'end_ip': row[1],
             'mask_len': int(row[2]),
-            'create_time': self.time_str_to_datetime(time_str=row[3]),
-            'update_time': self.time_str_to_datetime(time_str=row[4]),
+            'create_time': create_time,
+            'update_time': update_time,
             'asn': int(row[5]),
             'ip_version': int(row[6]),
             'status': row[7],
