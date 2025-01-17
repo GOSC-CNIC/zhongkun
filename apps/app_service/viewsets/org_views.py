@@ -1,8 +1,10 @@
+from django.db.models import Q
 from django.utils.translation import gettext_lazy, gettext as _
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 from core import errors
 from apps.app_service.models import DataCenter as Organization
@@ -21,6 +23,15 @@ class OrganizationViewSet(GenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举机构'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='search',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('关键字查询')
+            )
+        ],
         responses={200: ''}
     )
     def list(self, request, *args, **kwargs):
@@ -47,8 +58,13 @@ class OrganizationViewSet(GenericViewSet):
               ]
             }
         """
+        search = request.query_params.get('search')
+
         try:
             queryset = Organization.objects.order_by('-creation_time')
+            if search:
+                queryset = queryset.filter(Q(name__icontains=search) | Q(name_en__icontains=search))
+
             orgs = self.paginate_queryset(queryset)
             serializer = org_serializers.OrganizationSerializer(orgs, many=True)
             return self.get_paginated_response(serializer.data)

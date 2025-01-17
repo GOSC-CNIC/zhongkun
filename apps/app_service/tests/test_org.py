@@ -11,7 +11,7 @@ class OrganizationTests(MyAPITransactionTestCase):
     def setUp(self):
         self.user1 = get_or_create_user(username='tom@qq.com')
 
-    def test_list_ipv4_ranges(self):
+    def test_list(self):
         contact1 = Contacts(
             name='lilei', telephone='12345678', email='', address='beijing',
             creation_time=dj_timezone.now(), update_time=dj_timezone.now()
@@ -66,6 +66,36 @@ class OrganizationTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['page_num'], 2)
         self.assertEqual(response.data['page_size'], 2)
         self.assertEqual(len(response.data['results']), 1)
+
+        # search
+        query = parse.urlencode(query={'search': 'org'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 3)
+
+        query = parse.urlencode(query={'search': 'org2'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['id'], org2.id)
+
+        query = parse.urlencode(query={'search': 'en'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 3)
+
+        query = parse.urlencode(query={'search': '3 en'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['id'], org3.id)
+
+        query = parse.urlencode(query={'search': '3en'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
 
     def test_org_detail(self):
         contact1 = Contacts(

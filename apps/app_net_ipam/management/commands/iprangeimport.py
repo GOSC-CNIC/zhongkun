@@ -314,7 +314,7 @@ class Command(BaseCommand):
         return ip_range, True
 
     @staticmethod
-    def time_str_to_datetime(time_str: int, format_='%Y-%m-%d %H:%M:%S'):
+    def time_str_to_datetime(time_str: str, format_='%Y-%m-%d %H:%M:%S'):
         dt = datetime.datetime.strptime(time_str, format_)
         return dt.replace(tzinfo=datetime.timezone(offset=datetime.timedelta(hours=8)))
 
