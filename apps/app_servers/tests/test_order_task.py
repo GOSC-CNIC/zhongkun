@@ -460,13 +460,15 @@ class ResOrderTaskTests(MyAPITransactionTestCase):
             status=ResourceOrderDeliverTask.Status.WAIT.value,
             status_desc='', progress=ResourceOrderDeliverTask.Progress.ORDERAED.value,
             order=order1, submitter_id=self.user.id, submitter=self.user.username,
-            service=self.service, task_desc='test task1 desc'
+            service=self.service, task_desc='test task1 desc',
+            derive_type=ResourceOrderDeliverTask.DeriveType.TRIAL.value
         )
         task2 = ResTaskManager.create_task(
             status=ResourceOrderDeliverTask.Status.FAILED.value,
             status_desc='', progress=ResourceOrderDeliverTask.Progress.COUPON.value,
             order=order1, submitter_id=self.user.id, submitter=self.user.username,
-            service=self.service, task_desc='test task2 desc', coupon=coupon1
+            service=self.service, task_desc='test task2 desc', coupon=coupon1,
+            derive_type=ResourceOrderDeliverTask.DeriveType.STAFF.value
         )
         task3 = ResTaskManager.create_task(
             status=ResourceOrderDeliverTask.Status.COMPLETED.value,
@@ -599,12 +601,24 @@ class ResOrderTaskTests(MyAPITransactionTestCase):
 
         self.assertKeysIn([
             'id', 'status', 'status_desc', 'progress', 'submitter_id', 'submitter', 'creation_time',
-            'update_time', 'task_desc', 'service', 'order', 'coupon_id'
+            'update_time', 'task_desc', 'service', 'order', 'coupon_id', 'derive_type'
         ], response.data['results'][0])
         self.assertKeysIn(['id', 'name', 'name_en'], response.data['results'][0]['service'])
         self.assertKeysIn([
             'id', 'resource_type', 'number', 'order_type', 'total_amount'
         ], response.data['results'][0]['order'])
+
+        # derive_type
+        query = parse.urlencode(query={'derive_type': 'invalid'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        query = parse.urlencode(query={'derive_type': ResourceOrderDeliverTask.DeriveType.STAFF.value})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['id'], task2.id)
 
     def test_detail(self):
         order_instance_config = ServerConfig(
@@ -672,7 +686,7 @@ class ResOrderTaskTests(MyAPITransactionTestCase):
         self.assertKeysIn(['id'], response.data)
         self.assertKeysIn([
             'id', 'status', 'status_desc', 'progress', 'submitter_id', 'submitter', 'creation_time',
-            'update_time', 'task_desc', 'service', 'order', 'coupon_id', 'coupon'
+            'update_time', 'task_desc', 'service', 'order', 'coupon_id', 'coupon', 'derive_type'
         ], response.data)
         self.assertKeysIn(['id', 'name', 'name_en'], response.data['service'])
         self.assertKeysIn([

@@ -1,3 +1,4 @@
+from typing import Union
 from decimal import Decimal
 from datetime import timedelta
 
@@ -213,7 +214,7 @@ class ResTaskManager:
             raise exceptions.ConflictError(message=_('任务资源已交付'), code='ConflictProgress')
 
     @staticmethod
-    def filter_res_task_qs(queryset, status, search: str, service_ids: list = None):
+    def filter_res_task_qs(queryset, status, search: str, derive_type: str, service_ids: list = None):
         """
         :search: 任务描述
         :service_ids: None(不过滤)；空数组返回空，非空数组过滤
@@ -224,6 +225,9 @@ class ResTaskManager:
 
         if search:
             lookups['task_desc__contains'] = search
+
+        if derive_type:
+            lookups['derive_type'] = derive_type
 
         if lookups:
             queryset = queryset.filter(**lookups)
@@ -236,7 +240,7 @@ class ResTaskManager:
 
         return queryset
 
-    def get_perm_task_qs(self, auth_user, status, search: str, service_id: str):
+    def get_perm_task_qs(self, auth_user, status, search: str, service_id: str, derive_type: Union[str, None]):
         """
         用户用权限的任务
         """
@@ -257,7 +261,8 @@ class ResTaskManager:
                 service_ids = ServiceManager.get_has_perm_service_ids(user_id=auth_user.id)
                 service_ids = list(service_ids)
 
-        qs = self.filter_res_task_qs(queryset=qs, status=status, search=search, service_ids=service_ids)
+        qs = self.filter_res_task_qs(
+            queryset=qs, status=status, search=search, derive_type=derive_type, service_ids=service_ids)
         return qs.order_by('-creation_time')
 
 
@@ -401,6 +406,13 @@ class ResOdDeliverTaskViewSet(CustomGenericViewSet):
                 required=False,
                 description=gettext_lazy('服务单元筛选')
             ),
+            openapi.Parameter(
+                name='derive_type',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('来源类型')
+            ),
         ],
         responses={
             200: ''''''
@@ -426,6 +438,7 @@ class ResOdDeliverTaskViewSet(CustomGenericViewSet):
                         "creation_time": "2024-12-23T06:48:54.066790Z",
                         "update_time": "2024-12-23T06:48:54.065855Z",
                         "task_desc": "test task3 desc",
+                        "derive_type": "xx",
                         "service": {
                             "id": "u2axgc6x4o6f5wo2kw8fp8c61",
                             "name": "test2",
@@ -455,17 +468,26 @@ class ResOdDeliverTaskViewSet(CustomGenericViewSet):
                 paid: 已支付           # 订单已支付
                 partdeliver: 部分交付   # 订购多个资源时，资源部分交付
                 delivered: 已交付      # 订购资源交付完成
+
+            * derive_type (任务的来源类型):
+                other: 其他
+                trial: 试用
+                staff: 内部员工
         """
         status = request.query_params.get('status', None)
         search = request.query_params.get('search', None)
         service_id = request.query_params.get('service_id', None)
+        derive_type = request.query_params.get('derive_type', None)
 
         try:
             if status is not None and status not in ResourceOrderDeliverTask.Status.values:
                 raise exceptions.InvalidArgument(message=_('指定的任务的状态无效'))
 
+            if derive_type is not None and derive_type not in ResourceOrderDeliverTask.DeriveType.values:
+                raise exceptions.InvalidArgument(message=_('来源类型无效'))
+
             qs = ResTaskManager().get_perm_task_qs(
-                auth_user=request.user, status=status, search=search, service_id=service_id)
+                auth_user=request.user, status=status, search=search, derive_type=derive_type, service_id=service_id)
             objs = self.paginate_queryset(queryset=qs)
             slr = self.get_serializer(objs, many=True)
         except Exception as exc:
@@ -494,6 +516,7 @@ class ResOdDeliverTaskViewSet(CustomGenericViewSet):
                 "creation_time": "2024-12-24T02:17:47.261191Z",
                 "update_time": "2024-12-24T02:17:47.260453Z",
                 "task_desc": "test task3 desc",
+                "derive_type": "xx",
                 "service": {
                     "id": "7yewsmder5ettnowipngvkkta",
                     "name": "test",
@@ -586,6 +609,11 @@ class ResOdDeliverTaskViewSet(CustomGenericViewSet):
                     "order_id": "2024122402174725672027"
                 }
             }
+
+            * derive_type (任务的来源类型):
+                other: 其他
+                trial: 试用
+                staff: 内部员工
         """
         try:
             task_id = kwargs[self.lookup_field]

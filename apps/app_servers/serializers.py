@@ -474,6 +474,7 @@ class AdminResTaskSerializer(serializers.Serializer):
     service = serializers.SerializerMethodField(label=_('服务单元'), method_name='get_service')
     order = serializers.SerializerMethodField(label=_('订单编号'), method_name='get_order')
     coupon_id = serializers.CharField(label=_('资源券编号'))
+    derive_type = serializers.CharField(label=_('来源类型'), max_length=16)
 
     @staticmethod
     def get_service(obj):
