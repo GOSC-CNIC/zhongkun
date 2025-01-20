@@ -515,8 +515,7 @@ class OrderViewSet(CustomGenericViewSet):
     @swagger_auto_schema(
         operation_summary=gettext_lazy('订单资源交付失败, 索要订单资源，主动触发交付订单资源'),
         request_body=no_body,
-        manual_parameters=[
-        ],
+        manual_parameters=CustomGenericViewSet.PARAMETERS_AS_ADMIN,
         responses={
             200: ''
         }

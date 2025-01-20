@@ -832,6 +832,15 @@ class OrderTests(MyAPITestCase):
         response = self.client.post(url)
         self.assertErrorResponse(status_code=409, code='TryAgainLater', response=response)
 
+        # 管理员索要订单资源
+        query = parse.urlencode(query={'as-admin': ''})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.service.org_data_center.add_admin_user(self.user2)
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=409, code='TryAgainLater', response=response)
+
         resource.last_deliver_time = resource.last_deliver_time - timedelta(minutes=2)
         resource.save(update_fields=['last_deliver_time'])
         ServicePrivateQuotaManager().update(

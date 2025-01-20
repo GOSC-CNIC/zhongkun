@@ -283,8 +283,12 @@ class OrderHandler:
             return view.exception_response(errors.BadRequest(_('无效的订单编号'), code='InvalidOrderId'))
 
         try:
-            order, resources = OrderManager().get_order_detail(
-                order_id=order_id, user=request.user, check_permission=True, read_only=False)
+            if view.is_as_admin_request(request=request):
+                order, resources = OrderManager().admin_get_order_detail(
+                    order_id=order_id, admin_user=request.user)
+            else:
+                order, resources = OrderManager().get_order_detail(
+                    order_id=order_id, user=request.user, check_permission=True, read_only=False)
         except errors.Error as exc:
             return view.exception_response(exc)
 
