@@ -12,7 +12,7 @@ from apps.app_global import serializers
 
 
 class AnnouncementViewSet(NormalGenericViewSet):
-    permission_classes = [IsAuthenticated, ]
+    permission_classes = []
     pagination_class = NewPageNumberPagination100
     lookup_field = 'id'
 

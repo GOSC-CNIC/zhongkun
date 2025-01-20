@@ -12,7 +12,7 @@ class AnnounceTests(MyAPITestCase):
     def setUp(self):
         pass
 
-    def test_sales_customer(self):
+    def test_list(self):
         user1 = get_or_create_user(username='lisi@cnic.cn')
 
         anno1 = Announcement(
@@ -45,10 +45,6 @@ class AnnounceTests(MyAPITestCase):
         base_url = reverse('app-global-api:announcement-list')
 
         # 未认证
-        r = self.client.get(base_url)
-        self.assertEqual(r.status_code, 401)
-        self.client.force_login(user1)
-
         r = self.client.get(base_url)
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], r.data)
