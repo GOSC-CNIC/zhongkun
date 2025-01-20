@@ -5,7 +5,7 @@ from django.db import models
 from django.utils.translation import gettext, gettext_lazy as _
 from django.utils import timezone
 
-from utils.model import UuidModel, OwnerType, CustomIdModel, get_encryptor
+from utils.model import UuidModel, OwnerType, CustomIdModel, get_encryptor, DeriveTypeBase
 from utils import rand_utils
 from apps.app_users.models import UserProfile
 from apps.app_vo.models import VirtualOrganization
@@ -232,9 +232,9 @@ class CashCoupon(CashCouponBase):
         ORDER = 'order', _('指定订单')
 
     class DeriveType(models.TextChoices):
-        OTHER = 'other', _('其他')
-        TRIAL = 'trial', _('试用')
-        STAFF = 'staff', _('内部员工')
+        OTHER = DeriveTypeBase.OTHER.value, _('其他')
+        TRIAL = DeriveTypeBase.TRIAL.value, _('试用')
+        STAFF = DeriveTypeBase.STAFF.value, _('内部员工')
 
     id = models.CharField(verbose_name=_('编码'), max_length=32, primary_key=True, editable=False)
     app_service = models.ForeignKey(

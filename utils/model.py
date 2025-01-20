@@ -75,3 +75,9 @@ class ResourceType(models.TextChoices):
     BUCKET = 'bucket', _('存储桶')
     SCAN = 'scan', _('安全扫描')
     VM_SNAPSHOT = 'vm_snapshot', _('云主机快照')
+
+
+class DeriveTypeBase(models.TextChoices):
+    OTHER = 'other', _('其他')
+    TRIAL = 'trial', _('试用')
+    STAFF = 'staff', _('内部员工')

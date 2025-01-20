@@ -225,6 +225,15 @@ class ResOrderTaskTests(MyAPITransactionTestCase):
         })
         self.assertErrorResponse(status_code=400, code='ArgumentConflict', response=response)
 
+        # derive_type
+        response = self.client.post(url, data={
+            'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
+            'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id,
+            'vo_id': self.vo.id, 'network_id': network_id, 'azone_id': 'test',
+            'derive_type': 'invalid'
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidAzoneId', response=response)
+
     def test_task_create(self):
         # 替换资源交付方法，模拟资源交付，避免真实去交付资源
         ResTaskManager.deliver_task_order = new_deliver_task_order
@@ -262,7 +271,8 @@ class ResOrderTaskTests(MyAPITransactionTestCase):
             'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
             'image_id': image_id, 'period': 12, 'period_unit': Order.PeriodUnit.MONTH.value,
             'flavor_id': self.flavor.id, 'network_id': network_id,
-            'remarks': 'testcase创建，可删除', 'number': 2, 'username': self.user2.username
+            'remarks': 'testcase创建，可删除', 'number': 2, 'username': self.user2.username,
+            'derive_type': ResourceOrderDeliverTask.DeriveType.STAFF.value
         })
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
         self.service.org_data_center.add_admin_user(user=self.user, is_ops_user=False)
@@ -296,7 +306,8 @@ class ResOrderTaskTests(MyAPITransactionTestCase):
         response = self.client.post(task_base_url, data={
             'pay_type': PayType.PREPAID.value, 'service_id': self.service.id, 'task_desc': 'test task desc',
             'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id, 'network_id': network_id,
-            'remarks': 'testcase创建，可删除', 'number': 2, 'username': self.user2.username
+            'remarks': 'testcase创建，可删除', 'number': 2, 'username': self.user2.username,
+            'derive_type': ResourceOrderDeliverTask.DeriveType.STAFF.value
         })
         self.assertEqual(response.status_code, 202)
         self.assertKeysIn(['task_id'], response.data)
@@ -328,6 +339,7 @@ class ResOrderTaskTests(MyAPITransactionTestCase):
         self.assertEqual(task1.submitter_id, self.user.id)
         self.assertEqual(task1.submitter, self.user.username)
         self.assertEqual(task1.task_desc, 'test task desc')
+        self.assertEqual(task1.derive_type, ResourceOrderDeliverTask.DeriveType.STAFF.value)
 
         # 修改订单的结算单元id
         order1.app_service_id = self.app_service1.id
@@ -345,6 +357,9 @@ class ResOrderTaskTests(MyAPITransactionTestCase):
         self.assertEqual(CashCoupon.objects.count(), 1)
         self.assertEqual(PaymentHistory.objects.count(), 1)
         self.assertEqual(Server.objects.count(), 0)
+        coupon1 = CashCoupon.objects.first()
+        self.assertEqual(coupon1.remark, task1.task_desc)
+        self.assertEqual(coupon1.derive_type, CashCoupon.DeriveType.STAFF.value)
 
         order1.refresh_from_db()
         self.assertEqual(order1.status, Order.Status.PAID.value)
@@ -403,6 +418,7 @@ class ResOrderTaskTests(MyAPITransactionTestCase):
         self.assertEqual(task2.submitter_id, self.user.id)
         self.assertEqual(task2.submitter, self.user.username)
         self.assertEqual(task2.task_desc, '')
+        self.assertEqual(task2.derive_type, ResourceOrderDeliverTask.DeriveType.OTHER.value)
 
     def test_list(self):
         service2 = ServiceConfig(
@@ -642,7 +658,10 @@ class ResOrderTaskTests(MyAPITransactionTestCase):
         self.assertEqual(response.status_code, 403)
 
         # --- admin ---
-        coupon1 = ResTaskManager.create_coupon_for_order(order=order1, issuer=self.user.username)
+        coupon1 = ResTaskManager.create_coupon_for_order(
+            order=order1, issuer=self.user.username, remark='test',
+            derive_type=CashCoupon.DeriveType.TRIAL.value
+        )
         task1.coupon = coupon1
         task1.save(update_fields=['coupon'])
 
@@ -802,7 +821,10 @@ class ResOrderTaskTests(MyAPITransactionTestCase):
             order=order1, submitter_id=self.user2.id, submitter=self.user2.username,
             service=self.service, task_desc='test task3 desc', coupon=None
         )
-        coupon1 = ResTaskManager.create_coupon_for_order(order=order1, issuer=self.user.username)
+        coupon1 = ResTaskManager.create_coupon_for_order(
+            order=order1, issuer=self.user.username, remark='test',
+            derive_type=CashCoupon.DeriveType.STAFF.value
+        )
         task1.coupon = coupon1
         task1.save(update_fields=['coupon'])
 

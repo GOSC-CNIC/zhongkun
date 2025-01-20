@@ -705,10 +705,10 @@ class EVCloudPermsLogAdmin(NoDeleteSelectModelAdmin):
 @admin.register(ResourceOrderDeliverTask)
 class ResourceOrderDeliverTaskAdmin(NoDeleteSelectModelAdmin):
     list_display_links = ('id',)
-    list_display = ('id', 'service', 'status', 'status_desc', 'progress', 'order', 'coupon', 'submitter',
+    list_display = ('id', 'service', 'status', 'status_desc', 'progress', 'order', 'coupon', 'submitter', 'derive_type',
                     'creation_time', 'update_time', 'task_desc')
     list_select_related = ('service', 'order', 'coupon')
-    list_filter = ('status', 'progress', ServerServiceFilter)
+    list_filter = ('status', 'progress', ServerServiceFilter, 'derive_type')
     raw_id_fields = ('service', 'order', 'coupon')
     search_fields = ['status_desc', 'submitter', 'order__id', 'coupon__id']
 

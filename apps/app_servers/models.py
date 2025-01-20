@@ -10,7 +10,7 @@ from django.core.exceptions import ValidationError
 
 from core import site_configs_manager
 from apps.app_service.models import OrgDataCenter, DataCenter
-from utils.model import get_encryptor, PayType, UuidModel, OwnerType
+from utils.model import get_encryptor, PayType, UuidModel, OwnerType, DeriveTypeBase
 from utils.validators import json_string_validator, http_url_validator
 from utils import rand_utils
 from apps.app_vo.models import VirtualOrganization
@@ -1355,6 +1355,11 @@ class ResourceOrderDeliverTask(UuidModel):
         PART_DELIVER = 'partdeliver', _('部分交付')
         DELIVERED = 'delivered', _('已交付')
 
+    class DeriveType(models.TextChoices):
+        OTHER = DeriveTypeBase.OTHER.value, _('其他')
+        TRIAL = DeriveTypeBase.TRIAL.value, _('试用')
+        STAFF = DeriveTypeBase.STAFF.value, _('内部员工')
+
     status = models.CharField(verbose_name=_('状态'), max_length=16, choices=Status.choices, default=Status.WAIT.value)
     status_desc = models.CharField(verbose_name=_('状态描述'), max_length=255, blank=True, default='')
     progress = models.CharField(verbose_name=_('任务进度'), max_length=16, choices=Progress.choices)
@@ -1371,6 +1376,8 @@ class ResourceOrderDeliverTask(UuidModel):
     creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
     update_time = models.DateTimeField(verbose_name=_('更新时间'))
     task_desc = models.CharField(max_length=255, blank=True, default='', verbose_name=_('任务描述'))
+    derive_type = models.CharField(
+        verbose_name=_('来源类型'), max_length=16, choices=DeriveType.choices, default=DeriveType.OTHER.value)
 
     class Meta:
         db_table = 'servers_res_od_deliver_task'

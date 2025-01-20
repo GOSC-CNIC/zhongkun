@@ -4,6 +4,7 @@ from rest_framework import serializers
 from utils.model import PayType
 from apps.app_wallet.trade_serializers import CashCouponSerializer
 from apps.app_order.serializers import OrderDetailSerializer
+from apps.app_servers.models import ResourceOrderDeliverTask
 
 
 class PeriodSerializer(serializers.Serializer):
@@ -202,6 +203,9 @@ class ServerCreateTaskSerializer(ServerCreateSerializer):
     task_desc = serializers.CharField(
         label=_('任务描述'), required=False, allow_blank=True, max_length=255, default='',
     help_text=_('管理员提交此云主机订购任务的描述信息'))
+    derive_type = serializers.CharField(
+        label=_('来源类型'), max_length=16, required=False, allow_null=True, default=None,
+        help_text=f'{ResourceOrderDeliverTask.DeriveType.choices}')
 
 
 class ServerArchiveSerializer(ServerBaseSerializer):

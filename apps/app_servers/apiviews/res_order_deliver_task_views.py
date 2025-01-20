@@ -43,7 +43,8 @@ class ResTaskManager:
     def create_task(
             status: str, status_desc: str, progress: str, order: Order,
             submitter_id, submitter: str, service, task_desc: str,
-            coupon: CashCoupon = None, creation_time = None, update_time = None
+            coupon: CashCoupon = None, creation_time = None, update_time = None,
+            derive_type: str = ResourceOrderDeliverTask.DeriveType.OTHER.value
     ) -> ResourceOrderDeliverTask:
         if not creation_time:
             creation_time = dj_timezone.now()
@@ -56,7 +57,8 @@ class ResTaskManager:
             order=order, coupon=coupon,
             submitter_id=submitter_id, submitter=submitter,
             service=service, task_desc=task_desc,
-            creation_time=creation_time, update_time=update_time
+            creation_time=creation_time, update_time=update_time,
+            derive_type=derive_type
         )
         task.save(force_insert=True)
         return task
@@ -130,7 +132,7 @@ class ResTaskManager:
             OrderResourceDeliverer().deliver_order(order=order)
 
     @staticmethod
-    def create_coupon_for_order(order: Order, issuer: str) -> CashCoupon:
+    def create_coupon_for_order(order: Order, issuer: str, remark: str, derive_type: str) -> CashCoupon:
         """
         为订单发券
         """
@@ -150,8 +152,9 @@ class ResTaskManager:
             face_value=face_value,
             effective_time=dj_timezone.now(),
             expiration_time=dj_timezone.now() + timedelta(days=30),
-            issuer=issuer, remark='为指定订单发放的券',
-            use_scope=CashCoupon.UseScope.ORDER.value, order_id=order.id
+            issuer=issuer, remark=remark,
+            use_scope=CashCoupon.UseScope.ORDER.value, order_id=order.id,
+            derive_type=derive_type
         )
         return coupon
 
@@ -163,15 +166,22 @@ class ResTaskManager:
             raise exceptions.ConflictError(message=_('任务关联的服务单元和任务订单的服务单元不一致'))
 
         with transaction.atomic():
+            coupon_remark = task.task_desc if task.task_desc else '为指定订单发放的券'
+            derive_type = task.derive_type
+            if derive_type not in CashCoupon.DeriveType.values:
+                derive_type = CashCoupon.DeriveType.OTHER.value
+
             # 未发券，先发券
             if task.progress == ResourceOrderDeliverTask.Progress.ORDERAED.value:
-                coupon = self.create_coupon_for_order(order=order, issuer=executor)
+                coupon = self.create_coupon_for_order(
+                    order=order, issuer=executor, remark=coupon_remark, derive_type=derive_type)
             elif task.progress == ResourceOrderDeliverTask.Progress.COUPON.value:
                 # 已发券，使用券，否者发券
                 if task.coupon:
                     coupon = task.coupon
                 else:
-                    coupon = self.create_coupon_for_order(order=order, issuer=executor)
+                    coupon = self.create_coupon_for_order(
+                        order=order, issuer=executor, remark=coupon_remark, derive_type=derive_type)
 
             # 支付订单
             subject = order.build_subject()
@@ -320,10 +330,13 @@ class ResOdDeliverTaskViewSet(CustomGenericViewSet):
         """
         try:
             data = ServerHandler._server_create_validate_params(view=self, request=request, is_as_admin=True)
-            task_desc = request.data.get('task_desc', '')
             pay_type = data['pay_type']
             if pay_type != PayType.PREPAID.value:
                 raise exceptions.BadRequest(message=_('付费模式参数"pay_type"值无效'), code='InvalidPayType')
+
+            task_data = self.create_task_validate_params(request=request)
+            task_desc = task_data['task_desc']
+            derive_type = task_data['derive_type']
 
             # 确保已配置app_id
             site_configs_manager.get_pay_app_id(check_valid=True)
@@ -338,7 +351,7 @@ class ResOdDeliverTaskViewSet(CustomGenericViewSet):
                     status=ResourceOrderDeliverTask.Status.WAIT.value, status_desc='',
                     progress=ResourceOrderDeliverTask.Progress.ORDERAED.value, order=order,
                     coupon=None, submitter_id=auth_user.id, submitter=auth_user.username,
-                    task_desc=task_desc, service=service
+                    task_desc=task_desc, service=service, derive_type=derive_type
                 )
         except exceptions.Error as exc:
             return self.exception_response(exc)
@@ -347,6 +360,22 @@ class ResOdDeliverTaskViewSet(CustomGenericViewSet):
         ResTaskManager().async_do_task_submit(res_task=res_task, auth_user=auth_user)
 
         return Response(data={'task_id': res_task.id}, status=202)
+
+    @staticmethod
+    def create_task_validate_params(request):
+        task_desc = request.data.get('task_desc', '')
+        derive_type = request.data.get('derive_type', None)
+
+        if derive_type:
+            if derive_type not in ResourceOrderDeliverTask.DeriveType.values:
+                raise exceptions.InvalidArgument(message=_('无效的来源类型'))
+        else:
+            derive_type = ResourceOrderDeliverTask.DeriveType.OTHER.value
+
+        return {
+            'task_desc': task_desc,
+            'derive_type': derive_type
+        }
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举管理员云服务器订购任务'),
