@@ -43,6 +43,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('app_global', '0006_announcement_content_en'),
+        ('bill', '0002_initial'),
     ]
 
     operations = [
